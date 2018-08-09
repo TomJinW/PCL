@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -51,7 +51,6 @@ namespace pcl
   using boost::uint32_t;
   using boost::int64_t;
   using boost::uint64_t;
-  using boost::int_fast16_t;
 }
 
 #if defined __INTEL_COMPILER
@@ -59,19 +58,13 @@ namespace pcl
 #endif
 
 #if defined _MSC_VER
-  // 4244 : conversion from 'type1' to 'type2', possible loss of data
-  // 4661 : no suitable definition provided for explicit template instantiation reques
-  // 4503 : decorated name length exceeded, name was truncated
-  // 4146 : unary minus operator applied to unsigned type, result still unsigned
-  #pragma warning (disable: 4018 4244 4267 4521 4251 4661 4305 4503 4146)
+  #pragma warning (disable: 4521 4251)
 #endif
 
 #include <iostream>
 #include <stdarg.h>
 #include <stdio.h>
-#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
-#endif
 #include <math.h>
 
 // MSCV doesn't have std::{isnan,isfinite}
@@ -103,9 +96,9 @@ namespace pcl
 #elif ANDROID
 // Use the math.h macros
 # include <math.h>
-# define pcl_isnan(x)    std::isnan(x)
-# define pcl_isfinite(x) std::isfinite(x)
-# define pcl_isinf(x)    std::isinf(x)
+# define pcl_isnan(x)    isnan(x)
+# define pcl_isfinite(x) isfinite(x)
+# define pcl_isinf(x)    isinf(x)
 
 #elif _GLIBCXX_USE_C99_MATH
 // Are the C++ cmath functions enabled?
@@ -143,10 +136,6 @@ pcl_isnan (T &val)
 #define RAD2DEG(x) ((x)*57.29578)
 #endif
 
-/** \brief Macro that maps version information given by major.minor.patch to a linear integer value to enable easy comparison
- */
-#define PCL_LINEAR_VERSION(major,minor,patch) ((major)<<16|(minor)<<8|(patch))
-
 /** Win32 doesn't seem to have rounding functions.
   * Therefore implement our own versions of these functions here.
   */
@@ -162,14 +151,8 @@ pcl_round (float number)
   return (number < 0.0f ? ceilf (number - 0.5f) : floorf (number + 0.5f));
 }
 
-#ifdef __GNUC__
-#define pcl_lrint(x) (lrint(static_cast<double> (x)))
-#define pcl_lrintf(x) (lrintf(static_cast<float> (x)))
-#else
 #define pcl_lrint(x) (static_cast<long int>(pcl_round(x)))
 #define pcl_lrintf(x) (static_cast<long int>(pcl_round(x)))
-#endif
-
 
 #ifdef _WIN32
 __inline float
@@ -289,25 +272,6 @@ log2f (float x)
     #define PCLAPI(rettype) PCL_EXTERN_C PCL_EXPORTS rettype PCL_CDECL
 #endif
 
-// Macro for pragma operator
-#if (defined (__GNUC__) || defined(__clang__))
-  #define PCL_PRAGMA(x) _Pragma (#x)
-#elif _MSC_VER
-  #define PCL_PRAGMA(x) __pragma (#x)
-#else
-  #define PCL_PRAGMA
-#endif
-
-// Macro for emitting pragma warning
-#if (defined (__GNUC__) || defined(__clang__))
-  #define PCL_PRAGMA_WARNING(x) PCL_PRAGMA (GCC warning x)
-#elif _MSC_VER
-  #define PCL_PRAGMA_WARNING(x) PCL_PRAGMA (warning (x))
-#else
-  #define PCL_PRAGMA_WARNING
-#endif
-
-
 // Macro to deprecate old functions
 //
 // Usage:
@@ -316,29 +280,23 @@ log2f (float x)
 // use me instead
 // void NewFunc(int a, double b);
 
-//for clang cf. http://clang.llvm.org/docs/LanguageExtensions.html
-#ifndef __has_extension
-  #define __has_extension(x) 0 // Compatibility with pre-3.0 compilers.
-#endif
-
-#if (defined(__GNUC__) && PCL_LINEAR_VERSION(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__) < PCL_LINEAR_VERSION(4,5,0) && ! defined(__clang__)) || defined(__INTEL_COMPILER)
-#define PCL_DEPRECATED(message) __attribute__ ((deprecated))
-#endif
-
 // gcc supports this starting from 4.5 : http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43666
-#if (defined(__GNUC__) && PCL_LINEAR_VERSION(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__) >= PCL_LINEAR_VERSION(4,5,0)) || (defined(__clang__) && __has_extension(attribute_deprecated_with_message))
-#define PCL_DEPRECATED(message) __attribute__ ((deprecated(message)))
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 10000 \
+    + __GNUC_MINOR__ * 100 \
+    + __GNUC_PATCHLEVEL__)
+#if GCC_VERSION < 40500
+#define PCL_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#else
+#define PCL_DEPRECATED(func, message) func __attribute__ ((deprecated(message)))
 #endif
 
-#ifdef _MSC_VER
-#define PCL_DEPRECATED(message) __declspec(deprecated(message))
-#endif
-
-#ifndef PCL_DEPRECATED
+#elif defined(_MSC_VER)
+#define PCL_DEPRECATED(func, message) __declspec(deprecated(message)) func
+#else
 #pragma message("WARNING: You need to implement PCL_DEPRECATED for this compiler")
-#define PCL_DEPRECATED(message)
+#define PCL_DEPRECATED(func) func
 #endif
-
 
 // Macro to deprecate old classes/structs
 //
@@ -356,21 +314,21 @@ log2f (float x)
 //     NewClass() {}
 // };
 
-#if (defined(__GNUC__) && PCL_LINEAR_VERSION(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__) < PCL_LINEAR_VERSION(4,5,0) && ! defined(__clang__)) || defined(__INTEL_COMPILER)
-#define PCL_DEPRECATED_CLASS(func, message) __attribute__ ((deprecated)) func
-#endif
-
 // gcc supports this starting from 4.5 : http://gcc.gnu.org/bugzilla/show_bug.cgi?id=43666
-#if (defined(__GNUC__) && PCL_LINEAR_VERSION(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__) >= PCL_LINEAR_VERSION(4,5,0)) || (defined(__clang__) && __has_extension(attribute_deprecated_with_message))
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 10000 \
+    + __GNUC_MINOR__ * 100 \
+    + __GNUC_PATCHLEVEL__)
+#if GCC_VERSION < 40500
+#define PCL_DEPRECATED_CLASS(func, message) __attribute__ ((deprecated)) func
+#else
 #define PCL_DEPRECATED_CLASS(func, message) __attribute__ ((deprecated(message))) func
 #endif
 
-#ifdef _MSC_VER
+#elif defined(_MSC_VER)
 #define PCL_DEPRECATED_CLASS(func, message) __declspec(deprecated(message)) func
-#endif
-
-#ifndef PCL_DEPRECATED_CLASS
-#pragma message("WARNING: You need to implement PCL_DEPRECATED_CLASS for this compiler")
+#else
+#pragma message("WARNING: You need to implement PCL_DEPRECATED for this compiler")
 #define PCL_DEPRECATED_CLASS(func) func
 #endif
 
@@ -382,7 +340,8 @@ log2f (float x)
   #error Alignment not supported on your platform
 #endif
 
-#if defined(__GLIBC__) && PCL_LINEAR_VERSION(__GLIBC__,__GLIBC_MINOR__,0)>PCL_LINEAR_VERSION(2,8,0)
+#if defined(__GLIBC__) && ((__GLIBC__>=2 && __GLIBC_MINOR__ >= 8) || __GLIBC__>2) \
+ && defined(__LP64__)
   #define GLIBC_MALLOC_ALIGNED 1
 #else
   #define GLIBC_MALLOC_ALIGNED 0
@@ -396,10 +355,8 @@ log2f (float x)
 
 #if defined(__APPLE__) || defined(_WIN64) || GLIBC_MALLOC_ALIGNED || FREEBSD_MALLOC_ALIGNED
   #define MALLOC_ALIGNED 1
-#endif
-
-#if defined (HAVE_MM_MALLOC)
-  #include <mm_malloc.h>
+#else
+  #define MALLOC_ALIGNED 0
 #endif
 
 inline void*
@@ -415,8 +372,6 @@ aligned_malloc (size_t size)
   ptr = _mm_malloc (size, 16);
 #elif defined (_MSC_VER)
   ptr = _aligned_malloc (size, 16);
-#elif defined (ANDROID)
-  ptr = memalign (16, size);
 #else
   #error aligned_malloc not supported on your platform
   ptr = 0;
@@ -430,11 +385,9 @@ aligned_free (void* ptr)
 #if   defined (MALLOC_ALIGNED) || defined (HAVE_POSIX_MEMALIGN)
   std::free (ptr);
 #elif defined (HAVE_MM_MALLOC)
-  _mm_free (ptr);
+  ptr = _mm_free (ptr);
 #elif defined (_MSC_VER)
   _aligned_free (ptr);
-#elif defined (ANDROID)
-  free (ptr);
 #else
   #error aligned_free not supported on your platform
 #endif

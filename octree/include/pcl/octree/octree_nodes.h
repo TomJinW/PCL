@@ -36,18 +36,18 @@
  * $Id$
  */
 
-#ifndef PCL_OCTREE_NODE_H
-#define PCL_OCTREE_NODE_H
+#ifndef OCTREE_NODE_H
+#define OCTREE_NODE_H
 
+#include <string>
+#include <vector>
 #include <cstddef>
 
 #include <assert.h>
 
-#include <Eigen/Core>
-
 #include <pcl/pcl_macros.h>
 
-#include "octree_container.h"
+using namespace std;
 
 namespace pcl
 {
@@ -94,21 +94,24 @@ namespace pcl
      */
 
     template<typename ContainerT>
-      class OctreeLeafNode : public OctreeNode
+      class OctreeLeafNode : public OctreeNode, public ContainerT
       {
       public:
 
+        using ContainerT::getSize;
+        using ContainerT::getData;
+        using ContainerT::setData;
+
         /** \brief Empty constructor. */
         OctreeLeafNode () :
-            OctreeNode ()
+            OctreeNode (), ContainerT ()
         {
         }
 
         /** \brief Copy constructor. */
         OctreeLeafNode (const OctreeLeafNode& source) :
-            OctreeNode ()
+            OctreeNode (), ContainerT (source)
         {
-          container_ = source.container_;
         }
 
         /** \brief Empty deconstructor. */
@@ -131,68 +134,14 @@ namespace pcl
           return LEAF_NODE;
         }
 
-        /** \brief Get const pointer to container */
-        const ContainerT*
-        operator->() const
+        /** \brief Reset node */
+        inline
+        void
+        reset ()
         {
-          return &container_;
+          ContainerT::reset ();
         }
 
-        /** \brief Get pointer to container */
-        ContainerT*
-        operator-> ()
-        {
-          return &container_;
-        }
-
-        /** \brief Get const reference to container */
-        const ContainerT&
-        operator* () const
-        {
-          return container_;
-        }
-
-        /** \brief Get reference to container */
-        ContainerT&
-        operator* ()
-        {
-          return container_;
-        }
-
-        /** \brief Get const reference to container */
-        const ContainerT&
-        getContainer () const
-        {
-          return container_;
-        }
-
-        /** \brief Get reference to container */
-        ContainerT&
-        getContainer ()
-        {
-          return container_;
-        }
-
-        /** \brief Get const pointer to container */
-        const ContainerT*
-        getContainerPtr() const
-        {
-          return &container_;
-        }
-
-        /** \brief Get pointer to container */
-        ContainerT*
-        getContainerPtr ()
-        {
-          return &container_;
-        }
-
-      protected:
-        ContainerT container_;
-        
-      public:
-        //Type ContainerT may have fixed-size Eigen objects inside
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       };
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -201,29 +150,33 @@ namespace pcl
      * \author Julius Kammerl (julius@kammerl.de)
      */
     template<typename ContainerT>
-      class OctreeBranchNode : public OctreeNode
+      class OctreeBranchNode : public OctreeNode, ContainerT
       {
       public:
 
+        using ContainerT::getSize;
+        using ContainerT::getData;
+        using ContainerT::setData;
+
         /** \brief Empty constructor. */
         OctreeBranchNode () :
-            OctreeNode()
+            ContainerT ()
         {
           // reset pointer to child node vectors
-          memset (child_node_array_, 0, sizeof(child_node_array_));
+          memset (childNodeArray_, 0, sizeof(childNodeArray_));
         }
 
         /** \brief Empty constructor. */
         OctreeBranchNode (const OctreeBranchNode& source) :
-            OctreeNode()
+            ContainerT (source)
         {
           unsigned char i;
 
-          memset (child_node_array_, 0, sizeof(child_node_array_));
+          memset (childNodeArray_, 0, sizeof(childNodeArray_));
 
           for (i = 0; i < 8; ++i)
-            if (source.child_node_array_[i])
-              child_node_array_[i] = source.child_node_array_[i]->deepCopy ();
+            if (source.childNodeArray_[i])
+              childNodeArray_[i] = source.childNodeArray_[i]->deepCopy ();
         }
 
         /** \brief Copy operator. */
@@ -232,11 +185,11 @@ namespace pcl
         {
           unsigned char i;
 
-          memset (child_node_array_, 0, sizeof(child_node_array_));
+          memset (childNodeArray_, 0, sizeof(childNodeArray_));
 
           for (i = 0; i < 8; ++i)
-            if (source.child_node_array_[i])
-              child_node_array_[i] = source.child_node_array_[i]->deepCopy ();
+            if (source.childNodeArray_[i])
+              childNodeArray_[i] = source.childNodeArray_[i]->deepCopy ();
           return (*this);
         }
 
@@ -253,26 +206,34 @@ namespace pcl
         {
         }
 
+        inline
+        void
+        reset ()
+        {
+          memset (childNodeArray_, 0, sizeof(childNodeArray_));
+          ContainerT::reset ();
+        }
+
         /** \brief Access operator.
-         *  \param child_idx_arg: index to child node
+         *  \param childIdx_arg: index to child node
          *  \return OctreeNode pointer
          * */
         inline OctreeNode*&
-        operator[] (unsigned char child_idx_arg)
+        operator[] (unsigned char childIdx_arg)
         {
-          assert(child_idx_arg < 8);
-          return child_node_array_[child_idx_arg];
+          assert(childIdx_arg < 8);
+          return childNodeArray_[childIdx_arg];
         }
 
         /** \brief Get pointer to child
-         *  \param child_idx_arg: index to child node
+         *  \param childIdx_arg: index to child node
          *  \return OctreeNode pointer
          * */
         inline OctreeNode*
-        getChildPtr (unsigned char child_idx_arg) const
+        getChildPtr (unsigned char childIdx_arg) const
         {
-          assert(child_idx_arg < 8);
-          return child_node_array_[child_idx_arg];
+          assert(childIdx_arg < 8);
+          return childNodeArray_[childIdx_arg];
         }
 
         /** \brief Get pointer to child
@@ -281,42 +242,18 @@ namespace pcl
         inline void setChildPtr (OctreeNode* child, unsigned char index)
         {
           assert(index < 8);
-          child_node_array_[index] = child;
+          childNodeArray_[index] = child;
         }
 
 
         /** \brief Check if branch is pointing to a particular child node
-         *  \param child_idx_arg: index to child node
+         *  \param childIdx_arg: index to child node
          *  \return "true" if pointer to child node exists; "false" otherwise
          * */
-        inline bool hasChild (unsigned char child_idx_arg) const
+        inline bool hasChild (unsigned char childIdx_arg) const
         {
-          return (child_node_array_[child_idx_arg] != 0);
+          return (childNodeArray_[childIdx_arg] != 0);
         }
-
-
-        /** \brief Check if branch can be pruned
-         *  \note if all children are leaf nodes AND contain identical containers, branch can be pruned
-         *  \return "true" if branch can be pruned; "false" otherwise
-         * */
-    /*    inline bool isPrunable () const
-        {
-          const OctreeNode* firstChild = child_node_array_[0];
-          if (!firstChild || firstChild->getNodeType()==BRANCH_NODE)
-            return false;
-
-          bool prunable = true;
-          for (unsigned char i = 1; i < 8 && prunable; ++i)
-          {
-            const OctreeNode* child = child_node_array_[i];
-            if ( (!child) ||
-                 (child->getNodeType()==BRANCH_NODE) ||
-                 ((*static_cast<const OctreeContainerBase*>(child)) == (*static_cast<const OctreeContainerBase*>(child)) ) )
-              prunable = false;
-          }
-
-          return prunable;
-        }*/
 
         /** \brief Get the type of octree node. Returns LEAVE_NODE type */
         virtual node_type_t
@@ -325,74 +262,8 @@ namespace pcl
           return BRANCH_NODE;
         }
 
-        // reset node
-        void reset()
-        {
-          memset(child_node_array_, 0, sizeof(child_node_array_));
-          container_.reset();
-        }
-
-
-        /** \brief Get const pointer to container */
-        const ContainerT*
-        operator->() const
-        {
-          return &container_;
-        }
-
-        /** \brief Get pointer to container */
-        ContainerT*
-        operator-> ()
-        {
-          return &container_;
-        }
-
-        /** \brief Get const reference to container */
-        const ContainerT&
-        operator* () const
-        {
-          return container_;
-        }
-
-        /** \brief Get reference to container */
-        ContainerT&
-        operator* ()
-        {
-          return container_;
-        }
-
-        /** \brief Get const reference to container */
-        const ContainerT&
-        getContainer () const
-        {
-          return container_;
-        }
-
-        /** \brief Get reference to container */
-        ContainerT&
-        getContainer ()
-        {
-          return container_;
-        }
-
-        /** \brief Get const pointer to container */
-        const ContainerT*
-        getContainerPtr() const
-        {
-          return &container_;
-        }
-
-        /** \brief Get pointer to container */
-        ContainerT*
-        getContainerPtr ()
-        {
-          return &container_;
-        }
-
       protected:
-        OctreeNode* child_node_array_[8];
-
-        ContainerT container_;
+        OctreeNode* childNodeArray_[8];
       };
   }
 }

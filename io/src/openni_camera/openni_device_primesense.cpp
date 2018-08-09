@@ -1,9 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011 2011 Willow Garage, Inc.
+ *    Suat Gedikli <gedikli@willowgarage.com>
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,23 +37,20 @@
 #include <pcl/pcl_config.h>
 #ifdef HAVE_OPENNI
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
-
 #include <pcl/io/openni_camera/openni_device_primesense.h>
 #include <pcl/io/openni_camera/openni_image_yuv_422.h>
 #include <iostream>
 #include <sstream>
-#include <pcl/io/boost.h>
+#include <boost/thread/mutex.hpp>
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::DevicePrimesense::DevicePrimesense (
-    xn::Context& context, 
-    const xn::NodeInfo& device_node, 
-    const xn::NodeInfo& image_node, 
-    const xn::NodeInfo& depth_node, 
-    const xn::NodeInfo& ir_node) : OpenNIDevice (context, device_node, image_node, depth_node, ir_node)
+using namespace std;
+using namespace boost;
+
+namespace openni_wrapper
+{
+
+DevicePrimesense::DevicePrimesense (xn::Context& context, const xn::NodeInfo& device_node, const xn::NodeInfo& image_node, const xn::NodeInfo& depth_node, const xn::NodeInfo& ir_node)
+: OpenNIDevice (context, device_node, image_node, depth_node, ir_node)
 {
   // setup stream modes
   enumAvailableModes ();
@@ -62,7 +58,7 @@ openni_wrapper::DevicePrimesense::DevicePrimesense (
   setImageOutputMode (getDefaultImageMode ());
   setIROutputMode (getDefaultIRMode ());
 
-  boost::unique_lock<boost::mutex> image_lock (image_mutex_);
+  unique_lock<mutex> image_lock(image_mutex_);
   XnStatus status = image_generator_.SetIntProperty ("InputFormat", 5);
   if (status != XN_STATUS_OK)
     THROW_OPENNI_EXCEPTION ("Error setting the image input format to Uncompressed YUV422. Reason: %s", xnGetStatusString (status));
@@ -73,17 +69,16 @@ openni_wrapper::DevicePrimesense::DevicePrimesense (
 
   image_lock.unlock ();
 
-  boost::lock_guard<boost::mutex> depth_lock (depth_mutex_);
+  lock_guard<mutex> depth_lock(depth_mutex_);
   status = depth_generator_.SetIntProperty ("RegistrationType", 1);
   if (status != XN_STATUS_OK)
     THROW_OPENNI_EXCEPTION ("Error setting the registration type. Reason: %s", xnGetStatusString (status));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::DevicePrimesense::~DevicePrimesense () throw ()
+DevicePrimesense::~DevicePrimesense () throw ()
 {
-  setDepthRegistration (false);
-  setSynchronization (false);
+  setDepthRegistration ( false );
+  setSynchronization ( false );
 
   depth_mutex_.lock ();
   depth_generator_.UnregisterFromNewDataAvailable (depth_callback_handle_);
@@ -94,24 +89,57 @@ openni_wrapper::DevicePrimesense::~DevicePrimesense () throw ()
   image_mutex_.unlock ();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool 
-openni_wrapper::DevicePrimesense::isImageResizeSupported (
-    unsigned input_width, 
-    unsigned input_height, 
-    unsigned output_width, 
-    unsigned output_height) const throw ()
+bool DevicePrimesense::isImageResizeSupported (unsigned input_width, unsigned input_height, unsigned output_width, unsigned output_height) const throw ()
 {
-  return (ImageYUV422::resizingSupported (input_width, input_height, output_width, output_height));
+  return ImageYUV422::resizingSupported (input_width, input_height, output_width, output_height);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::DevicePrimesense::enumAvailableModes () throw ()
+//void DevicePrimesense::setImageOutputMode (const XnMapOutputMode& output_mode)
+//{
+//  if (output_mode.nFPS == 30 && output_mode.nXRes == XN_UXGA_X_RES && output_mode.nYRes == XN_UXGA_Y_RES )
+//  {
+//    cout << "setting image mode to UXGA" << endl;
+//    if (isImageStreamRunning ())
+//    {
+//      stopImageStream ();
+//      XnStatus status = image_generator_.SetIntProperty ("InputFormat", 0);
+//      if (status != XN_STATUS_OK)
+//        THROW_OPENNI_EXCEPTION ("Error setting the image input format to compressed BAYER. Reason: %s", xnGetStatusString (status));
+//      status = image_generator_.SetPixelFormat (XN_PIXEL_FORMAT_RGB24);
+//      if (status != XN_STATUS_OK)
+//        THROW_OPENNI_EXCEPTION ("Failed to set image pixel format to YUV422. Reason: %s", xnGetStatusString (status));
+//      sleep (1);
+//      startImageStream ();
+//    }
+//    else
+//    {
+//      XnStatus status = image_generator_.SetIntProperty ("InputFormat", 0);
+//      if (status != XN_STATUS_OK)
+//        THROW_OPENNI_EXCEPTION ("Error setting the image input format to compressed BAYER. Reason: %s", xnGetStatusString (status));
+//
+//      status = image_generator_.SetPixelFormat (XN_PIXEL_FORMAT_GRAYSCALE_8_BIT);
+//      if (status != XN_STATUS_OK)
+//        THROW_OPENNI_EXCEPTION ("Failed to set image pixel format to YUV422. Reason: %s", xnGetStatusString (status));
+//    }
+//  }
+//  else
+//  {
+//    XnStatus status = image_generator_.SetIntProperty ("InputFormat", 5);
+//    if (status != XN_STATUS_OK)
+//        THROW_OPENNI_EXCEPTION ("Error setting the image input format to uncompressed BAYER. Reason: %s", xnGetStatusString (status));
+//
+//    status = image_generator_.SetPixelFormat (XN_PIXEL_FORMAT_YUV422);
+//    if (status != XN_STATUS_OK)
+//      THROW_OPENNI_EXCEPTION ("Failed to set image pixel format to YUV422. Reason: %s", xnGetStatusString (status));
+//  }
+//  OpenNIDevice::setImageOutputMode (output_mode);
+//}
+
+void DevicePrimesense::enumAvailableModes () throw ()
 {
   XnMapOutputMode output_mode;
-  available_image_modes_.clear ();
-  available_depth_modes_.clear ();
+  available_image_modes_.clear();
+  available_depth_modes_.clear();
 
   // Depth Modes
   output_mode.nFPS = 30;
@@ -150,6 +178,11 @@ openni_wrapper::DevicePrimesense::enumAvailableModes () throw ()
   output_mode.nYRes = XN_VGA_Y_RES;
   available_image_modes_.push_back (output_mode);
 
+//  output_mode.nFPS = 30;
+//  output_mode.nXRes = XN_UXGA_X_RES;
+//  output_mode.nYRes = XN_UXGA_Y_RES;
+//  available_image_modes_.push_back (output_mode);
+
   output_mode.nFPS = 25;
   output_mode.nXRes = XN_QVGA_X_RES;
   output_mode.nYRes = XN_QVGA_Y_RES;
@@ -166,16 +199,12 @@ openni_wrapper::DevicePrimesense::enumAvailableModes () throw ()
   available_image_modes_.push_back (output_mode);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::Image> 
-openni_wrapper::DevicePrimesense::getCurrentImage (boost::shared_ptr<xn::ImageMetaData> image_data) const throw ()
+boost::shared_ptr<Image> DevicePrimesense::getCurrentImage (boost::shared_ptr<xn::ImageMetaData> image_data) const throw ()
 {
-  return (boost::shared_ptr<openni_wrapper::Image> (new ImageYUV422 (image_data)));
+  return boost::shared_ptr<Image> ( new ImageYUV422 (image_data) );
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::DevicePrimesense::startImageStream ()
+void DevicePrimesense::startImageStream ()
 {
   // Suat: Ugly workaround... but on some usb-ports its not possible to start the image stream after the depth stream.
   // turning on and off registration solves for some reason the problem!
@@ -215,9 +244,7 @@ openni_wrapper::DevicePrimesense::startImageStream ()
     OpenNIDevice::startImageStream ();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::DevicePrimesense::startDepthStream ()
+void DevicePrimesense::startDepthStream ()
 {
   if (isDepthRegistered ())
   {
@@ -235,4 +262,5 @@ openni_wrapper::DevicePrimesense::startDepthStream ()
     OpenNIDevice::startDepthStream ();
 }
 
+}//namespace
 #endif

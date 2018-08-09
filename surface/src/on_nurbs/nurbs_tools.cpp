@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -54,7 +54,7 @@ NurbsTools::downsample_random (const vector_vec3d &data1, vector_vec3d &data2, u
     return;
   }
 
-  unsigned s = unsigned (data1.size ());
+  unsigned s = data1.size ();
   data2.clear ();
 
   for (unsigned i = 0; i < size; i++)
@@ -70,7 +70,7 @@ NurbsTools::downsample_random (vector_vec3d &data, unsigned size)
   if (data.size () <= size && size > 0)
     return;
 
-  unsigned s = unsigned (data.size ());
+  unsigned s = data.size ();
 
   vector_vec3d data_tmp;
 
@@ -197,7 +197,7 @@ NurbsTools::computeMean (const vector_vec3d &data)
 {
   Eigen::Vector3d u (0.0, 0.0, 0.0);
 
-  unsigned s = unsigned (data.size ());
+  unsigned s = data.size ();
   double ds = 1.0 / s;
 
   for (unsigned i = 0; i < s; i++)
@@ -211,110 +211,13 @@ NurbsTools::computeMean (const vector_vec2d &data)
 {
   Eigen::Vector2d u (0.0, 0.0);
 
-  size_t s = data.size ();
-  double ds = 1.0 / double (s);
+  unsigned s = data.size ();
+  double ds = 1.0 / s;
 
-  for (size_t i = 0; i < s; i++)
+  for (unsigned i = 0; i < s; i++)
     u += (data[i] * ds);
 
   return u;
-}
-
-Eigen::Vector3d
-NurbsTools::computeVariance (const Eigen::Vector3d &mean, const vector_vec3d &data)
-{
-  Eigen::Vector3d var (0.0, 0.0, 0.0);
-
-  size_t s = data.size ();
-  double ds = 1.0 / double (s);
-
-  for (size_t i = 0; i < s; i++)
-  {
-    Eigen::Vector3d v = data[i] - mean;
-    var += Eigen::Vector3d (v (0) * v (0) * ds, v (1) * v (1) * ds, v (2) * v (2) * ds);
-  }
-
-  return var;
-}
-
-Eigen::Vector2d
-NurbsTools::computeVariance (const Eigen::Vector2d &mean, const vector_vec2d &data)
-{
-  Eigen::Vector2d var (0.0, 0.0);
-
-  size_t s = data.size ();
-  double ds = 1.0 / double (s);
-
-  for (size_t i = 0; i < s; i++)
-  {
-    Eigen::Vector2d v = data[i] - mean;
-    var += Eigen::Vector2d (v (0) * v (0) * ds, v (1) * v (1) * ds);
-  }
-
-  return var;
-}
-
-void
-NurbsTools::computeBoundingBox (const ON_NurbsCurve &nurbs, Eigen::Vector3d &_min, Eigen::Vector3d &_max)
-{
-  _min = Eigen::Vector3d (DBL_MAX, DBL_MAX, DBL_MAX);
-  _max = Eigen::Vector3d (-DBL_MAX, -DBL_MAX, -DBL_MAX);
-  for (int i = 0; i < nurbs.CVCount (); i++)
-  {
-    ON_3dPoint p;
-    nurbs.GetCV (i, p);
-
-    if (p.x < _min (0))
-      _min (0) = p.x;
-    if (p.y < _min (1))
-      _min (1) = p.y;
-    if (p.z < _min (2))
-      _min (2) = p.z;
-
-    if (p.x > _max (0))
-      _max (0) = p.x;
-    if (p.y > _max (1))
-      _max (1) = p.y;
-    if (p.z > _max (2))
-      _max (2) = p.z;
-  }
-}
-
-void
-NurbsTools::computeBoundingBox (const ON_NurbsSurface &nurbs, Eigen::Vector3d &_min, Eigen::Vector3d &_max)
-{
-  _min = Eigen::Vector3d (DBL_MAX, DBL_MAX, DBL_MAX);
-  _max = Eigen::Vector3d (-DBL_MAX, -DBL_MAX, -DBL_MAX);
-  for (int i = 0; i < nurbs.CVCount (0); i++)
-  {
-    for (int j = 0; j < nurbs.CVCount (1); j++)
-    {
-      ON_3dPoint p;
-      nurbs.GetCV (i, j, p);
-
-      if (p.x < _min (0))
-        _min (0) = p.x;
-      if (p.y < _min (1))
-        _min (1) = p.y;
-      if (p.z < _min (2))
-        _min (2) = p.z;
-
-      if (p.x > _max (0))
-        _max (0) = p.x;
-      if (p.y > _max (1))
-        _max (1) = p.y;
-      if (p.z > _max (2))
-        _max (2) = p.z;
-    }
-  }
-}
-
-double
-NurbsTools::computeRScale (const Eigen::Vector3d &_min, const Eigen::Vector3d &_max)
-{
-  Eigen::Vector3d a = _max - _min;
-
-  return std::max<double> (a (0), std::max<double> (a (1), a (2)));
 }
 
 void
@@ -329,7 +232,7 @@ NurbsTools::pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3
 
   mean = computeMean (data);
 
-  unsigned s = unsigned (data.size ());
+  unsigned s = data.size ();
 
   Eigen::MatrixXd Q (3, s);
 
@@ -338,7 +241,7 @@ NurbsTools::pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3
 
   Eigen::Matrix3d C = Q * Q.transpose ();
 
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver (C);
+  Eigen::SelfAdjointEigenSolver < Eigen::Matrix3d > eigensolver (C);
   if (eigensolver.info () != Success)
   {
     printf ("[NurbsTools::pca] Can not find eigenvalues.\n");
@@ -352,41 +255,6 @@ NurbsTools::pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3
       eigenvectors.col (2) = eigenvectors.col (0).cross (eigenvectors.col (1));
     else
       eigenvectors.col (i) = eigensolver.eigenvectors ().col (2 - i);
-  }
-}
-
-void
-NurbsTools::pca (const vector_vec2d &data, Eigen::Vector2d &mean, Eigen::Matrix2d &eigenvectors,
-                 Eigen::Vector2d &eigenvalues)
-{
-  if (data.empty ())
-  {
-    printf ("[NurbsTools::pca] Error, data is empty\n");
-    abort ();
-  }
-
-  mean = computeMean (data);
-
-  unsigned s = unsigned (data.size ());
-
-  Eigen::MatrixXd Q (2, s);
-
-  for (unsigned i = 0; i < s; i++)
-    Q.col (i) << (data[i] - mean);
-
-  Eigen::Matrix2d C = Q * Q.transpose ();
-
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver (C);
-  if (eigensolver.info () != Success)
-  {
-    printf ("[NurbsTools::pca] Can not find eigenvalues.\n");
-    abort ();
-  }
-
-  for (int i = 0; i < 2; ++i)
-  {
-    eigenvalues (i) = eigensolver.eigenvalues () (1 - i);
-    eigenvectors.col (i) = eigensolver.eigenvectors ().col (1 - i);
   }
 }
 

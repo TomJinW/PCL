@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -39,7 +39,6 @@
 #define PCL_CLIPPER3D_H_
 #include <pcl/point_cloud.h>
 #include <vector>
-#include <Eigen/StdVector>
 
 namespace pcl
 {
@@ -52,9 +51,6 @@ namespace pcl
   class Clipper3D
   {
     public:
-      typedef boost::shared_ptr< Clipper3D<PointT> > Ptr;
-      typedef boost::shared_ptr< const Clipper3D<PointT> > ConstPtr;
- 
       /**
         * \brief virtual destructor. Never throws an exception.
         */
@@ -83,7 +79,7 @@ namespace pcl
         * \param[in,out] polygon the polygon in any direction (ccw or cw) but ordered, thus two neighboring points define an edge of the polygon
         */
       virtual void
-      clipPlanarPolygon3D (std::vector<PointT, Eigen::aligned_allocator<PointT> >& polygon) const = 0;
+      clipPlanarPolygon3D (std::vector<PointT>& polygon) const = 0;
 
       /**
         * \brief interface to clip a planar polygon given by an ordered list of points
@@ -91,7 +87,7 @@ namespace pcl
         * \param[out] clipped_polygon the clipped polygon
         */
       virtual void
-      clipPlanarPolygon3D (const std::vector<PointT, Eigen::aligned_allocator<PointT> >& polygon, std::vector<PointT, Eigen::aligned_allocator<PointT> >& clipped_polygon) const = 0;
+      clipPlanarPolygon3D (const std::vector<PointT>& polygon, std::vector<PointT>& clipped_polygon) const = 0;
 
       /**
         * \brief interface to clip a point cloud
@@ -111,5 +107,6 @@ namespace pcl
       clone () const = 0;
   };
 }
+
 
 #endif // PCL_CLIPPER3D_H_

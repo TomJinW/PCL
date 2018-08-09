@@ -45,7 +45,7 @@ namespace pcl
          * is optional, if this is not set, it will only use the data in the
          * input cloud to estimate the features.  This is useful when you only
          * need to compute the features for a downsampled cloud.  
-         * \param search a pointer to a PointCloud message
+         * \param cloud a pointer to a PointCloud message
          */
         inline void 
         setSearchMethod (const SearchPtr &search) { search_ = search; }
@@ -55,7 +55,7 @@ namespace pcl
         getSearchMethod () { return (search_); }
 
         /** \brief add a PointCoherence to the PointCloudCoherence.
-          * \param[in] cloud coherence a pointer to PointCoherence.
+          * \param coherence a pointer to PointCoherence.
           */
         virtual inline void
         setTargetCloud (const PointCloudInConstPtr &cloud)
@@ -65,7 +65,7 @@ namespace pcl
         }
         
         /** \brief set maximum distance to be taken into account.
-          * \param[in] val maximum distance.
+          * \param maximum distance.
           */
         inline void setMaximumDistance (double val) { maximum_distance_ = val; }
 
@@ -93,8 +93,5 @@ namespace pcl
 }
 
 // #include <pcl/tracking/impl/nearest_pair_point_cloud_coherence.hpp>
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/tracking/impl/nearest_pair_point_cloud_coherence.hpp>
-#endif
 
 #endif

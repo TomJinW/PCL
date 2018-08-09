@@ -159,8 +159,7 @@ namespace pcl
         /** \brief Default constructor **/
         ProbabilityProc()
         {
-          std::cout << "[pcl::device::ProbabilityProc:ProbabilityProc] : (D) : Constructor called" << std::endl;
-          //PCL_DEBUG("[pcl::device::ProbabilityProc:ProbabilityProc] : (D) : Constructor called");
+          std::cout << "(I) : ProbabilityProc constructor called" << std::endl;
         }
 
         /** \brief Default destructor **/

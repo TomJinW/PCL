@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,7 +33,6 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
  *
  */
 #ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_
@@ -60,15 +58,13 @@ namespace pcl
       * \author Dirk Holz
       * \ingroup registration
       */
-    class PCL_EXPORTS CorrespondenceRejectorTrimmed: public CorrespondenceRejector
+    class CorrespondenceRejectorTrimmed: public CorrespondenceRejector
     {
       using CorrespondenceRejector::input_correspondences_;
       using CorrespondenceRejector::rejection_name_;
       using CorrespondenceRejector::getClassName;
 
       public:
-        typedef boost::shared_ptr<CorrespondenceRejectorTrimmed> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorTrimmed> ConstPtr;
 
         /** \brief Empty constructor. */
         CorrespondenceRejectorTrimmed () : 
@@ -87,11 +83,11 @@ namespace pcl
           * correspondences) and 1 (full overlap, all correspondences)
           */
         virtual inline void 
-        setOverlapRatio (float ratio) { overlap_ratio_ = std::min (1.0f, std::max (0.0f, ratio)); };
+        setOverlapRadio (float ratio) { overlap_ratio_ = std::min (1.0f, std::max (0.0f, ratio)); };
 
         /** \brief Get the maximum distance used for thresholding in correspondence rejection. */
         inline float 
-        getOverlapRatio () { return overlap_ratio_; };
+        getOverlapRadio () { return overlap_ratio_; };
 
         /** \brief Set a minimum number of correspondences. If the specified overlap ratio causes to have
           * less correspondences,  \a CorrespondenceRejectorTrimmed will try to return at least
@@ -111,9 +107,10 @@ namespace pcl
           * \param[in] original_correspondences the set of initial correspondences given
           * \param[out] remaining_correspondences the resultant filtered set of remaining correspondences
           */
-        void
+        inline void
         getRemainingCorrespondences (const pcl::Correspondences& original_correspondences,
                                      pcl::Correspondences& remaining_correspondences);
+
 
       protected:
 
@@ -138,4 +135,4 @@ namespace pcl
 
 #include <pcl/registration/impl/correspondence_rejection_trimmed.hpp>
 
-#endif    // PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_
+#endif /* PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_ */

@@ -36,15 +36,15 @@
  * $Id$
  */
 
-#ifndef PCL_SUSAN_KEYPOINT_H_
-#define PCL_SUSAN_KEYPOINT_H_
+#ifndef PCL_SUSAN_H_
+#define PCL_SUSAN_H_
 
 #include <pcl/keypoints/keypoint.h>
 #include <pcl/common/intensity.h>
 
 namespace pcl
 {
-  /** \brief SUSANKeypoint implements a RGB-D extension of the SUSAN detector inluding normal 
+  /** \brief SUSAN implements a RGB-D extension of the SUSAN detector inluding normal 
     * directions variation in top of intensity variation. 
     * It is different from Harris in that it exploits normals directly so it is faster.  
     * Original paper "SUSAN — A New Approach to Low Level Image Processing", Smith,
@@ -54,20 +54,13 @@ namespace pcl
     * \ingroup keypoints
     */
   template <typename PointInT, typename PointOutT, typename NormalT = pcl::Normal, typename IntensityT= pcl::common::IntensityFieldAccessor<PointInT> >
-  class SUSANKeypoint : public Keypoint<PointInT, PointOutT>
+  class SUSAN : public Keypoint<PointInT, PointOutT>
   {
     public:
-      typedef boost::shared_ptr<SUSANKeypoint<PointInT, PointOutT, NormalT, IntensityT> > Ptr;
-      typedef boost::shared_ptr<const SUSANKeypoint<PointInT, PointOutT, NormalT, Intensity> > ConstPtr;
-
       typedef typename Keypoint<PointInT, PointOutT>::PointCloudIn PointCloudIn;
       typedef typename Keypoint<PointInT, PointOutT>::PointCloudOut PointCloudOut;
       typedef typename Keypoint<PointInT, PointOutT>::KdTree KdTree;
       typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
-
-      typedef typename pcl::PointCloud<NormalT> PointCloudN;
-      typedef typename PointCloudN::Ptr PointCloudNPtr;
-      typedef typename PointCloudN::ConstPtr PointCloudNConstPtr;
 
       using Keypoint<PointInT, PointOutT>::name_;
       using Keypoint<PointInT, PointOutT>::input_;
@@ -77,7 +70,6 @@ namespace pcl
       using Keypoint<PointInT, PointOutT>::k_;
       using Keypoint<PointInT, PointOutT>::search_radius_;
       using Keypoint<PointInT, PointOutT>::search_parameter_;
-      using Keypoint<PointInT, PointOutT>::keypoints_indices_;
       using Keypoint<PointInT, PointOutT>::initCompute;
 
       /** \brief Constructor
@@ -86,26 +78,21 @@ namespace pcl
         * \param[in] angular_threshold to test if normals are parallel
         * \param[in] intensity_threshold to test if points are of same color
         */
-      SUSANKeypoint (float radius = 0.01f, 
-                     float distance_threshold = 0.001f, 
-                     float angular_threshold = 0.0001f, 
-                     float intensity_threshold = 7.0f)
-        : distance_threshold_ (distance_threshold)
-        , angular_threshold_ (angular_threshold)
-        , intensity_threshold_ (intensity_threshold)
-        , normals_ (new pcl::PointCloud<NormalT>)
-        , threads_ (0)
-        , label_idx_ (-1)
-        , out_fields_ ()
+    SUSAN (float radius = 0.01, 
+           float distance_threshold = 0.001, 
+           float angular_threshold = 0.0001, 
+           float intensity_threshold = 7)
+      : distance_threshold_ (distance_threshold)
+      , angular_threshold_ (angular_threshold)
+      , intensity_threshold_ (intensity_threshold)
+      , normals_ (new pcl::PointCloud<NormalT>)
+      , threads_ (1)
       {
-        name_ = "SUSANKeypoint";
+        name_ = "SUSAN";
         search_radius_ = radius;
         geometric_validation_ = false;
         tolerance_ = 2 * distance_threshold_;
       }
-      
-      /** \brief Empty destructor */
-      virtual ~SUSANKeypoint () {}
 
       /** \brief set the radius for normal estimation and non maxima supression.
         * \param[in] radius
@@ -134,16 +121,16 @@ namespace pcl
         * \param normals
         */
       void 
-      setNormals (const PointCloudNConstPtr &normals);
+      setNormals (boost::shared_ptr<pcl::PointCloud<NormalT> > normals ) const;
 
       virtual void
       setSearchSurface (const PointCloudInConstPtr &cloud);
 
       /** \brief Initialize the scheduler and set the number of threads to use.
-        * \param nr_threads the number of hardware threads to use (0 sets the value back to automatic)
+        * \param nr_threads the number of hardware threads to use (-1 sets the value back to automatic)
         */
       void
-      setNumberOfThreads (unsigned int nr_threads);
+      setNumberOfThreads (int nr_threads);
 
       /** \brief Apply non maxima suppression to the responses to keep strongest corners.
         * \note in SUSAN points with less response or stronger corners
@@ -167,8 +154,8 @@ namespace pcl
       detectKeypoints (PointCloudOut &output);
       /** \brief return true if a point lies within the line between the nucleus and the centroid
         * \param[in] nucleus coordinate of the nucleus
-        * \param[in] centroid of the SUSAN
-        * \param[in] nc to centroid vector (used to speed up since it is constant for a given
+        * \param[in] centroid of the USAN
+        * \parma[in] nucleus to centroid vector (used to speed up since it is constant for a given
         * neighborhood)
         * \param[in] point the query point to test against
         * \return true if the point lies within [nucleus centroid]
@@ -183,22 +170,15 @@ namespace pcl
       float angular_threshold_;
       float intensity_threshold_;
       float tolerance_;
-      PointCloudNConstPtr normals_;
-      unsigned int threads_;
+      boost::shared_ptr<pcl::PointCloud<NormalT> > normals_;
+      int threads_;
       bool geometric_validation_;
       bool nonmax_;
       /// intensity field accessor
       IntensityT intensity_;
-      /** \brief Set to a value different than -1 if the output cloud has a "label" field and we have 
-        * to save the keypoints indices. 
-        */
-      int label_idx_;
-      /** \brief The list of fields present in the output point cloud data. */
-      std::vector<pcl::PCLPointField> out_fields_;
-      pcl::common::IntensityFieldAccessor<PointOutT> intensity_out_;
   };
 }
 
 #include <pcl/keypoints/impl/susan.hpp>
 
-#endif // #ifndef PCL_SUSAN_KEYPOINT_H_
+#endif // #ifndef PCL_SUSAN_H_

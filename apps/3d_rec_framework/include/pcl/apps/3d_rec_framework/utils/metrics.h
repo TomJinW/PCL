@@ -8,12 +8,42 @@
 #ifndef REC_FRAMEWORK_METRICS_H_
 #define REC_FRAMEWORK_METRICS_H_
 
-#include <cmath>
-#include <cstdlib>
-
 namespace Metrics
 {
-  using ::std::abs;
+  template<typename T>
+    inline T
+    abs (T x)
+    {
+      return (x < 0) ? -x : x;
+    }
+
+  template<>
+    inline int
+    abs<int> (int x)
+    {
+      return ::abs (x);
+    }
+
+  template<>
+    inline float
+    abs<float> (float x)
+    {
+      return fabsf (x);
+    }
+
+  template<>
+    inline double
+    abs<double> (double x)
+    {
+      return fabs (x);
+    }
+
+  template<>
+    inline long double
+    abs<long double> (long double x)
+    {
+      return fabsl (x);
+    }
 
   template<typename T>
     struct Accumulator
@@ -69,7 +99,6 @@ namespace Metrics
         ResultType
         operator() (Iterator1 a, Iterator2 b, size_t size, ResultType worst_dist = -1) const
         {
-          (void)worst_dist;
           ResultType result = ResultType ();
           ResultType min0, min1, min2, min3;
           ResultType max0, max1, max2, max3;
@@ -105,9 +134,6 @@ namespace Metrics
             max0 = *a > *b ? *a : *b;
             sum_min += min0;
             sum_max += max0;
-            a++;
-            b++;
-            //std::cout << a << " " << last << std::endl;
           }
 
           result = static_cast<ResultType> (1.0 - ((1 + sum_min) / (1 + sum_max)));
@@ -121,7 +147,7 @@ namespace Metrics
        */
       template<typename U, typename V>
         inline ResultType
-        accum_dist (const U& a, const V& b, int) const
+        accum_dist (const U& a, const V& b, int dim) const
         {
           //printf("New code being used, accum_dist\n");
           ResultType min0;

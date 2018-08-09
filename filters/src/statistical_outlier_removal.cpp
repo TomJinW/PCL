@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,15 +35,17 @@
  *
  */
 
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/point_types.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/impl/statistical_outlier_removal.hpp>
-#include <pcl/conversions.h>
+#include <pcl/ros/conversions.h>
 
-using namespace std;
-
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::applyFilter (PCLPointCloud2 &output)
+pcl::StatisticalOutlierRemoval<sensor_msgs::PointCloud2>::applyFilter (PointCloud2 &output)
 {
+  output.is_dense = true;
   // If fields x/y/z are not present, we cannot filter
   if (x_idx_ == -1 || y_idx_ == -1 || z_idx_ == -1)
   {
@@ -63,136 +62,9 @@ pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::applyFilter (PCLPointCloud2
     output.data.clear ();
     return;
   }
-
-  double mean;
-  double variance;
-  double stddev;
-  vector<float> distances;
-  generateStatistics (mean, variance, stddev, distances);
-  double const distance_threshold = mean + std_mul_ * stddev; // a distance that is bigger than this signals an outlier
-
-  // Copy the common fields
-  output.is_dense = input_->is_dense;
-  output.is_bigendian = input_->is_bigendian;
-  output.point_step = input_->point_step;
-  if (keep_organized_)
-  {
-    output.width = input_->width;
-    output.height = input_->height;
-    output.data.resize (input_->data.size ());
-  }
-  else
-  {
-    output.height = 1;
-    output.data.resize (indices_->size () * input_->point_step); // reserve enough space
-  }
-
-  removed_indices_->resize (input_->data.size ());
-
-  // Build a new cloud by neglecting outliers
-  int nr_p = 0;
-  int nr_removed_p = 0;
-  bool remove_point = false;
-  for (int cp = 0; cp < static_cast<int> (indices_->size ()); ++cp)
-  {
-    if (negative_)
-      remove_point = (distances[cp] <= distance_threshold);
-    else
-      remove_point = (distances[cp] > distance_threshold);
-
-    if (remove_point)
-    {
-      if (extract_removed_indices_)
-        (*removed_indices_)[nr_removed_p++] = cp;
-
-      if (keep_organized_)
-      {
-          /* Set the current point to NaN. */
-          *(reinterpret_cast<float*>(&output.data[nr_p * output.point_step])+0) = std::numeric_limits<float>::quiet_NaN();
-          *(reinterpret_cast<float*>(&output.data[nr_p * output.point_step])+1) = std::numeric_limits<float>::quiet_NaN();
-          *(reinterpret_cast<float*>(&output.data[nr_p * output.point_step])+2) = std::numeric_limits<float>::quiet_NaN();
-          nr_p++;
-          output.is_dense = false;
-      }
-      else
-        continue;
-    }
-    else
-    {
-      memcpy (&output.data[nr_p * output.point_step], &input_->data[(*indices_)[cp] * output.point_step],
-              output.point_step);
-      nr_p++;
-    }
-  }
-
-  if (!keep_organized_)
-  {
-    output.width = nr_p;
-    output.data.resize (output.width * output.point_step);
-  }
-  output.row_step = output.point_step * output.width;
-
-  removed_indices_->resize (nr_removed_p);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::applyFilter (vector<int>& indices)
-{
-  // If fields x/y/z are not present, we cannot filter
-  if (x_idx_ == -1 || y_idx_ == -1 || z_idx_ == -1)
-  {
-    PCL_ERROR ("[pcl::%s::applyFilter] Input dataset doesn't have x-y-z coordinates!\n", getClassName ().c_str ());
-    indices.clear();
-    return;
-  }
-
-  if (std_mul_ == 0.0)
-  {
-    PCL_ERROR ("[pcl::%s::applyFilter] Standard deviation multipler not set!\n", getClassName ().c_str ());
-    indices.clear();
-    return;
-  }
-
-  double mean;
-  double variance;
-  double stddev;
-  vector<float> distances;
-  generateStatistics(mean, variance, stddev, distances);
-  double const distance_threshold = mean + std_mul_ * stddev; // a distance that is bigger than this signals an outlier
-
-  // Second pass: Classify the points on the computed distance threshold
-  size_t nr_p = 0, nr_removed_p = 0;
-  for (size_t cp = 0; cp < indices_->size (); ++cp)
-  {
-    // Points having a too high average distance are outliers and are passed to removed indices
-    // Unless negative was set, then it's the opposite condition
-    if ((!negative_ && distances[cp] > distance_threshold) || (negative_ && distances[cp] <= distance_threshold))
-    {
-      if (extract_removed_indices_)
-        (*removed_indices_)[nr_removed_p++] = (*indices_)[cp];
-      continue;
-    }
-
-    // Otherwise it was a normal point for output (inlier)
-    indices[nr_p++] = (*indices_)[cp];
-  }
-
-  // Resize the output arrays
-  indices.resize (nr_p);
-  removed_indices_->resize (nr_p);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::generateStatistics (double& mean,
-                                                                         double& variance,
-                                                                         double& stddev,
-                                                                         std::vector<float>& distances)
-{
   // Send the input dataset to the spatial locator
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::fromPCLPointCloud2 (*input_, *cloud);
+  pcl::fromROSMsg (*input_, *cloud);
 
   // Initialize the spatial locator
   if (!tree_)
@@ -209,13 +81,12 @@ pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::generateStatistics (double&
   std::vector<int> nn_indices (mean_k_);
   std::vector<float> nn_dists (mean_k_);
 
-  distances.resize (indices_->size ());
-  int valid_distances = 0;
+  std::vector<float> distances (indices_->size ());
   // Go over all the points and calculate the mean or smallest distance
   for (size_t cp = 0; cp < indices_->size (); ++cp)
   {
-    if (!pcl_isfinite (cloud->points[(*indices_)[cp]].x) || 
-        !pcl_isfinite (cloud->points[(*indices_)[cp]].y) ||
+    if (!pcl_isfinite (cloud->points[(*indices_)[cp]].x) || !pcl_isfinite (cloud->points[(*indices_)[cp]].y)
+        ||
         !pcl_isfinite (cloud->points[(*indices_)[cp]].z))
     {
       distances[cp] = 0;
@@ -234,29 +105,61 @@ pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2>::generateStatistics (double&
     for (int j = 1; j < mean_k_; ++j)
       dist_sum += sqrt (nn_dists[j]);
     distances[cp] = static_cast<float> (dist_sum / (mean_k_ - 1));
-    valid_distances++;
   }
 
   // Estimate the mean and the standard deviation of the distance vector
-  double sum = 0, sq_sum = 0;
-  for (size_t i = 0; i < distances.size (); ++i)
+  double mean, stddev;
+  getMeanStd (distances, mean, stddev);
+  double distance_threshold = mean + std_mul_ * stddev; // a distance that is bigger than this signals an outlier
+
+  // Copy the common fields
+  output.is_bigendian = input_->is_bigendian;
+  output.point_step = input_->point_step;
+  output.height = 1;
+
+  output.data.resize (indices_->size () * input_->point_step); // reserve enough space
+  removed_indices_->resize (input_->data.size ());
+
+  // Build a new cloud by neglecting outliers
+  int nr_p = 0;
+  int nr_removed_p = 0;
+  for (int cp = 0; cp < static_cast<int> (indices_->size ()); ++cp)
   {
-    sum += distances[i];
-    sq_sum += distances[i] * distances[i];
+    if (negative_)
+    {
+      if (distances[cp] <= distance_threshold)
+      {
+        if (extract_removed_indices_)
+        {
+          (*removed_indices_)[nr_removed_p] = cp;
+          nr_removed_p++;
+        }
+        continue;
+      }
+    }
+    else
+    {
+      if (distances[cp] > distance_threshold)
+      {
+        if (extract_removed_indices_)
+        {
+          (*removed_indices_)[nr_removed_p] = cp;
+          nr_removed_p++;
+        }
+        continue;
+      }
+    }
+
+    memcpy (&output.data[nr_p * output.point_step], &input_->data[(*indices_)[cp] * output.point_step],
+            output.point_step);
+    nr_p++;
   }
+  output.width = nr_p;
+  output.data.resize (output.width * output.point_step);
+  output.row_step = output.point_step * output.width;
 
-  mean = sum / static_cast<double>(valid_distances);
-  variance = (sq_sum - sum * sum / static_cast<double>(valid_distances)) / (static_cast<double>(valid_distances) - 1);
-  stddev = sqrt (variance);
+  removed_indices_->resize (nr_removed_p);
 }
-
-
-#ifndef PCL_NO_PRECOMPILE
-#include <pcl/impl/instantiate.hpp>
-#include <pcl/point_types.h>
-
 // Instantiations of specific point types
 PCL_INSTANTIATE(StatisticalOutlierRemoval, PCL_XYZ_POINT_TYPES)
-
-#endif    // PCL_NO_PRECOMPILE
 

@@ -15,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -39,10 +39,10 @@
 #ifndef __OPENNI_IMAGE__
 #define __OPENNI_IMAGE__
 
+#include <XnCppWrapper.h>
 #include <pcl/pcl_exports.h>
-#include "openni.h"
 #include "openni_exception.h"
-#include <pcl/io/boost.h>
+#include <boost/shared_ptr.hpp>
 
 namespace openni_wrapper
 {
@@ -87,7 +87,7 @@ namespace openni_wrapper
      * @param[in] input_height height of input image
      * @param[in] output_width width of desired output image
      * @param[in] output_height height of desired output image
-     * @return whether the resizing is supported or not.
+     * @return wheter the resizing is supported or not.
      */
     virtual bool isResizingSupported (unsigned input_width, unsigned input_height,
                                       unsigned output_width, unsigned output_height) const = 0;

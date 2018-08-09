@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -60,18 +59,13 @@ namespace pcl
       *
       * The output is in the form of a score or a confidence measure.
       *
-      * \note The class is templated on the source and target point types as well as on the output scalar of the transformation matrix (i.e., float or double). Default: float.
       * \author Radu B. Rusu
       * \ingroup registration
       */
-    template <typename PointSource, typename PointTarget, typename Scalar = float>
+    template <typename PointSource, typename PointTarget>
     class TransformationValidation
     {
       public:
-        typedef Eigen::Matrix<Scalar, 4, 4> Matrix4;
-        typedef boost::shared_ptr<TransformationValidation<PointSource, PointTarget, Scalar> > Ptr;
-        typedef boost::shared_ptr<const TransformationValidation<PointSource, PointTarget, Scalar> > ConstPtr;
-
         typedef pcl::PointCloud<PointSource> PointCloudSource;
         typedef typename PointCloudSource::Ptr PointCloudSourcePtr;
         typedef typename PointCloudSource::ConstPtr PointCloudSourceConstPtr;
@@ -83,11 +77,11 @@ namespace pcl
         TransformationValidation () {};
         virtual ~TransformationValidation () {};
 
-        /** \brief Validate the given transformation with respect to the input cloud data, and return a score. Pure virtual.
+        /** \brief Validate the given transformation with respect to the input cloud data, and return a score.
           *
           * \param[in] cloud_src the source point cloud dataset
           * \param[in] cloud_tgt the target point cloud dataset
-          * \param[out] transformation_matrix the transformation matrix
+          * \param[out] transformation_matrix the resultant transformation matrix
           *
           * \return the score or confidence measure for the given
           * transformation_matrix with respect to the input data
@@ -96,36 +90,13 @@ namespace pcl
         validateTransformation (
             const PointCloudSourceConstPtr &cloud_src,
             const PointCloudTargetConstPtr &cloud_tgt,
-            const Matrix4 &transformation_matrix) const = 0;
+            const Eigen::Matrix4f &transformation_matrix) = 0;
 
-        /** \brief Comparator function for deciding which score is better after running the 
-          * validation on multiple transforms. Pure virtual.
-          *
-          * \note For example, for Euclidean distances smaller is better, for inliers the opposite.
-          *
-          * \param[in] score1 the first value
-          * \param[in] score2 the second value
-          *
-          * \return true if score1 is better than score2
-          */
-        virtual bool
-        operator() (const double &score1, const double &score2) const = 0;
 
-        /** \brief Check if the score is valid for a specific transformation. Pure virtual.
-          *
-          * \param[in] cloud_src the source point cloud dataset
-          * \param[in] cloud_tgt the target point cloud dataset
-          * \param[out] transformation_matrix the transformation matrix
-          *
-          * \return true if the transformation is valid, false otherwise.
-          */
-        virtual bool
-        isValid (
-            const PointCloudSourceConstPtr &cloud_src,
-            const PointCloudTargetConstPtr &cloud_tgt,
-            const Matrix4 &transformation_matrix) const = 0;
+        typedef boost::shared_ptr<TransformationValidation<PointSource, PointTarget> > Ptr;
+        typedef boost::shared_ptr<const TransformationValidation<PointSource, PointTarget> > ConstPtr;
     };
   }
 }
 
-#endif    // PCL_REGISTRATION_TRANSFORMATION_VALIDATION_H_
+#endif /* PCL_REGISTRATION_TRANSFORMATION_VALIDATION_H_ */

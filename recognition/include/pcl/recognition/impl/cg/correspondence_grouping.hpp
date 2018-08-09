@@ -44,8 +44,6 @@ template <typename PointModelT, typename PointSceneT> void
 pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::cluster (std::vector<Correspondences> &clustered_corrs)
 {
   clustered_corrs.clear ();
-  corr_group_scale_.clear ();
-
   if (!initCompute ())
   {
     return;

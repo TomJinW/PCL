@@ -32,8 +32,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
- *
+ * $Id: pyramid_feature_matching.cpp 5027 2012-03-12 03:10:45Z rusu $
  */
 
 #include <pcl/registration/transformation_estimation_lm.h>

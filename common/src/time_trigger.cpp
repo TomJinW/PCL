@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -71,8 +71,8 @@ pcl::TimeTrigger::~TimeTrigger ()
 {
   boost::unique_lock<boost::mutex> lock (condition_mutex_);
   quit_ = true;
-  condition_.notify_all (); // notify all threads about updated quit_
-  lock.unlock (); // unlock, to join all threads (needs to be done after notify_all)
+  condition_.notify_all ();
+  lock.unlock ();
   
   timer_thread_.join ();
 }
@@ -81,6 +81,7 @@ pcl::TimeTrigger::~TimeTrigger ()
 boost::signals2::connection 
 pcl::TimeTrigger::registerCallback (const callback_type& callback)
 {
+  boost::unique_lock<boost::mutex> lock (condition_mutex_);
   return (callbacks_.connect (callback));
 }
 
@@ -122,26 +123,18 @@ pcl::TimeTrigger::stop ()
 void 
 pcl::TimeTrigger::thread_function ()
 {
-  double time = 0;
-  while (true)
+  static double time = 0;
+  while (!quit_)
   {
     time = getTime ();
     boost::unique_lock<boost::mutex> lock (condition_mutex_);
-    if(quit_)
-      break;
     if (!running_)
       condition_.wait (lock); // wait util start is called or destructor is called
     else
     {
       callbacks_();
       double rest = interval_ + time - getTime ();
-#if defined(BOOST_HAS_WINTHREADS) && (BOOST_VERSION < 105500)
-      //infinite timed_wait bug: https://svn.boost.org/trac/boost/ticket/9079
-      if (rest > 0.0) // without a deadlock is possible, until notify() is called
-        condition_.timed_wait (lock, boost::posix_time::microseconds (static_cast<int64_t> ((rest * 1000000))));
-#else
       condition_.timed_wait (lock, boost::posix_time::microseconds (static_cast<int64_t> ((rest * 1000000))));
-#endif
     }
   }
 }

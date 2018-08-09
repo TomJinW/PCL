@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -40,7 +40,7 @@
 
 #include <pcl/surface/on_nurbs/nurbs_data.h>
 
-#include <pcl/surface/3rdparty/opennurbs/opennurbs.h>
+#include <pcl/surface/openNURBS/opennurbs.h>
 
 #undef Success
 #include <Eigen/Dense>
@@ -94,41 +94,14 @@ namespace pcl
       static Eigen::Vector2d
       computeMean (const vector_vec2d &data);
 
-      /** \brief Compute the variance of a set of points
-       *  \param[in] data Set of points       */
-      static Eigen::Vector3d
-      computeVariance (const Eigen::Vector3d &mean, const vector_vec3d &data);
-      /** \brief Compute the variance of a set of points
-       *  \param[in] data Set of points       */
-      static Eigen::Vector2d
-      computeVariance (const Eigen::Vector2d &mean, const vector_vec2d &data);
-
-      /** compute bounding box of curve control points */
-      static void
-      computeBoundingBox (const ON_NurbsCurve &nurbs, Eigen::Vector3d &_min, Eigen::Vector3d &_max);
-      static void
-      computeBoundingBox (const ON_NurbsSurface &nurbs, Eigen::Vector3d &_min, Eigen::Vector3d &_max);
-
-      static double
-      computeRScale (const Eigen::Vector3d &_min, const Eigen::Vector3d &_max);
-
       /** \brief PCA - principal-component-analysis
        *  \param[in] data Set of points.
        *  \param[out] mean The mean of the set of points.
        *  \param[out] eigenvectors Matrix containing column-wise the eigenvectors of the set of points.
        *  \param[out] eigenvalues The eigenvalues of the set of points with respect to the eigenvectors. */
       static void
-      pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
-           Eigen::Vector3d &eigenvalues);
-
-      /** \brief PCA - principal-component-analysis
-       *  \param[in] data Set of points.
-       *  \param[out] mean The mean of the set of points.
-       *  \param[out] eigenvectors Matrix containing column-wise the eigenvectors of the set of points.
-       *  \param[out] eigenvalues The eigenvalues of the set of points with respect to the eigenvectors. */
-      static void
-      pca (const vector_vec2d &data, Eigen::Vector2d &mean, Eigen::Matrix2d &eigenvectors,
-           Eigen::Vector2d &eigenvalues);
+          pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
+               Eigen::Vector3d &eigenvalues);
 
       /** \brief Downsample data points to a certain size.
        *  \param[in] data1 The original set of points.

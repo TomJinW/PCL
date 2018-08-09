@@ -40,10 +40,8 @@
 #ifndef PCL_GEOMETRY_PLANAR_POLYGON_H_
 #define PCL_GEOMETRY_PLANAR_POLYGON_H_
 
-
-#include <pcl/common/eigen.h>
-#include <pcl/point_cloud.h>
-#include <pcl/ModelCoefficients.h>
+#include <Eigen/Core>
+#include <vector>
 
 namespace pcl
 {
@@ -54,10 +52,7 @@ namespace pcl
   class PlanarPolygon
   {
     public:
-      typedef boost::shared_ptr<PlanarPolygon<PointT> > Ptr;
-      typedef boost::shared_ptr<const PlanarPolygon<PointT> > ConstPtr;
-
-       /** \brief Empty constructor for PlanarPolygon */
+      /** \brief Empty constructor for PlanarPolygon */
       PlanarPolygon () : contour_ (), coefficients_ ()
       {}
       
@@ -73,15 +68,6 @@ namespace pcl
       /** \brief Destructor. */
       virtual ~PlanarPolygon () {}
 
-      /** \brief Set the internal contour
-        * \param[in] contour the new planar polygonal contour
-        */
-      void
-      setContour (const pcl::PointCloud<PointT> &contour)
-      {
-        contour_ = contour.points;
-      }
-
       /** \brief Getter for the contour / boundary */
       typename pcl::PointCloud<PointT>::VectorType&
       getContour ()
@@ -94,25 +80,6 @@ namespace pcl
       getContour () const
       {
         return (contour_);
-      }
-
-      /** \brief Setr the internal coefficients
-        * \param[in] coefficients the new coefficients to be set 
-        */
-      void
-      setCoefficients (const Eigen::Vector4f &coefficients)
-      {
-        coefficients_ = coefficients;
-      }
-
-      /** \brief Set the internal coefficients
-        * \param[in] coefficients the new coefficients to be set 
-        */
-      void
-      setCoefficients (const pcl::ModelCoefficients &coefficients)
-      {
-        for (int i = 0; i < 4; i++)
-          coefficients_[i] = coefficients.values.at (i);
       }
 
       /** \brief Getter for the coefficients */

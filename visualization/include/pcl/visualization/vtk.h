@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2009-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,14 +40,9 @@
 #define PCL_PCL_VISUALIZER_VTK_H_
 
 #if defined __GNUC__
-#pragma GCC system_header
-#ifdef __DEPRECATED
-#undef __DEPRECATED
-#define __DEPRECATED_DISABLED__
-#endif
+#  pragma GCC system_header 
 #endif
 
-#include <vtkVersion.h>
 #include <vtkAppendPolyData.h>
 #include <vtkAssemblyPath.h>
 #include <vtkAxesActor.h>
@@ -76,7 +70,6 @@
 #include <vtkDiskSource.h>
 #include <vtkPlaneSource.h>
 #include <vtkSphereSource.h>
-#include <vtkIdentityTransform.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkTubeFilter.h>
@@ -85,7 +78,6 @@
 #include <vtkFloatArray.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
-#include <vtkPolyDataReader.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkDataSetMapper.h>
 #include <vtkCellArray.h>
@@ -115,12 +107,6 @@
 #include <vtkPlanes.h>
 #include <vtkImageImport.h>
 #include <vtkImageViewer.h>
-#include <vtkInteractorStyleImage.h>
-#if ((VTK_MAJOR_VERSION == 5) && (VTK_MINOR_VERSION >= 10))
-#include <vtkImageSlice.h>
-#include <vtkImageProperty.h>
-#include <vtkImageSliceMapper.h>
-#endif
 #include <vtkImageFlip.h>
 #include <vtkTIFFWriter.h>
 #include <vtkBMPWriter.h>
@@ -144,45 +130,21 @@
 #include <vtkImageCanvasSource2D.h>
 #include <vtkImageBlend.h>
 #include <vtkImageStencilData.h>
+#include <vtkChartXY.h>
+#include <vtkPlot.h>
+#include <vtkTable.h>
+#include <vtkContextView.h>
+#include <vtkContextScene.h>
+#include <vtkColorSeries.h>
 #if ((VTK_MAJOR_VERSION == 5) && (VTK_MINOR_VERSION <= 4))
 #  include <pcl/visualization/interactor.h>
 #else
 #  include <vtkRenderWindowInteractor.h>
-#  include <vtkChartXY.h>
-#  include <vtkPlot.h>
-#  include <vtkTable.h>
-#  include <vtkContextView.h>
-#  include <vtkContextScene.h>
-#  include <vtkColorSeries.h>
-#  include <vtkAxis.h>
 #endif
 #include <vtkSelection.h>
-
-#if VTK_MAJOR_VERSION>=6 || (VTK_MAJOR_VERSION==5 && VTK_MINOR_VERSION>4)
-#include <vtkHardwareSelector.h>
-#else
 #include <vtkVisibleCellSelector.h>
-#endif
-
 #include <vtkTriangle.h>
 #include <vtkWorldPointPicker.h>
-
-#include <vtkInteractorStyleRubberBandPick.h>
-#include <vtkInteractorStyleTrackballActor.h>
-#include <vtkAreaPicker.h>
-#include <vtkExtractGeometry.h>
-#include <vtkExtractPolyDataGeometry.h>
-#include <vtkVertexGlyphFilter.h>
-#include <vtkIdFilter.h>
-#include <vtkIdTypeArray.h>
-#include <vtkImageReader2Factory.h>
-#include <vtkImageReader2.h>
-#include <vtkImageData.h>
-
-#if defined __GNUC__ && defined __DEPRECATED_DISABLED__
-#define __DEPRECATED
-#undef __DEPRECATED_DISABLED__
-#endif
 
 #endif    // PCL_PCL_VISUALIZER_VTK_H_
 

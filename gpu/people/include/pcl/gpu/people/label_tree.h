@@ -54,7 +54,7 @@
 #include <stdexcept>
 
 // PCL specific includes
-#include <pcl/conversions.h>
+#include <pcl/ros/conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/console/print.h>
@@ -70,7 +70,7 @@ namespace pcl
     namespace people    
     {           
      /**
-       * @brief This structure contains all parameters to describe the segmented tree
+       * @brief This structure containts all parameters to describe the segmented tree
        */
       struct Tree2 
       {
@@ -196,7 +196,6 @@ namespace pcl
        * @param[in] parent    pointer to the parent blob
        * @param[in] child     pointer to the child blob
        * @param[in] child_nr  the number of the child
-       * @param person_attribs
        * @return it returns the distance error from the ideal parent child distance, it returns -1.0 if it goes over threshold
        * @todo what if child is second link in stead of first link (ea forearm in stead of elbow for arm)
        **/
@@ -222,7 +221,7 @@ namespace pcl
        * @param[in] parent_label this is the part label that indicates the row
        * @param[in] child_label  this is the part label that indicates the childs needed to be investigated
        * @param[in] child_number the number of this child in the parent, some parents have multiple childs
-       * @return zero if successful
+       * @return zero if succesfull
        * @todo once we have good evaluation function reconsider best_value
        **/
       inline int
@@ -280,8 +279,7 @@ namespace pcl
        * @param[in] parent_label this is the part label that indicates the row
        * @param[in] child_label  this is the part label that indicates the childs needed to be investigated
        * @param[in] child_number the number of this child in the parent, some parents have multiple childs
-       * @param person_attribs
-       * @return zero if successful
+       * @return zero if succesfull
        * @todo once we have good evaluation function reconsider best_value
        **/
       inline int
@@ -344,7 +342,7 @@ namespace pcl
       inline int
       buildRelations( std::vector<std::vector<Blob2, Eigen::aligned_allocator<pcl::gpu::people::Blob2> > >& sorted)
       {
-        PCL_VERBOSE("[pcl::gpu::people::buildRelations] : (I) : buildRelations : regular version\n");
+        PCL_INFO("(I) : buildRelations : regular version\n");
         if(sorted.size() == 0){
           std::cout << "(E) : Damn you, you gave me an empty matrix!" << std::endl;
           return (-1);
@@ -439,7 +437,6 @@ namespace pcl
       /**
        * @brief This function goes over the sorted matrix and fills in the optimal parent and child relations
        * @param[in] sorted a matrix with all found good blobs arranged according to label and order
-       * @param person_attribs
        * @return zero if everything went well, negative on an error
        * @todo This function also fixes the kinematic chain, we should implement this in a xml or LUT
        * @todo look if we can't get a more efficient implementation (iterator together with sortBlobs perhaps?)
@@ -448,9 +445,9 @@ namespace pcl
       buildRelations( std::vector<std::vector<Blob2, Eigen::aligned_allocator<pcl::gpu::people::Blob2> > >& sorted,
                       PersonAttribs::Ptr person_attribs)
       {
-        PCL_DEBUG("[pcl::gpu::people::buildRelations] : (D) : person specific version\n");
+        PCL_INFO("(I) : buildRelations : person specific version\n");
         if(sorted.size() == 0){
-          PCL_ERROR("[pcl::gpu::people::buildRelations] : (E) : Damn you, you gave me an empty matrix!\n");
+          std::cout << "(E) : Damn you, you gave me an empty matrix!" << std::endl;
           return (-1);
         }
         // Iterate over all parts

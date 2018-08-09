@@ -38,13 +38,20 @@
 #ifndef CLOUD_COMPOSER_H_
 #define CLOUD_COMPOSER_H_
 
-#include <pcl/apps/cloud_composer/qt.h>
+//Qt
+#include <QMainWindow>
+#include <QMetaType>
+#include <QDir>
+#include <Qt>
+
+#include <ui_cloud_composer_main_window.h>
 
 //PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include <ui_cloud_composer_main_window.h>
+
+
 class QTreeView;
 
 namespace pcl
@@ -56,7 +63,6 @@ namespace pcl
     class CloudCommand;
     class ToolFactory;
     class ToolBoxModel;
-    class SignalMultiplexer;
     
     /** \brief MainWindow of cloud_composer application
      * \author Jeremie Papon
@@ -76,27 +82,12 @@ namespace pcl
         explicit ComposerMainWindow (QWidget *parent = 0);
         ~ComposerMainWindow ();
   
-      Q_SIGNALS:
-        /** \brief Signal emitted when the active project is switched - ie a different project tab is selected */
-        void
-        activeProjectChanged (ProjectModel* new_model, ProjectModel* previous_model);
-        
-        /** \brief This signal tells the current project to insert a cloud using a file dialog box */
-        void 
-        insertNewCloudFromFile ();
-        
-        /** \brief This signal tells the current project to insert a cloud from and RGB and Depth image using a file dialog box */
-        void 
-        insertNewCloudFromRGBandDepth ();
-        
-        /** \brief This signal tells the current project to save currently selected cloud to file */
-        void 
-        saveSelectedCloudToFile ();
-        
-      public Q_SLOTS:
+      signals:
+
+      public slots:
       //Slots for File Menu Actions
         void
-        on_action_new_project__triggered (/*QString name = "unsaved project"*/);
+        on_action_new_project__triggered (QString name = "unsaved project");
         void
         on_action_open_cloud_as_new_project__triggered ();
         void
@@ -105,8 +96,6 @@ namespace pcl
         on_action_save_project__triggered ();
         void
         on_action_save_project_as__triggered ();
-        void 
-        on_action_save_selected_cloud__triggered ();
         void
         on_action_exit__triggered ();
 
@@ -115,28 +104,18 @@ namespace pcl
         on_action_insert_from_file__triggered ();
         void
         on_action_insert_from_openNi_source__triggered ();
-        void
-        on_action_insert_from_rgb_depth__triggered ();
 
-          
-        
         void 
         setCurrentModel (ProjectModel* model);
-        
-        void 
-        setMouseStyleAction (interactor_styles::INTERACTOR_STYLES selected_style);
         
         void
         enqueueToolAction (AbstractTool* tool);
        
       private:
         void
-        connectFileActions ();
+        connectFileActionsToSlots ();
         void
-        connectEditActions ();
-        
-        void 
-        connectViewActions ();
+        connectEditActionsToSlots ();
         
         void 
         initializeCloudBrowser ();
@@ -154,17 +133,12 @@ namespace pcl
         /** \brief Pointer to the model which is currently being viewed  */
         ProjectModel* current_model_;
         QItemSelectionModel* current_selection_model_;
-
+        QDir last_directory_;
         QMap <QString, ProjectModel*> name_model_map_;
-        
         QUndoGroup *undo_group_;
         
         QItemSelectionModel* tool_selection_model_;
         ToolBoxModel* tool_box_model_;
-        
-        SignalMultiplexer* multiplexer_;
-        
-        QActionGroup* mouse_style_group_;
     };
     
   }

@@ -21,7 +21,7 @@ The code
 --------
 
 First, download the dataset `table_scene_lms400.pcd
-<https://raw.github.com/PointCloudLibrary/data/master/tutorials/table_scene_lms400.pcd>`_
+<http://svn.pointclouds.org/data/tutorials/table_scene_lms400.pcd>`_
 and save it somewhere to disk.
 
 Then, create a file, let's say, ``voxel_grid.cpp`` in your favorite

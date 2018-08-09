@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -119,7 +119,7 @@ compute (const PointCloudXYZRGBA::ConstPtr & input, const char * templates_filen
   for (size_t i = 0; i < detections.size (); ++i)
   {
     const LINEMODDetection & d = detections[i];
-    printf ("%lu: %d %d %d %f\n", i, d.x, d.y, d.template_id, d.score);
+    printf ("%zu: %d %d %d %f\n", i, d.x, d.y, d.template_id, d.score);
   }
 
   /*// Visualization code for testing purposes (requires libpng++)

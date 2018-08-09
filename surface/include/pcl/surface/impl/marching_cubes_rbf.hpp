@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -47,18 +44,28 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointNT>
+pcl::MarchingCubesRBF<PointNT>::MarchingCubesRBF ()
+  : MarchingCubes<PointNT> (),
+    off_surface_epsilon_ (0.1f)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointNT>
 pcl::MarchingCubesRBF<PointNT>::~MarchingCubesRBF ()
 {
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointNT> void
 pcl::MarchingCubesRBF<PointNT>::voxelizeData ()
 {
   // Initialize data structures
-  const unsigned int N = static_cast<unsigned int> (input_->size ());
+  unsigned int N = static_cast<unsigned int> (input_->size ());
   Eigen::MatrixXd M (2*N, 2*N),
                   d (2*N, 1);
+
 
   for (unsigned int row_i = 0; row_i < 2*N; ++row_i)
   {
@@ -82,7 +89,7 @@ pcl::MarchingCubesRBF<PointNT>::voxelizeData ()
   w = M.fullPivLu ().solve (d);
 
   std::vector<double> weights (2*N);
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > centers (2*N);
+  std::vector<Eigen::Vector3d> centers (2*N);
   for (unsigned int i = 0; i < N; ++i)
   {
     centers[i] = Eigen::Vector3f (input_->points[i].getVector3fMap ()).cast<double> ();
@@ -91,21 +98,24 @@ pcl::MarchingCubesRBF<PointNT>::voxelizeData ()
     weights[i + N] = w (i + N, 0);
   }
 
+
+
   for (int x = 0; x < res_x_; ++x)
     for (int y = 0; y < res_y_; ++y)
       for (int z = 0; z < res_z_; ++z)
       {
-        const Eigen::Vector3f point_f = (size_voxel_ * Eigen::Array3f (x, y, z) 
-            + lower_boundary_).matrix ();
-        const Eigen::Vector3d point = point_f.cast<double> ();
+        Eigen::Vector3d point;
+        point[0] = min_p_[0] + (max_p_[0] - min_p_[0]) * x / res_x_;
+        point[1] = min_p_[1] + (max_p_[1] - min_p_[1]) * y / res_y_;
+        point[2] = min_p_[2] + (max_p_[2] - min_p_[2]) * z / res_z_;
 
-        double f = 0.0;
+        double f = 0.0f;
         std::vector<double>::const_iterator w_it (weights.begin());
-        for (std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >::const_iterator c_it = centers.begin ();
+        for (std::vector<Eigen::Vector3d>::const_iterator c_it = centers.begin ();
              c_it != centers.end (); ++c_it, ++w_it)
           f += *w_it * kernel (*c_it, point);
 
-        grid_[x * res_y_*res_z_ + y * res_z_ + z] = float (f);
+        grid_[x * res_y_*res_z_ + y * res_z_ + z] = f;
       }
 }
 
@@ -113,9 +123,11 @@ pcl::MarchingCubesRBF<PointNT>::voxelizeData ()
 template <typename PointNT> double
 pcl::MarchingCubesRBF<PointNT>::kernel (Eigen::Vector3d c, Eigen::Vector3d x)
 {
-  double r = (x - c).norm ();
-  return (r * r * r);
+  double r = (x - c).norm();
+  return r*r*r;
 }
+
+
 
 #define PCL_INSTANTIATE_MarchingCubesRBF(T) template class PCL_EXPORTS pcl::MarchingCubesRBF<T>;
 

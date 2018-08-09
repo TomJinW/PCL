@@ -5,14 +5,14 @@
 #include <QMutexLocker>
 #include <QEvent>
 #include <QObject>
+#include <boost/make_shared.hpp>
+#include <boost/filesystem.hpp>
 
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/surface/convex_hull.h>
 
-#include <vtkRenderWindow.h>
-
 void
-displayPlanarRegions (std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > &regions, 
+displayPlanarRegions (std::vector<pcl::PlanarRegion<PointT> > &regions, 
                       boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer)
 {
   char name[1024];
@@ -34,7 +34,7 @@ displayPlanarRegions (std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allo
     viewer->addArrow (pt2, pt1, 1.0, 0, 0, false, name);
     
     contour->points = regions[i].getContour ();
-    sprintf (name, "plane_%02d", int (i));
+    sprintf (name, "plane_%02d", (int)i);
     pcl::visualization::PointCloudColorHandlerCustom <PointT> color (contour, red[i%6], grn[i%6], blu[i%6]);
     if(!viewer->updatePointCloud(contour, color, name))
       viewer->addPointCloud (contour, color, name);
@@ -53,7 +53,7 @@ displayEuclideanClusters (const pcl::PointCloud<PointT>::CloudVectorType &cluste
 
   for (size_t i = 0; i < clusters.size (); i++)
   {
-    sprintf (name, "cluster_%d" , int (i));
+    sprintf (name, "cluster_%d",i);
     pcl::visualization::PointCloudColorHandlerCustom<PointT> color0(boost::make_shared<pcl::PointCloud<PointT> >(clusters[i]),red[i%6],grn[i%6],blu[i%6]);
     if (!viewer->updatePointCloud (boost::make_shared<pcl::PointCloud<PointT> >(clusters[i]),color0,name))
       viewer->addPointCloud (boost::make_shared<pcl::PointCloud<PointT> >(clusters[i]),color0,name);
@@ -138,6 +138,7 @@ compareClusterToRegion (pcl::PlanarRegion<PointT>& region, pcl::PointCloud<Point
   pcl::PointCloud<PointT> poly;
   poly.points = region.getContour ();
   
+  bool cluster_ok = false;
   for (size_t i = 0; i < cluster.points.size (); i++)
   {
     double ptp_dist = fabs (model[0] * cluster.points[i].x +
@@ -154,16 +155,19 @@ compareClusterToRegion (pcl::PlanarRegion<PointT>& region, pcl::PointCloud<Point
 bool
 comparePointToRegion (PointT& pt, pcl::ModelCoefficients& model, pcl::PointCloud<PointT>& poly)
 {
-  //bool dist_ok;
+  bool dist_ok = false;
+  bool inside = false;
   
   double ptp_dist = fabs (model.values[0] * pt.x +
                           model.values[1] * pt.y +
                           model.values[2] * pt.z +
                           model.values[3]);
-  if (ptp_dist >= 0.1)
-    return (false);
-//  else
-//    dist_ok = true;
+  if (ptp_dist < 0.1)
+  {
+    dist_ok = true;
+  }
+  else
+    return false;
 
   //project the point onto the plane
   Eigen::Vector3f mc (model.values[0], model.values[1], model.values[2]);
@@ -171,7 +175,7 @@ comparePointToRegion (PointT& pt, pcl::ModelCoefficients& model, pcl::PointCloud
   pt_vec[0] = pt.x;
   pt_vec[1] = pt.y;
   pt_vec[2] = pt.z;
-  Eigen::Vector3f projected (pt_vec - mc * float (ptp_dist));
+  Eigen::Vector3f projected (pt_vec - mc * ptp_dist);
   PointT projected_pt;
   projected_pt.x = projected[0];
   projected_pt.y = projected[1];
@@ -254,7 +258,7 @@ OrganizedSegmentationDemo::OrganizedSegmentationDemo (pcl::Grabber& grabber) : g
   euclidean_comparator_.reset (new pcl::EuclideanPlaneCoefficientComparator<PointT, pcl::Normal> ());
   rgb_comparator_.reset (new pcl::RGBPlaneCoefficientComparator<PointT, pcl::Normal> ());
   edge_aware_comparator_.reset (new pcl::EdgeAwarePlaneComparator<PointT, pcl::Normal> ());
-  euclidean_cluster_comparator_ = pcl::EuclideanClusterComparator<PointT, pcl::Label>::Ptr (new pcl::EuclideanClusterComparator<PointT, pcl::Label> ());
+  euclidean_cluster_comparator_ = pcl::EuclideanClusterComparator<PointT, pcl::Normal, pcl::Label>::Ptr (new pcl::EuclideanClusterComparator<PointT, pcl::Normal, pcl::Label> ());
 
   // Set up Organized Multi Plane Segmentation
   mps.setMinInliers (10000);
@@ -285,7 +289,7 @@ OrganizedSegmentationDemo::cloud_cb (const CloudConstPtr& cloud)
 
   // Segment Planes
   double mps_start = pcl::getTime ();
-  std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+  std::vector<pcl::PlanarRegion<PointT> > regions;
   std::vector<pcl::ModelCoefficients> model_coefficients;
   std::vector<pcl::PointIndices> inlier_indices;  
   pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
@@ -309,10 +313,15 @@ OrganizedSegmentationDemo::cloud_cb (const CloudConstPtr& cloud)
 
   if (use_clustering_ && regions.size () > 0)
   {
-    boost::shared_ptr<std::set<uint32_t> > plane_labels = boost::make_shared<std::set<uint32_t> > ();
-    for (size_t i = 0; i < label_indices.size (); ++i)
+    std::vector<bool> plane_labels;
+    plane_labels.resize (label_indices.size (), false);
+    for (size_t i = 0; i < label_indices.size (); i++)
+    {
       if (label_indices[i].indices.size () > 10000)
-        plane_labels->insert (i);
+      {
+        plane_labels[i] = true;
+      }
+    }  
     
     euclidean_cluster_comparator_->setInputCloud (cloud);
     euclidean_cluster_comparator_->setLabels (labels);

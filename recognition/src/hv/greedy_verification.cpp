@@ -39,6 +39,4 @@
 #include <pcl/recognition/hv/greedy_verification.h>
 #include <pcl/recognition/impl/hv/greedy_verification.hpp>
 
-PCL_INSTANTIATE_PRODUCT(GreedyVerification, ((pcl::PointXYZ))((pcl::PointXYZ)))
-PCL_INSTANTIATE_PRODUCT(GreedyVerification, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)))
-PCL_INSTANTIATE_PRODUCT(GreedyVerification, ((pcl::PointXYZRGBA))((pcl::PointXYZRGBA)))
+template class PCL_EXPORTS pcl::GreedyVerification<pcl::PointXYZ, pcl::PointXYZ>;

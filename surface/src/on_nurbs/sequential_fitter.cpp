@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -167,7 +167,7 @@ SequentialFitter::compute_interior (FittingSurface* fitting)
 Eigen::Vector2d
 SequentialFitter::project (const Eigen::Vector3d &pt)
 {
-  Eigen::Vector4d pr (m_intrinsic * m_extrinsic * Eigen::Vector4d (pt (0), pt (1), pt (2), 1.0));
+  Eigen::Vector4d pr = m_intrinsic * m_extrinsic * Eigen::Vector4d (pt (0), pt (1), pt (2), 1.0);
   pr (0) = pr (0) / pr (2);
   pr (1) = pr (1) / pr (2);
   if (pt.dot (Eigen::Vector3d (m_extrinsic (0, 2), m_extrinsic (1, 2), m_extrinsic (2, 2))) < 0.0f)
@@ -180,7 +180,7 @@ SequentialFitter::project (const Eigen::Vector3d &pt)
 
 bool
 SequentialFitter::is_back_facing (const Eigen::Vector3d &v0, const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
-                                  const Eigen::Vector3d &)
+                                  const Eigen::Vector3d &v3)
 {
   Eigen::Vector3d e1, e2, e3;
   e1 = v1 - v0;
@@ -235,10 +235,10 @@ SequentialFitter::setCorners (pcl::PointIndices::Ptr &corners, bool flip_on_dema
     throw std::runtime_error ("[SequentialFitter::setCorners] Error: Empty or invalid pcl-point-cloud.\n");
 
   if (corners->indices.size () < 4)
-    throw std::runtime_error ("[SequentialFitter::setCorners] Error: too few corners (<4)\n");
+    throw std::runtime_error ("[SequentialFitter::setCorners] Error: to few corners (<4)\n");
 
   if (corners->indices.size () > 4)
-    printf ("[SequentialFitter::setCorners] Warning: too many corners (>4)\n");
+    printf ("[SequentialFitter::setCorners] Warning: to many corners (>4)\n");
 
   bool flip = false;
   pcl::PointXYZRGB &pt0 = m_cloud->at (corners->indices[0]);
@@ -274,9 +274,7 @@ SequentialFitter::setCorners (pcl::PointIndices::Ptr &corners, bool flip_on_dema
 }
 
 void
-SequentialFitter::setProjectionMatrix (
-    const Eigen::Matrix4d &intrinsic, 
-    const Eigen::Matrix4d &extrinsic)
+SequentialFitter::setProjectionMatrix (Eigen::Matrix4d &intrinsic, Eigen::Matrix4d &extrinsic)
 {
   m_intrinsic = intrinsic;
   m_extrinsic = extrinsic;
@@ -459,12 +457,8 @@ SequentialFitter::getBoundaryNormals (std::vector<Eigen::Vector3d, Eigen::aligne
 }
 
 void
-SequentialFitter::getClosestPointOnNurbs (
-    ON_NurbsSurface nurbs, 
-    const Eigen::Vector3d &pt, 
-    Eigen::Vector2d& params,
-    int maxSteps, 
-    double accuracy)
+SequentialFitter::getClosestPointOnNurbs (ON_NurbsSurface nurbs, Eigen::Vector3d pt, Eigen::Vector2d& params,
+                                          int maxSteps, double accuracy)
 {
   Eigen::Vector3d p, tu, tv;
   double error;
@@ -476,24 +470,24 @@ SequentialFitter::getClosestPointOnNurbs (
 ON_NurbsSurface
 SequentialFitter::grow (float max_dist, float max_angle, unsigned min_length, unsigned max_length)
 {
-  unsigned num_bnd = unsigned (this->m_data.boundary_param.size ());
+  unsigned num_bnd = this->m_data.boundary_param.size ();
 
   if (num_bnd == 0)
     throw std::runtime_error ("[SequentialFitter::grow] No boundary given.");
 
-  if (unsigned (this->m_data.boundary.size ()) != num_bnd)
+  if ((unsigned)this->m_data.boundary.size () != num_bnd)
   {
-    printf ("[SequentialFitter::grow] %lu %u\n", this->m_data.boundary.size (), num_bnd);
+    printf ("[SequentialFitter::grow] %u %u\n", (unsigned)this->m_data.boundary.size (), num_bnd);
     throw std::runtime_error ("[SequentialFitter::grow] size of boundary and boundary parameters do not match.");
   }
 
   if (this->m_boundary_indices->indices.size () != num_bnd)
   {
-    printf ("[SequentialFitter::grow] %lu %u\n", this->m_boundary_indices->indices.size (), num_bnd);
+    printf ("[SequentialFitter::grow] %u %u\n", (unsigned)this->m_boundary_indices->indices.size (), num_bnd);
     throw std::runtime_error ("[SequentialFitter::grow] size of boundary indices and boundary parameters do not match.");
   }
 
-  float angle = cosf (max_angle);
+  float angle = cos (max_angle);
   unsigned bnd_moved (0);
 
   for (unsigned i = 0; i < num_bnd; i++)
@@ -546,15 +540,15 @@ SequentialFitter::grow (float max_dist, float max_angle, unsigned min_length, un
     pcl::PointXYZRGB point = m_cloud->at (this->m_boundary_indices->indices[i]);
     for (unsigned j = min_length; j < max_length; j++)
     {
-      int col = int (ri (0) + bni (0) * j);
-      int row = int (ri (1) + bni (1) * j);
+      int col = ri (0) + bni (0) * j;
+      int row = ri (1) + bni (1) * j;
 
-      if (row >= int (m_cloud->height) || row < 0)
+      if (row >= (int)m_cloud->height || row < 0)
       {
         j = max_length;
         break;
       }
-      if (col >= int (m_cloud->width) || col < 0)
+      if (col >= (int)m_cloud->width || col < 0)
       {
         j = max_length;
         break;
@@ -563,7 +557,7 @@ SequentialFitter::grow (float max_dist, float max_angle, unsigned min_length, un
       unsigned idx = row * m_cloud->width + col;
 
       pcl::PointXYZRGB &pt = m_cloud->at (idx);
-      if (!pcl_isnan (pt.x) && !pcl_isnan (pt.y) && !pcl_isnan (pt.z))
+      if (!isnan (pt.x) && !isnan (pt.y) && !isnan (pt.z))
       {
 
         // distance requirement
@@ -595,7 +589,7 @@ SequentialFitter::grow (float max_dist, float max_angle, unsigned min_length, un
   compute_interior (m_nurbs);
 
   double int_err (0.0);
-  double div_err = 1.0 / double (m_data.interior_error.size ());
+  double div_err = 1.0 / m_data.interior_error.size ();
   for (unsigned i = 0; i < m_data.interior_error.size (); i++)
   {
     int_err += (m_data.interior_error[i] * div_err);
@@ -618,7 +612,7 @@ SequentialFitter::PCL2ON (pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pcl_cloud, con
 
     pcl::PointXYZRGB &pt = pcl_cloud->at (indices[i]);
 
-    if (!pcl_isnan (pt.x) && !pcl_isnan (pt.y) && !pcl_isnan (pt.z))
+    if (!isnan (pt.x) && !isnan (pt.y) && !isnan (pt.z))
     {
       on_cloud.push_back (Eigen::Vector3d (pt.x, pt.y, pt.z));
       numPoints++;

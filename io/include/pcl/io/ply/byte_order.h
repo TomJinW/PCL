@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -40,8 +40,6 @@
 #ifndef PCL_IO_PLY_BYTE_ORDER_H
 #define PCL_IO_PLY_BYTE_ORDER_H
 
-#include <boost/detail/endian.hpp>
-
 namespace pcl
 {
   namespace io
@@ -49,24 +47,40 @@ namespace pcl
     namespace ply
     {
       /** \file byte_order.h
-        * defines byte shift operations and endianness.
+        * defines byte shift operations and endianess.
         * \author Ares Lagae as part of libply, Nizar Sallem
         * \ingroup io
         */
+
+#if defined (PLY_BIG_ENDIAN) || defined (PLY_LITTLE_ENDIAN)
+#  error
+#endif
+
+#if (defined (__powerpc) || defined (__powerpc__) || defined (__POWERPC__) || defined (__ppc__) || defined (_M_PPC) || defined (__ARCH_PPC))
+#  define PLY_BIG_ENDIAN
+#elif (defined (i386) || defined (__i386__) || defined (__i386) || defined (_M_IX86) || defined (_X86_) || defined (__THW_INTEL__) || defined (__I86__) || defined (__INTEL__)) \
+  || (defined (__amd64__) || defined (__amd64) || defined (__x86_64__) || defined (__x86_64) || defined (_M_X64) || defined (ANDROID) || defined(__IPHONE_OS_VERSION_MIN_REQUIRED))
+#  define PLY_LITTLE_ENDIAN
+#else
+#  error
+#endif
 
       enum byte_order
       {
         little_endian_byte_order,
         big_endian_byte_order,
-#if defined(BOOST_BIG_ENDIAN)
+#if defined (PLY_BIG_ENDIAN)
         host_byte_order = big_endian_byte_order,
-#elif defined(BOOST_LITTLE_ENDIAN)
+#elif defined (PLY_LITTLE_ENDIAN)
         host_byte_order = little_endian_byte_order,
 #else
-#error "unable to determine system endianness"
+#  error
 #endif
         network_byte_order = big_endian_byte_order
       };
+      
+#undef PLY_BIG_ENDIAN
+#undef PLY_LITTLE_ENDIAN
       
       template <std::size_t N>
       void swap_byte_order (char* bytes);

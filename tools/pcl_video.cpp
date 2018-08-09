@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,6 +34,12 @@
  *  \author Geoffrey Biggs
  */
 
+#include <boost/date_time/gregorian/gregorian_types.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include <iostream>
 #include <string>
 #include <tide/ebml_element.h>
@@ -46,12 +52,11 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/openni_grabber.h>
-#include <pcl/PCLPointCloud2.h>
-#include <pcl/conversions.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl/ros/conversions.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/console/parse.h>
 #include <pcl/common/time.h>
-#include "boost.h"
 
 namespace bpt = boost::posix_time;
 
@@ -77,8 +82,8 @@ class Recorder
             tide::BlockElement::Ptr block(new tide::SimpleBlock(1,
                         blk_offset.total_microseconds() / 10000));
             // Here the frame data itself is added to the block
-            pcl::PCLPointCloud2 blob;
-            pcl::toPCLPointCloud2(*cloud, blob);
+            sensor_msgs::PointCloud2 blob;
+            pcl::toROSMsg(*cloud, blob);
             tide::Block::FramePtr frame_ptr(new tide::Block::Frame(blob.data.begin(),
                         blob.data.end()));
             block->push_back(frame_ptr);
@@ -114,7 +119,7 @@ class Recorder
 
         int Run()
         {
-            // Write the EBML PCLHeader. This specifies that the file is an EBML
+            // Write the EBML Header. This specifies that the file is an EBML
             // file, and is a Tide document.
             tide::EBMLElement ebml_el;
             ebml_el.write(stream_);
@@ -159,8 +164,8 @@ class Recorder
             // codec used.
             tide::TrackEntry::Ptr track(new tide::TrackEntry(1, 1, "pointcloud2"));
             track->name("3D video");
-            track->codec_name("pcl::PCLPointCloud2");
-            // Adding each level 1 element (only the first occurrence, in the case of
+            track->codec_name("sensor_msgs::PointCloud2");
+            // Adding each level 1 element (only the first occurance, in the case of
             // clusters) to the index makes opening the file later much faster.
             segment.index.insert(std::make_pair(tracks.id(),
                         segment.to_segment_offset(stream_.tellp())));
@@ -287,7 +292,7 @@ class Player
             tide::Segment segment;
             segment.read(stream);
             // The segment's date is stored as the number of nanoseconds since the
-            // start of the millennium. Boost::Date_Time is invaluable here.
+            // start of the millenium. Boost::Date_Time is invaluable here.
             bpt::ptime basis(boost::gregorian::date(2001, 1, 1));
             bpt::time_duration sd(bpt::microseconds(segment.info.date() / 1000));
             bpt::ptime seg_start(basis + sd);
@@ -356,10 +361,10 @@ class Player
                 // very small to reduce overhead.
                 tide::BlockElement::FramePtr frame_data(*block->begin());
                 // Copy the frame data into a serialised cloud structure
-                pcl::PCLPointCloud2 blob;
+                sensor_msgs::PointCloud2 blob;
                 blob.height = 480;
                 blob.width = 640;
-                pcl::PCLPointField ptype;
+                sensor_msgs::PointField ptype;
                 ptype.name = "x";
                 ptype.offset = 0;
                 ptype.datatype = 7;
@@ -381,7 +386,7 @@ class Player
                 blob.is_dense = false;
                 blob.data.assign(frame_data->begin(), frame_data->end());
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-                pcl::fromPCLPointCloud2(blob, *cloud);
+                pcl::fromROSMsg(blob, *cloud);
                 // Sleep until the block's display time. The played_time is
                 // updated to account for the time spent preparing the data.
                 played_time = bpt::microsec_clock::local_time() - pb_start;

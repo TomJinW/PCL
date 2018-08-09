@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -70,7 +70,7 @@ namespace pcl
       void
       setDegree (int new_degree);
 
-      /** How many parameters has a bivariate polynomial with this degree */
+      /** How many parametes has a bivariate polynomial with this degree */
       unsigned int
       getNoOfParameters () const { return getNoOfParametersFromDegree (degree);}
 
@@ -108,7 +108,7 @@ namespace pcl
       void
       readBinary (const char* filename);
       
-      /** How many parameters has a bivariate polynomial of the given degree */
+      /** How many parametes has a bivariate polynomial of the given degree */
       static unsigned int
       getNoOfParametersFromDegree (int n) { return ((n+2)* (n+1))/2;}
 

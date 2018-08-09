@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,29 +40,31 @@
 #ifndef PCL_REGISTRATION_IMPL_LUM_HPP_
 #define PCL_REGISTRATION_IMPL_LUM_HPP_
 
+#include <pcl/registration/lum.h>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline void
-pcl::registration::LUM<PointT>::setLoopGraph (const SLAMGraphPtr &slam_graph)
+pcl::registration::LUM<PointT>::setLoopGraph (SLAMGraphPtr slam_graph)
 {
   slam_graph_ = slam_graph;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline typename pcl::registration::LUM<PointT>::SLAMGraphPtr
-pcl::registration::LUM<PointT>::getLoopGraph () const
+pcl::registration::LUM<PointT>::getLoopGraph ()
 {
   return (slam_graph_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> typename pcl::registration::LUM<PointT>::SLAMGraph::vertices_size_type
-pcl::registration::LUM<PointT>::getNumVertices () const
+template<typename PointT> inline typename pcl::registration::LUM<PointT>::SLAMGraph::vertices_size_type
+pcl::registration::LUM<PointT>::getNumVertices ()
 {
   return (num_vertices (*slam_graph_));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> void
+template<typename PointT> inline void
 pcl::registration::LUM<PointT>::setMaxIterations (int max_iterations)
 {
   max_iterations_ = max_iterations;
@@ -71,13 +72,13 @@ pcl::registration::LUM<PointT>::setMaxIterations (int max_iterations)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline int
-pcl::registration::LUM<PointT>::getMaxIterations () const
+pcl::registration::LUM<PointT>::getMaxIterations ()
 {
   return (max_iterations_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> void
+template<typename PointT> inline void
 pcl::registration::LUM<PointT>::setConvergenceThreshold (float convergence_threshold)
 {
   convergence_threshold_ = convergence_threshold;
@@ -85,14 +86,14 @@ pcl::registration::LUM<PointT>::setConvergenceThreshold (float convergence_thres
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline float
-pcl::registration::LUM<PointT>::getConvergenceThreshold () const
+pcl::registration::LUM<PointT>::getConvergenceThreshold ()
 {
   return (convergence_threshold_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> typename pcl::registration::LUM<PointT>::Vertex
-pcl::registration::LUM<PointT>::addPointCloud (const PointCloudPtr &cloud, const Eigen::Vector6f &pose)
+template<typename PointT> inline typename pcl::registration::LUM<PointT>::Vertex
+pcl::registration::LUM<PointT>::addPointCloud (PointCloudPtr cloud, Eigen::Vector6f pose)
 {
   Vertex v = add_vertex (*slam_graph_);
   (*slam_graph_)[v].cloud_ = cloud;
@@ -108,9 +109,9 @@ pcl::registration::LUM<PointT>::addPointCloud (const PointCloudPtr &cloud, const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline void
-pcl::registration::LUM<PointT>::setPointCloud (const Vertex &vertex, const PointCloudPtr &cloud)
+pcl::registration::LUM<PointT>::setPointCloud (Vertex vertex, PointCloudPtr cloud)
 {
-  if (vertex >= getNumVertices ())
+  if (vertex < 0 || vertex >= getNumVertices ())
   {
     PCL_ERROR("[pcl::registration::LUM::setPointCloud] You are attempting to set a point cloud to a non-existing graph vertex.\n");
     return;
@@ -120,9 +121,9 @@ pcl::registration::LUM<PointT>::setPointCloud (const Vertex &vertex, const Point
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline typename pcl::registration::LUM<PointT>::PointCloudPtr
-pcl::registration::LUM<PointT>::getPointCloud (const Vertex &vertex) const
+pcl::registration::LUM<PointT>::getPointCloud (Vertex vertex)
 {
-  if (vertex >= getNumVertices ())
+  if (vertex < 0 || vertex >= getNumVertices ())
   {
     PCL_ERROR("[pcl::registration::LUM::getPointCloud] You are attempting to get a point cloud from a non-existing graph vertex.\n");
     return (PointCloudPtr ());
@@ -132,9 +133,9 @@ pcl::registration::LUM<PointT>::getPointCloud (const Vertex &vertex) const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline void
-pcl::registration::LUM<PointT>::setPose (const Vertex &vertex, const Eigen::Vector6f &pose)
+pcl::registration::LUM<PointT>::setPose (Vertex vertex, Eigen::Vector6f pose)
 {
-  if (vertex >= getNumVertices ())
+  if (vertex < 0 || vertex >= getNumVertices ())
   {
     PCL_ERROR("[pcl::registration::LUM::setPose] You are attempting to set a pose estimate to a non-existing graph vertex.\n");
     return;
@@ -149,9 +150,9 @@ pcl::registration::LUM<PointT>::setPose (const Vertex &vertex, const Eigen::Vect
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline Eigen::Vector6f
-pcl::registration::LUM<PointT>::getPose (const Vertex &vertex) const
+pcl::registration::LUM<PointT>::getPose (Vertex vertex)
 {
-  if (vertex >= getNumVertices ())
+  if (vertex < 0 || vertex >= getNumVertices ())
   {
     PCL_ERROR("[pcl::registration::LUM::getPose] You are attempting to get a pose estimate from a non-existing graph vertex.\n");
     return (Eigen::Vector6f::Zero ());
@@ -161,41 +162,41 @@ pcl::registration::LUM<PointT>::getPose (const Vertex &vertex) const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline Eigen::Affine3f
-pcl::registration::LUM<PointT>::getTransformation (const Vertex &vertex) const
+pcl::registration::LUM<PointT>::getTransformation (Vertex vertex)
 {
   Eigen::Vector6f pose = getPose (vertex);
   return (pcl::getTransformation (pose (0), pose (1), pose (2), pose (3), pose (4), pose (5)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> void
-pcl::registration::LUM<PointT>::setCorrespondences (const Vertex &source_vertex, const Vertex &target_vertex, const pcl::CorrespondencesPtr &corrs)
+template<typename PointT> inline void
+pcl::registration::LUM<PointT>::setCorrespondences (Vertex source_vertex, Vertex target_vertex, pcl::CorrespondencesPtr corrs)
 {
-  if (source_vertex >= getNumVertices () || target_vertex >= getNumVertices () || source_vertex == target_vertex)
+  if (source_vertex < 0 || source_vertex >= getNumVertices () || target_vertex < 0 || target_vertex >= getNumVertices () || source_vertex == target_vertex)
   {
     PCL_ERROR("[pcl::registration::LUM::setCorrespondences] You are attempting to set a set of correspondences between non-existing or identical graph vertices.\n");
     return;
   }
   Edge e;
   bool present;
-  boost::tuples::tie (e, present) = edge (source_vertex, target_vertex, *slam_graph_);
+  tie (e, present) = edge (source_vertex, target_vertex, *slam_graph_);
   if (!present)
-    boost::tuples::tie (e, present) = add_edge (source_vertex, target_vertex, *slam_graph_);
+    tie (e, present) = add_edge (source_vertex, target_vertex, *slam_graph_);
   (*slam_graph_)[e].corrs_ = corrs;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline pcl::CorrespondencesPtr
-pcl::registration::LUM<PointT>::getCorrespondences (const Vertex &source_vertex, const Vertex &target_vertex) const
+pcl::registration::LUM<PointT>::getCorrespondences (Vertex source_vertex, Vertex target_vertex)
 {
-  if (source_vertex >= getNumVertices () || target_vertex >= getNumVertices ())
+  if (source_vertex < 0 || source_vertex >= getNumVertices () || target_vertex < 0 || target_vertex >= getNumVertices ())
   {
     PCL_ERROR("[pcl::registration::LUM::getCorrespondences] You are attempting to get a set of correspondences between non-existing graph vertices.\n");
     return (pcl::CorrespondencesPtr ());
   }
   Edge e;
   bool present;
-  boost::tuples::tie (e, present) = edge (source_vertex, target_vertex, *slam_graph_);
+  tie (e, present) = edge (source_vertex, target_vertex, *slam_graph_);
   if (!present)
   {
     PCL_ERROR("[pcl::registration::LUM::getCorrespondences] You are attempting to get a set of correspondences from a non-existing graph edge.\n");
@@ -218,7 +219,7 @@ pcl::registration::LUM<PointT>::compute ()
   {
     // Linearized computation of C^-1 and C^-1*D and convergence checking for all edges in the graph (results stored in slam_graph_)
     typename SLAMGraph::edge_iterator e, e_end;
-    for (boost::tuples::tie (e, e_end) = edges (*slam_graph_); e != e_end; ++e)
+    for (tie (e, e_end) = edges (*slam_graph_); e != e_end; ++e)
       computeEdge (*e);
 
     // Declare matrices G and B
@@ -233,10 +234,10 @@ pcl::registration::LUM<PointT>::compute ()
         // Attempt to use the forward edge, otherwise use backward edge, otherwise there was no edge
         Edge e;
         bool present1, present2;
-        boost::tuples::tie (e, present1) = edge (vi, vj, *slam_graph_);
+        tie (e, present1) = edge (vi, vj, *slam_graph_);
         if (!present1)
         {
-          boost::tuples::tie (e, present2) = edge (vj, vi, *slam_graph_);
+          tie (e, present2) = edge (vj, vi, *slam_graph_);
           if (!present2)
             continue;
         }
@@ -257,20 +258,20 @@ pcl::registration::LUM<PointT>::compute ()
     float sum = 0.0;
     for (int vi = 1; vi != n; ++vi)
     {
-      Eigen::Vector6f difference_pose = static_cast<Eigen::Vector6f> (-incidenceCorrection (getPose (vi)).inverse () * X.segment (6 * (vi - 1), 6));
+      Eigen::Vector6f difference_pose = -incidenceCorrection (getPose (vi)).inverse () * X.segment (6 * (vi - 1), 6);
       sum += difference_pose.norm ();
       setPose (vi, getPose (vi) + difference_pose);
     }
 
     // Convergence check
-    if (sum <= convergence_threshold_ * static_cast<float> (n - 1))
+    if (sum <= convergence_threshold_ * (n - 1))
       return;
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> typename pcl::registration::LUM<PointT>::PointCloudPtr
-pcl::registration::LUM<PointT>::getTransformedCloud (const Vertex &vertex) const
+pcl::registration::LUM<PointT>::getTransformedCloud (Vertex vertex)
 {
   PointCloudPtr out (new PointCloud);
   pcl::transformPointCloud (*getPointCloud (vertex), *out, getTransformation (vertex));
@@ -279,11 +280,11 @@ pcl::registration::LUM<PointT>::getTransformedCloud (const Vertex &vertex) const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> typename pcl::registration::LUM<PointT>::PointCloudPtr
-pcl::registration::LUM<PointT>::getConcatenatedCloud () const
+pcl::registration::LUM<PointT>::getConcatenatedCloud ()
 {
   PointCloudPtr out (new PointCloud);
   typename SLAMGraph::vertex_iterator v, v_end;
-  for (boost::tuples::tie (v, v_end) = vertices (*slam_graph_); v != v_end; ++v)
+  for (tie (v, v_end) = vertices (*slam_graph_); v != v_end; ++v)
   {
     PointCloud temp;
     pcl::transformPointCloud (*getPointCloud (*v), temp, getTransformation (*v));
@@ -294,7 +295,7 @@ pcl::registration::LUM<PointT>::getConcatenatedCloud () const
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> void
-pcl::registration::LUM<PointT>::computeEdge (const Edge &e)
+pcl::registration::LUM<PointT>::computeEdge (Edge e)
 {
   // Get necessary local data from graph
   PointCloudPtr source_cloud = (*slam_graph_)[source (e, *slam_graph_)].cloud_;
@@ -304,8 +305,8 @@ pcl::registration::LUM<PointT>::computeEdge (const Edge &e)
   pcl::CorrespondencesPtr corrs = (*slam_graph_)[e].corrs_;
 
   // Build the average and difference vectors for all correspondences
-  std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > corrs_aver (corrs->size ());
-  std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > corrs_diff (corrs->size ());
+  std::vector < Eigen::Vector3f > corrs_aver (corrs->size ());
+  std::vector < Eigen::Vector3f > corrs_diff (corrs->size ());
   int oci = 0;  // oci = output correspondence iterator
   for (int ici = 0; ici != static_cast<int> (corrs->size ()); ++ici)  // ici = input correspondence iterator
   {
@@ -362,7 +363,7 @@ pcl::registration::LUM<PointT>::computeEdge (const Edge &e)
     MZ (5) += corrs_aver[ci] (2) * corrs_diff[ci] (0) - corrs_aver[ci] (0) * corrs_diff[ci] (2);
   }
   // Remaining elements of M'M
-  MM (0, 0) = MM (1, 1) = MM (2, 2) = static_cast<float> (oci);
+  MM (0, 0) = MM (1, 1) = MM (2, 2) = oci;
   MM (4, 0) = MM (0, 4);
   MM (5, 0) = MM (0, 5);
   MM (3, 1) = MM (1, 3);
@@ -374,14 +375,13 @@ pcl::registration::LUM<PointT>::computeEdge (const Edge &e)
   MM (5, 4) = MM (4, 5);
 
   // Compute pose difference estimation
-  Eigen::Vector6f D = static_cast<Eigen::Vector6f> (MM.inverse () * MZ);
+  Eigen::Vector6f D = MM.inverse () * MZ;
 
   // Compute s^2
-  float ss = 0.0f;
+  float ss = 0;
   for (int ci = 0; ci != oci; ++ci)  // ci = correspondence iterator
-    ss += static_cast<float> (pow (corrs_diff[ci] (0) - (D (0) + corrs_aver[ci] (2) * D (5) - corrs_aver[ci] (1) * D (4)), 2.0f)
-                            + pow (corrs_diff[ci] (1) - (D (1) + corrs_aver[ci] (0) * D (4) - corrs_aver[ci] (2) * D (3)), 2.0f)
-                            + pow (corrs_diff[ci] (2) - (D (2) + corrs_aver[ci] (1) * D (3) - corrs_aver[ci] (0) * D (5)), 2.0f));
+    ss += pow (corrs_diff[ci] (0) - (D (0) + corrs_aver[ci] (2) * D (5) - corrs_aver[ci] (1) * D (4)), 2) + pow (corrs_diff[ci] (1) - (D (1) + corrs_aver[ci] (0) * D (4) - corrs_aver[ci] (2) * D (3)), 2)
+        + pow (corrs_diff[ci] (2) - (D (2) + corrs_aver[ci] (1) * D (3) - corrs_aver[ci] (0) * D (5)), 2);
 
   // When reaching the limitations of computation due to linearization
   if (ss < 0.0000000000001 || !pcl_isfinite (ss))
@@ -392,13 +392,13 @@ pcl::registration::LUM<PointT>::computeEdge (const Edge &e)
   }
 
   // Store the results in the slam graph
-  (*slam_graph_)[e].cinv_ = MM * (1.0f / ss);
-  (*slam_graph_)[e].cinvd_ = MZ * (1.0f / ss);
+  (*slam_graph_)[e].cinv_ = MM * (1 / ss);
+  (*slam_graph_)[e].cinvd_ = MZ * (1 / ss);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> inline Eigen::Matrix6f
-pcl::registration::LUM<PointT>::incidenceCorrection (const Eigen::Vector6f &pose)
+pcl::registration::LUM<PointT>::incidenceCorrection (Eigen::Vector6f pose)
 {
   Eigen::Matrix6f out = Eigen::Matrix6f::Identity ();
   float cx = cosf (pose (3)), sx = sinf (pose (3)), cy = cosf (pose (4)), sy = sinf (pose (4));
@@ -417,8 +417,6 @@ pcl::registration::LUM<PointT>::incidenceCorrection (const Eigen::Vector6f &pose
   out (5, 5) = -sx * cy;
   return (out);
 }
-
-#define PCL_INSTANTIATE_LUM(T) template class PCL_EXPORTS pcl::registration::LUM<T>;
 
 #endif  // PCL_REGISTRATION_IMPL_LUM_HPP_
 

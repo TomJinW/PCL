@@ -36,10 +36,13 @@
  * $Id$
  */
 
-#ifndef PCL_OCTREE_DENSITY_H
-#define PCL_OCTREE_DENSITY_H
+#ifndef OCTREE_DENSITY_H
+#define OCTREE_DENSITY_H
 
-#include <pcl/octree/octree_pointcloud.h>
+#include "octree_pointcloud.h"
+
+#include "octree_base.h"
+#include "octree2buf_base.h"
 
 namespace pcl
 {
@@ -49,11 +52,12 @@ namespace pcl
       * \note This class implements a leaf node that counts the amount of points which fall into its voxel space.
       * \author Julius Kammerl (julius@kammerl.de)
       */
-    class OctreePointCloudDensityContainer : public OctreeContainerBase
+    template<typename DataT>
+    class OctreePointCloudDensityContainer
     {
       public:
         /** \brief Class initialization. */
-        OctreePointCloudDensityContainer () : point_counter_ (0)
+        OctreePointCloudDensityContainer () : pointCounter_ (0)
         {
         }
 
@@ -69,43 +73,57 @@ namespace pcl
           return (new OctreePointCloudDensityContainer (*this));
         }
 
-        /** \brief Equal comparison operator
-         * \param[in] other OctreePointCloudDensityContainer to compare with
+        /** \brief Get size of container (number of DataT objects)
+         * \return number of DataT elements in leaf node container.
          */
-        virtual bool operator==(const OctreeContainerBase& other) const
+        size_t
+        getSize () const
         {
-          const OctreePointCloudDensityContainer* otherContainer =
-              dynamic_cast<const OctreePointCloudDensityContainer*>(&other);
-
-          return (this->point_counter_==otherContainer->point_counter_);
+          return 0;
         }
 
         /** \brief Read input data. Only an internal counter is increased.
           */
         void
-        addPointIndex (int)
+        setData (const DataT&)
         {
-          point_counter_++;
+          pointCounter_++;
+        }
+
+        /** \brief Returns a null pointer as this leaf node does not store any data.
+          * \param[out] data_arg: reference to return pointer of leaf node DataT element (will be set to 0).
+          */
+        void
+        getData (const DataT*& data_arg) const
+        {
+          data_arg = 0;
+        }
+
+        /** \brief Empty getData data vector implementation as this leaf node does not store any data. \
+          */
+        void
+        getData (std::vector<DataT>&) const
+        {
         }
 
         /** \brief Return point counter.
-          * \return Amount of points
+          * \return Amaount of points
           */
         unsigned int
         getPointCounter ()
         {
-          return (point_counter_);
+          return (pointCounter_);
         }
 
-        /** \brief Reset leaf node. */
-        virtual void
+        /** \brief Empty reset leaf node implementation as this leaf node does not store any data. */
+        void
         reset ()
         {
-          point_counter_ = 0;
+          pointCounter_ = 0;
         }
 
       private:
-        unsigned int point_counter_;
+        unsigned int pointCounter_;
 
     };
 
@@ -117,8 +135,8 @@ namespace pcl
       * \ingroup octree
       * \author Julius Kammerl (julius@kammerl.de)
       */
-    template<typename PointT, typename LeafContainerT = OctreePointCloudDensityContainer, typename BranchContainerT = OctreeContainerEmpty >
-    class OctreePointCloudDensity : public OctreePointCloud<PointT, LeafContainerT, BranchContainerT>
+    template<typename PointT, typename LeafT = OctreePointCloudDensityContainer<int> , typename BranchT = OctreeContainerEmpty<int> >
+    class OctreePointCloudDensity : public OctreePointCloud<PointT, LeafT, BranchT>
     {
       public:
 
@@ -126,7 +144,7 @@ namespace pcl
          *  \param resolution_arg:  octree resolution at lowest octree level
          * */
         OctreePointCloudDensity (const double resolution_arg) :
-        OctreePointCloud<PointT, LeafContainerT, BranchContainerT> (resolution_arg)
+        OctreePointCloud<PointT, LeafT, BranchT> (resolution_arg)
         {
         }
 
@@ -143,14 +161,14 @@ namespace pcl
         unsigned int
         getVoxelDensityAtPoint (const PointT& point_arg) const
         {
-          unsigned int point_count = 0;
+          unsigned int pointCount = 0;
 
-          OctreePointCloudDensityContainer* leaf = this->findLeafAtPoint (point_arg);
+          OctreePointCloudDensityContainer<int>* leaf = this->findLeafAtPoint (point_arg);
 
           if (leaf)
-            point_count = leaf->getPointCounter ();
+            pointCount = leaf->getPointCounter ();
 
-          return (point_count);
+          return (pointCount);
         }
     };
   }

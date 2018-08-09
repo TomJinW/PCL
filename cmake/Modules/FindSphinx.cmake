@@ -5,7 +5,7 @@
 # SPHINX_FOUND - True if Sphinx was found.
 # SPHINX_EXECUTABLE - Sphinx-build executable
 
-find_package(PkgConfig QUIET)
+find_package(PkgConfig)
 pkg_check_modules(PC_SPHINX sphinx-build)
 
 find_package(PythonInterp)

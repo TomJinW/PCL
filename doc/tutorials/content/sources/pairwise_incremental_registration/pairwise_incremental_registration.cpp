@@ -257,7 +257,7 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
   // Set the point representation
   reg.setPointRepresentation (boost::make_shared<const MyPointRepresentation> (point_representation));
 
-  reg.setInputSource (points_with_normals_src);
+  reg.setInputCloud (points_with_normals_src);
   reg.setInputTarget (points_with_normals_tgt);
 
 
@@ -275,7 +275,7 @@ void pairAlign (const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt
     points_with_normals_src = reg_result;
 
     // Estimate
-    reg.setInputSource (points_with_normals_src);
+    reg.setInputCloud (points_with_normals_src);
     reg.align (*reg_result);
 
 		//accumulate transformation between each Iteration
@@ -334,6 +334,7 @@ int main (int argc, char** argv)
   {
     PCL_ERROR ("Syntax is: %s <source.pcd> <target.pcd> [*]", argv[0]);
     PCL_ERROR ("[*] - multiple files can be added. The registration results of (i, i+1) will be registered against (i+2), etc");
+    PCL_INFO ("Example: %s `rospack find pcl`/test/bun0.pcd `rospack find pcl`/test/bun4.pcd", argv[0]);
     return (-1);
   }
   PCL_INFO ("Loaded %d datasets.", (int)data.size ());
@@ -362,7 +363,7 @@ int main (int argc, char** argv)
     pcl::transformPointCloud (*temp, *result, GlobalTransform);
 
     //update the global transform
-    GlobalTransform = GlobalTransform * pairTransform;
+    GlobalTransform = pairTransform * GlobalTransform;
 
 		//save aligned pair, transformed into the first cloud's frame
     std::stringstream ss;

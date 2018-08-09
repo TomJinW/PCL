@@ -39,35 +39,31 @@
 #ifndef PCL_RECOGNITION_VOXEL_STRUCTURE_H_
 #define PCL_RECOGNITION_VOXEL_STRUCTURE_H_
 
-#include <cstdlib>
+#include <Eigen/Core>
 
 namespace pcl
 {
   namespace recognition
   {
     /** \brief This class is a box in R3 built of voxels ordered in a regular rectangular grid. Each voxel is of type T. */
-    template<class T, typename REAL = float>
+    template<class T>
     class VoxelStructure
     {
     public:
-      inline VoxelStructure (): voxels_(NULL){}
-      inline virtual ~VoxelStructure (){ this->clear();}
+      VoxelStructure (): voxels_(NULL){}
+      virtual ~VoxelStructure (){ this->clear();}
 
       /** \brief Call this method before using an instance of this class. Parameter meaning is obvious. */
-      inline void
-      build (const REAL bounds[6], int num_of_voxels[3]);
+      void
+      build (const double bounds[6], int num_of_voxels[3]);
 
       /** \brief Release the memory allocated for the voxels. */
-      inline void
+      void
       clear (){ if ( voxels_ ){ delete[] voxels_; voxels_ = NULL;}}
 
       /** \brief Returns a pointer to the voxel which contains p or NULL if p is not inside the structure. */
       inline T*
-      getVoxel (const REAL p[3]);
-
-      /** \brief Returns a pointer to the voxel with integer id (x,y,z) or NULL if (x,y,z) is out of bounds. */
-      inline T*
-      getVoxel (int x, int y, int z) const;
+      getVoxel (const double p[3]);
 
       /** \brief Returns the linear voxel array. */
       const inline T*
@@ -87,7 +83,7 @@ namespace pcl
         *
         * \param[in]  linear_id the position of the voxel in the internal voxel array.
         * \param[out] id3d an array of 3 integers for the integer coordinates of the voxel. */
-      inline void
+      void
       compute3dId (int linear_id, int id3d[3]) const
       {
         // Compute the z axis id
@@ -100,7 +96,7 @@ namespace pcl
       }
 
       /** \brief Returns the number of voxels in x, y and z direction. */
-      inline const int*
+      const int*
       getNumberOfVoxelsXYZ() const
       {
         return (num_of_voxels_);
@@ -110,59 +106,58 @@ namespace pcl
        *
        * \param[in]  id3 the integer coordinates along the x, y and z axis.
        * \param[out] center */
-      inline void
-      computeVoxelCenter (const int id3[3], REAL center[3]) const
+      void
+      computeVoxelCenter (const int id3[3], double center[3]) const
       {
-        center[0] = min_center_[0] + static_cast<float> (id3[0])*spacing_[0];
-        center[1] = min_center_[1] + static_cast<float> (id3[1])*spacing_[1];
-        center[2] = min_center_[2] + static_cast<float> (id3[2])*spacing_[2];
+        center[0] = min_center_[0] + id3[0]*spacing_[0];
+        center[1] = min_center_[1] + id3[1]*spacing_[1];
+        center[2] = min_center_[2] + id3[2]*spacing_[2];
       }
 
       /** \brief Returns the total number of voxels. */
-      inline int
+      int
       getNumberOfVoxels() const
       {
         return (total_num_of_voxels_);
       }
 
       /** \brief Returns the bounds of the voxel structure, which is pointer to the internal array of 6 doubles: (min_x, max_x, min_y, max_y, min_z, max_z). */
-      inline const float*
+      const int*
       getBounds() const
       {
         return (bounds_);
       }
 
-      /** \brief Copies the bounds of the voxel structure to 'b'. */
-      inline void
-      getBounds(REAL b[6]) const
-      {
-        b[0] = bounds_[0];
-        b[1] = bounds_[1];
-        b[2] = bounds_[2];
-        b[3] = bounds_[3];
-        b[4] = bounds_[4];
-        b[5] = bounds_[5];
-      }
-
-      /** \brief Returns the voxel spacing in x, y and z direction. That's the same as the voxel size along each axis. */
-      const REAL*
+      /** \brief Returns the voxel spacing in x, y and z direction. */
+      const double*
       getVoxelSpacing() const
       {
         return (spacing_);
       }
 
-      /** \brief Saves pointers to the voxels which are neighbors of the voxels which contains 'p'. The containing voxel is returned too.
-        * 'neighs' has to be an array of pointers with space for at least 27 pointers (27 = 3^3 which is the max number of neighbors). The */
-      inline int
-      getNeighbors (const REAL* p, T **neighs) const;
-
     protected:
       T *voxels_;
       int num_of_voxels_[3], num_of_voxels_xy_plane_, total_num_of_voxels_;
-      REAL bounds_[6];
-      REAL spacing_[3]; // spacing between the voxel in x, y and z direction = voxel size in x, y and z direction
-      REAL min_center_[3]; // the center of the voxel with integer coordinates (0, 0, 0)
+      double bounds_[6];
+      double spacing_[3]; // spacing betwen the voxel in x, y and z direction = voxel size in x, y and z direction
+      double min_center_[3]; // the center of the voxel with integer coordinates (0, 0, 0)
     };
+
+// === inline methods ======================================================================================================================
+
+    template<class T> inline T*
+    VoxelStructure<T>::getVoxel(const double p[3])
+    {
+      if ( p[0] < bounds_[0] || p[0] >= bounds_[1] || p[1] < bounds_[2] || p[1] >= bounds_[3] || p[2] < bounds_[4] || p[2] >= bounds_[5] )
+        return NULL;
+
+      int x = static_cast<int>((p[0] - bounds_[0])/spacing_[0] + 0.5);
+      int y = static_cast<int>((p[1] - bounds_[2])/spacing_[1] + 0.5);
+      int z = static_cast<int>((p[2] - bounds_[4])/spacing_[2] + 0.5);
+
+      return &voxels_[z*num_of_voxels_xy_plane_ + y*num_of_voxels_[0] + x];
+    }
+
   } // namespace recognition
 } // namespace pcl
 

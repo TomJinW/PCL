@@ -3,8 +3,6 @@
  *
  *  Copyright (c) 2011, Alexandru-Eugen Ichim
  *                      Willow Garage, Inc
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -35,7 +33,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  * $Id$
- *
  */
 
 #ifndef PCL_PYRAMID_FEATURE_MATCHING_H_
@@ -119,7 +116,7 @@ namespace pcl
       isComputed () { return is_computed_; }
 
       /** \brief Static method for comparing two pyramid histograms that returns a floating point value between 0 and 1,
-       * representing the similarity between the feature sets on which the two pyramid histograms are based.
+       * representing the similiarity between the feature sets on which the two pyramid histograms are based.
        * \param pyramid_a Pointer to the first pyramid to be compared (needs to be computed already).
        * \param pyramid_b Pointer to the second pyramid to be compared (needs to be computed already).
        */
@@ -195,8 +192,4 @@ namespace pcl
   };
 }
 
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/registration/impl/pyramid_feature_matching.hpp>
-#endif
-
-#endif    // PCL_PYRAMID_FEATURE_MATCHING_H_
+#endif /* PCL_PYRAMID_FEATURE_MATCHING_H_ */

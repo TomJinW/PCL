@@ -40,6 +40,11 @@
 #include <cassert>
 #include <fstream>
 
+#include <QTableView>
+#include <QPushButton>
+#include <QHeaderView>
+#include <QGridLayout>
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
 pcl::modeler::ParameterDialog::addParameter(pcl::modeler::Parameter* parameter)
@@ -66,7 +71,7 @@ pcl::modeler::ParameterDialog::ParameterDialog(const std::string& title, QWidget
 int
 pcl::modeler::ParameterDialog::exec()
 {
-  pcl::modeler::ParameterModel parameterModel (int (name_parameter_map_.size ()), 2, this);
+  pcl::modeler::ParameterModel parameterModel(name_parameter_map_.size(), 2, this);
   parameter_model_ = &parameterModel;
 
   QStringList headerLabels;
@@ -82,12 +87,11 @@ pcl::modeler::ParameterDialog::exec()
     it != name_parameter_map_.end();
     ++ it)
   {
-    QModelIndex name = parameterModel.index(int (currentRow), 0, QModelIndex());
+    QModelIndex name = parameterModel.index(currentRow, 0, QModelIndex());
     parameterModel.setData(name, QVariant(it->first.c_str()));
 
-    QModelIndex value = parameterModel.index(int (currentRow), 1, QModelIndex());
-    std::pair<QVariant, int> model_data = it->second->toModelData();
-    parameterModel.setData(value, model_data.first, model_data.second);
+    QModelIndex value = parameterModel.index(currentRow, 1, QModelIndex());
+    parameterModel.setData(value, QVariant(it->second->toString()));
 
     currentRow ++;
   }
@@ -96,11 +100,7 @@ pcl::modeler::ParameterDialog::exec()
   tableView.setItemDelegate(&parameterDelegate);
 
   tableView.horizontalHeader()->setStretchLastSection(true);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-  tableView.horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-#else
   tableView.horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
-#endif
   tableView.setShowGrid(true);
   tableView.verticalHeader()->hide();
   tableView.setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -140,9 +140,8 @@ pcl::modeler::ParameterDialog::reset()
   {
     it->second->reset();
 
-    QModelIndex value = parameter_model_->index(int (currentRow), 1, QModelIndex());
-    std::pair<QVariant, int> model_data = it->second->toModelData();
-    parameter_model_->setData(value, model_data.first, model_data.second);
+    QModelIndex value = parameter_model_->index(currentRow, 1, QModelIndex());
+    parameter_model_->setData(value, QVariant(it->second->toString()));
 
     currentRow ++;
   }
@@ -156,7 +155,7 @@ pcl::modeler::Parameter* pcl::modeler::ParameterDelegate::getCurrentParameter(co
   std::map<std::string, Parameter*>::iterator currentParameter = parameter_map_.begin();
 
   size_t currentRow = 0;
-  while(currentRow < (size_t) index.row() && currentParameter != parameter_map_.end()) {
+  while(currentRow < index.row() && currentParameter != parameter_map_.end()) {
     ++ currentParameter;
     ++ currentRow;
   }
@@ -168,14 +167,14 @@ pcl::modeler::Parameter* pcl::modeler::ParameterDelegate::getCurrentParameter(co
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 pcl::modeler::ParameterDelegate::ParameterDelegate(std::map<std::string, Parameter*>& parameterMap, QObject *parent):
-  QStyledItemDelegate(parent),
-  parameter_map_(parameterMap)
+  parameter_map_(parameterMap),
+  QStyledItemDelegate(parent)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 QWidget *
-pcl::modeler::ParameterDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &, const QModelIndex &index) const
+pcl::modeler::ParameterDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option , const QModelIndex &index) const
 {
   return getCurrentParameter(index)->createEditor(parent);
 }
@@ -196,7 +195,7 @@ pcl::modeler::ParameterDelegate::setModelData(QWidget *editor, QAbstractItemMode
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::ParameterDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &) const
+pcl::modeler::ParameterDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
   editor->setGeometry(option.rect);
 }

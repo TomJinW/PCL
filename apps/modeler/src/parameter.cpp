@@ -40,15 +40,8 @@
 #include <fstream>
 #include <iomanip>
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::modeler::Parameter::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index)
-{
-  getEditorData(editor);
-  std::pair<QVariant, int> model_data = toModelData();
-  model->setData(index, model_data.first, model_data.second);
-}
-
+#include <QWidget>
+#include <QSpinBox>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 std::string
@@ -76,72 +69,34 @@ pcl::modeler::IntParameter::setEditorData(QWidget *editor)
   QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
   spinBox->setAlignment(Qt::AlignHCenter);
 
-  int value = int (*this);
+  int value = (int)(*this);
   spinBox->setValue(value);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::IntParameter::getEditorData(QWidget *editor)
+pcl::modeler::IntParameter::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index)
 {
   QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
   int value = spinBox->text().toInt();
   current_value_ = value;
+  model->setData(index, value, Qt::EditRole);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<QVariant, int>
-pcl::modeler::IntParameter::toModelData()
+QString
+pcl::modeler::IntParameter::toString()
 {
-  std::pair<QVariant, int> model_data;
-  model_data.first = int (*this);
-  model_data.second = Qt::EditRole;
-  return (model_data);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::string
-pcl::modeler::BoolParameter::valueTip() 
-{
-  return QString("bool value").toStdString();
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-QWidget *
-pcl::modeler::BoolParameter::createEditor(QWidget *parent)
-{
-  QCheckBox *editor = new QCheckBox(parent);
-
-  return editor;
+  int value = (int)(*this);
+  return QString("%1").arg(value);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::BoolParameter::setEditorData(QWidget *editor)
+pcl::modeler::IntParameter::loadValue(const std::string& valueString)
 {
-  QCheckBox *checkBox = static_cast<QCheckBox*>(editor);
-
-  bool value = bool (*this);
-  checkBox->setCheckState(value?(Qt::Checked):(Qt::Unchecked));
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-void
-  pcl::modeler::BoolParameter::getEditorData(QWidget *editor)
-{
-  QCheckBox *checkBox = static_cast<QCheckBox*>(editor);
-  bool value = (checkBox->checkState() == Qt::Checked);
+  int value = QString(valueString.c_str()).toInt();
   current_value_ = value;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<QVariant, int>
-pcl::modeler::BoolParameter::toModelData()
-{
-  std::pair<QVariant, int> model_data;
-  model_data.first = bool (*this);
-  model_data.second = Qt::EditRole;
-  return (model_data);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,73 +126,32 @@ pcl::modeler::DoubleParameter::setEditorData(QWidget *editor)
   QDoubleSpinBox *spinBox = static_cast<QDoubleSpinBox*>(editor);
   spinBox->setAlignment(Qt::AlignHCenter);
 
-  double value = double (*this);
+  double value = (double)(*this);
   spinBox->setValue(value);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::DoubleParameter::getEditorData(QWidget *editor)
+pcl::modeler::DoubleParameter::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index)
 {
   QDoubleSpinBox *spinBox = static_cast<QDoubleSpinBox*>(editor);
   double value = spinBox->text().toDouble();
   current_value_ = value;
+  model->setData(index, value, Qt::EditRole);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<QVariant, int>
-pcl::modeler::DoubleParameter::toModelData()
+QString
+pcl::modeler::DoubleParameter::toString()
 {
-  std::pair<QVariant, int> model_data;
-  model_data.first = double (*this);
-  model_data.second = Qt::EditRole;
-  return (model_data);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::string
-pcl::modeler::ColorParameter::valueTip() 
-{
-  return ("Color");
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-QWidget *
-pcl::modeler::ColorParameter::createEditor(QWidget *parent)
-{
-  QColorDialog *editor = new QColorDialog(parent);
-
-  return editor;
+  double value = (double)(*this);
+  return QString("%1").arg(value);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::ColorParameter::setEditorData(QWidget *editor)
+pcl::modeler::DoubleParameter::loadValue(const std::string& valueString)
 {
-  QColorDialog *color_dialog = static_cast<QColorDialog*>(editor);
-
-  QColor value = QColor (*this);
-  color_dialog->setCurrentColor(value);
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::modeler::ColorParameter::getEditorData(QWidget *editor)
-{
-  QColorDialog *color_dialog = static_cast<QColorDialog*>(editor);
-
-  QColor value = color_dialog->currentColor();
+  double value = QString(valueString.c_str()).toDouble();
   current_value_ = value;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-std::pair<QVariant, int>
-pcl::modeler::ColorParameter::toModelData()
-{
-  std::pair<QVariant, int> model_data;
-  model_data.first = QBrush(QColor(*this));
-  model_data.second = Qt::BackgroundRole;
-  return (model_data);
 }

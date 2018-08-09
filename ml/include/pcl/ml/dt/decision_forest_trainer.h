@@ -115,7 +115,7 @@ namespace pcl
       }
 
       /** \brief Sets the number of thresholds tested for finding the optimal decision threshold on the feature responses.
-        * \param[in] num_of_threshold The number of thresholds.
+        * \param[in] num_of_thresholds The number of thresholds.
         */
       inline void
       setNumOfThresholds (const size_t num_of_threshold)
@@ -150,44 +150,8 @@ namespace pcl
         decision_tree_trainer_.setLabelData (label_data);
       }
 
-      /** \brief Sets the minimum number of examples to continue growing a tree.
-        * \param[in] n Number of examples
-        */
-      inline void
-      setMinExamplesForSplit(size_t n)
-      {
-        decision_tree_trainer_.setMinExamplesForSplit(n);
-      }
-
-      /** \brief Specify the thresholds to be used when evaluating features.
-        * \param[in] thres The threshold values.
-        */
-      void
-      setThresholds(std::vector<float> & thres)
-      {
-        decision_tree_trainer_.setThresholds(thres);
-      }
-
-      /** \brief Specify the data provider.
-        * \param[in] dtdp The data provider that should implement getDatasetAndLabels(...) function
-        */
-      void
-      setDecisionTreeDataProvider(boost::shared_ptr<pcl::DecisionTreeTrainerDataProvider<FeatureType, DataSet, LabelType, ExampleIndex, NodeType> > & dtdp)
-      {
-        decision_tree_trainer_.setDecisionTreeDataProvider(dtdp);
-      }
-
-      /** \brief Specify if the features are randomly generated at each split node.
-        * \param[in] b Do it or not.
-        */
-      void
-      setRandomFeaturesAtSplitNode(bool b)
-      {
-        decision_tree_trainer_.setRandomFeaturesAtSplitNode(b);
-      }
-
       /** \brief Trains a decision forest using the set training data and settings.
-        * \param[out] forest Destination for the trained forest.
+        * \param[out] tree Destination for the trained forest.
         */
       void
       train (DecisionForest<NodeType> & forest);

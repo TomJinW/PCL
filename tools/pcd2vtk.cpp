@@ -15,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -53,7 +53,7 @@ printHelp (int, char **argv)
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -68,7 +68,7 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &cloud)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   tt.tic ();
@@ -102,13 +102,11 @@ main (int argc, char** argv)
   }
 
   // Load the first file
-  pcl::PCLPointCloud2 cloud;
+  sensor_msgs::PointCloud2 cloud;
   if (!loadCloud (argv[pcd_file_indices[0]], cloud)) 
     return (-1);
 
   // Convert to vtk and save
   saveCloud (argv[vtk_file_indices[0]], cloud);
-
-  return (0);
 }
 

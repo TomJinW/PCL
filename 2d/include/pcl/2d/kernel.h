@@ -2,7 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2010-2012, Willow Garage, Inc.
  *
  *  All rights reserved.
  *
@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -33,212 +33,66 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ * $Id$
+ *
  */
 
-#ifndef PCL_2D_KERNEL_H_
-#define PCL_2D_KERNEL_H_
+#ifndef KERNEL_H_
+#define KERNEL_H_
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
 namespace pcl
 {
-  template<typename PointT>
-  class kernel
+  namespace pcl_2d
   {
-    public:
+    template<typename PointT>
+    class Kernel
+    {
+      public:
 
-      /**
-       * enumerates the different types of kernels available.
-       */
-      enum KERNEL_ENUM
-      {
-        SOBEL_X,              //!< SOBEL_X
-        SOBEL_Y,              //!< SOBEL_Y
-        PREWITT_X,            //!< PREWITT_X
-        PREWITT_Y,            //!< PREWITT_Y
-        ROBERTS_X,            //!< ROBERTS_X
-        ROBERTS_Y,            //!< ROBERTS_Y
-        LOG,                  //!< LOG
-        DERIVATIVE_CENTRAL_X, //!< DERIVATIVE_CENTRAL_X
-        DERIVATIVE_FORWARD_X, //!< DERIVATIVE_FORWARD_X
-        DERIVATIVE_BACKWARD_X,//!< DERIVATIVE_BACKWARD_X
-        DERIVATIVE_CENTRAL_Y, //!< DERIVATIVE_CENTRAL_Y
-        DERIVATIVE_FORWARD_Y, //!< DERIVATIVE_FORWARD_Y
-        DERIVATIVE_BACKWARD_Y,//!< DERIVATIVE_BACKWARD_Y
-        GAUSSIAN              //!< GAUSSIAN
-      };
+        enum KERNEL_ENUM
+        {
+          SOBEL,
+          PREWITT,
+          ROBERTS,
+          LOG,
+          DERIVATIVE_CENTRAL_X,
+          DERIVATIVE_FORWARD_X,
+          DERIVATIVE_BACKWARD_X,
+          DERIVATIVE_CENTRAL_Y,
+          DERIVATIVE_FORWARD_Y,
+          DERIVATIVE_BACKWARD_Y,
+          GAUSSIAN
+        };
 
-      int kernel_size_;
-      float sigma_;
-      KERNEL_ENUM kernel_type_;
+        int kernel_size_;
+        float sigma_;
+        KERNEL_ENUM kernel_type_;
 
-      kernel () :
-        kernel_size_ (3),
-        sigma_ (1.0),
-        kernel_type_ (GAUSSIAN)
-      {
+        Kernel () :
+          kernel_size_ (3),
+          sigma_ (1.0),
+          kernel_type_ (GAUSSIAN)
+        {
 
-      }
+        }
 
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * Helper function which returns the kernel selected by the kernel_type_ enum
-       */
-      void fetchKernel (pcl::PointCloud<PointT> &kernel);
+        void fetchKernel (PointCloud<PointT> &kernel);
 
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * Gaussian kernel with size (kernel_size_ x kernel_size_) and variance sigma_
-       */
+        void gaussianKernel (PointCloud<PointT> &kernel);
 
-      void gaussianKernel (pcl::PointCloud<PointT> &kernel);
+        void loGKernel (PointCloud<PointT> &kernel);
 
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * Laplacian of Gaussian kernel with size (kernel_size_ x kernel_size_) and variance sigma_
-       */
+        void sobelKernel (PointCloud<PointT> &Kernel);
 
-      void loGKernel (pcl::PointCloud<PointT> &kernel);
+        void prewittKernel (PointCloud<PointT> &Kernel);
 
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 3x3 Sobel kernel in the X direction
-       */
+        void robertsKernel (PointCloud<PointT> &kernel);
 
-      void sobelKernelX (pcl::PointCloud<PointT> &kernel);
+        void derivativeXCentralKernel (PointCloud<PointT> &kernel);
 
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 3x3 Prewitt kernel in the X direction
-       */
-
-      void prewittKernelX (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 2x2 Roberts kernel in the X direction
-       */
-
-      void robertsKernelX (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 3x3 Sobel kernel in the Y direction
-       */
-
-      void sobelKernelY (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 3x3 Prewitt kernel in the Y direction
-       */
-
-      void prewittKernelY (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * 2x2 Roberts kernel in the Y direction
-       */
-
-      void robertsKernelY (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [-1 0 1]
-       */
-
-      void derivativeXCentralKernel (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [-1 0 1]'
-       */
-
-      void derivativeYCentralKernel (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [0 -1 1]
-       */
-
-      void derivativeXForwardKernel (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [0 -1 1]'
-       */
-
-      void derivativeYForwardKernel (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [-1 1 0]
-       */
-
-      void derivativeXBackwardKernel (pcl::PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel Kernel point cloud passed by reference
-       *
-       * kernel [-1 1 0]'
-       */
-
-      void derivativeYBackwardKernel (PointCloud<PointT> &kernel);
-
-      /**
-       *
-       * @param kernel_type enum indicating the kernel type wanted
-       *
-       * select the kernel type.
-       */
-      void setKernelType (KERNEL_ENUM kernel_type);
-
-      /**
-       *
-       * @param kernel_size kernel of size kernel_size x kernel_size is created(LoG and Gaussian only)
-       *
-       * Setter function for kernel_size_
-       */
-      void setKernelSize (int kernel_size);
-
-      /**
-       *
-       * @param kernel_sigma variance of the Gaussian or LoG kernels.
-       *
-       * Setter function for kernel_sigma_
-       */
-      void setKernelSigma (float kernel_sigma);
-  };
+        void derivativeYCentralKernel (PointCloud<PointT> &kernel);
+    };
+  }
 }
-
-#include <pcl/2d/impl/kernel.hpp>
-
-#endif    // PCL_2D_KERNEL_H_
+#endif /* KERNEL_H_ */

@@ -42,11 +42,11 @@
 #include <pcl/point_types.h>
 #include <pcl/common/time.h>
 #include <pcl/console/print.h>
-#include <pcl/io/boost.h>
-#include <pcl/exceptions.h>
+#include <pcl/io/pcl_io_exception.h>
+#include <boost/shared_array.hpp>
 #include <iostream>
 
-namespace
+namespace pcl
 {
   typedef union
   {
@@ -60,10 +60,6 @@ namespace
     float float_value;
     long long_value;
   } RGBValue;
-}
-
-namespace pcl
-{
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ONIGrabber::ONIGrabber (const std::string& file_name, bool repeat, bool stream)
@@ -88,7 +84,7 @@ ONIGrabber::ONIGrabber (const std::string& file_name, bool repeat, bool stream)
   device_ = boost::dynamic_pointer_cast< openni_wrapper::DeviceONI> (driver.createVirtualDevice (file_name, repeat, stream));
 
   if (!device_->hasDepthStream ())
-    PCL_THROW_EXCEPTION (pcl::IOException, "Device does not provide 3D information.");
+    THROW_PCL_IO_EXCEPTION("Device does not provide 3D information.");
 
   XnMapOutputMode depth_mode = device_->getDepthOutputMode();
   depth_width_ = depth_mode.nXRes;
@@ -185,7 +181,7 @@ ONIGrabber::start ()
     }
     catch (openni_wrapper::OpenNIException& ex)
     {
-      PCL_THROW_EXCEPTION (pcl::IOException, "Could not start streams. Reason: " << ex.what());
+      THROW_PCL_IO_EXCEPTION("Could not start streams. Reason: %s", ex.what());
     }
   }
   else
@@ -222,7 +218,7 @@ ONIGrabber::stop ()
     }
     catch (openni_wrapper::OpenNIException& ex)
     {
-      PCL_THROW_EXCEPTION (pcl::IOException, "Could not stop streams. Reason: " << ex.what());
+      THROW_PCL_IO_EXCEPTION("Could not stop streams. Reason: %s", ex.what());
     }
   }
 }
@@ -368,7 +364,7 @@ ONIGrabber::convertToXYZPointCloud(const boost::shared_ptr<openni_wrapper::Depth
   if (depth_image->getWidth () != depth_width_ || depth_image->getHeight () != depth_height_)
   {
     static unsigned buffer_size = 0;
-    static boost::shared_array<unsigned short> depth_buffer ((unsigned short*)(NULL));
+    static boost::shared_array<unsigned short> depth_buffer (0);
 
     if (buffer_size < depth_width_ * depth_height_)
     {
@@ -408,7 +404,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr ONIGrabber::convertToXYZRGBPointCloud (
     const boost::shared_ptr<openni_wrapper::DepthImage> &depth_image) const
 {
   static unsigned rgb_array_size = 0;
-  static boost::shared_array<unsigned char> rgb_array((unsigned char*)(NULL));
+  static boost::shared_array<unsigned char> rgb_array(0);
   static unsigned char* rgb_buffer = 0;
 
   boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGB> > cloud(new pcl::PointCloud<pcl::PointXYZRGB> ());
@@ -428,7 +424,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr ONIGrabber::convertToXYZRGBPointCloud (
   if (depth_image->getWidth() != depth_width_ || depth_image->getHeight() != depth_height_)
   {
     static unsigned buffer_size = 0;
-    static boost::shared_array<unsigned short> depth_buffer((unsigned short*)(NULL));
+    static boost::shared_array<unsigned short> depth_buffer(0);
 
     if (buffer_size < depth_width_ * depth_height_)
     {
@@ -492,7 +488,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr ONIGrabber::convertToXYZRGBAPointCloud (
     const boost::shared_ptr<openni_wrapper::DepthImage> &depth_image) const
 {
   static unsigned rgb_array_size = 0;
-  static boost::shared_array<unsigned char> rgb_array((unsigned char*)(NULL));
+  static boost::shared_array<unsigned char> rgb_array(0);
   static unsigned char* rgb_buffer = 0;
 
   boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGBA> > cloud (new pcl::PointCloud<pcl::PointXYZRGBA> ());
@@ -512,7 +508,7 @@ pcl::PointCloud<pcl::PointXYZRGBA>::Ptr ONIGrabber::convertToXYZRGBAPointCloud (
   if (depth_image->getWidth() != depth_width_ || depth_image->getHeight() != depth_height_)
   {
     static unsigned buffer_size = 0;
-    static boost::shared_array<unsigned short> depth_buffer((unsigned short*)(NULL));
+    static boost::shared_array<unsigned short> depth_buffer(0);
 
     if (buffer_size < depth_width_ * depth_height_)
     {
@@ -593,8 +589,8 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr ONIGrabber::convertToXYZIPointCloud(const b
   if (depth_image->getWidth() != depth_width_ || depth_image->getHeight() != depth_height_)
   {
     static unsigned buffer_size = 0;
-    static boost::shared_array<unsigned short> depth_buffer((unsigned short*)(NULL));
-    static boost::shared_array<unsigned short> ir_buffer((unsigned short*)(NULL));
+    static boost::shared_array<unsigned short> depth_buffer(0);
+    static boost::shared_array<unsigned short> ir_buffer(0);
 
     if (buffer_size < depth_width_ * depth_height_)
     {

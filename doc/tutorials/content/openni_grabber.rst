@@ -12,10 +12,10 @@ a breeze to request data streams from OpenNI compatible cameras. This tutorial
 presents how to set up and use the grabber, and since it's so simple, we can
 keep it short :).
 
-The cameras that we have tested so far are the `Primesense Reference Design <http://www.primesense.com/>`_, `Microsoft Kinect <http://www.xbox.com/kinect/>`_ and `Asus Xtion Pro <http://event.asus.com/wavi/product/WAVI_Pro.aspx>`_ cameras:
+The cameras that we have tested so far are the `Primesense Reference Design <http://www.primesense.com/?p=514>`_, `Microsoft Kinect <http://www.xbox.com/kinect/>`_ and `Asus Xtion Pro <http://event.asus.com/wavi/product/WAVI_Pro.aspx>`_ cameras:
 
 
-.. image:: images/openni_cams.jpg
+.. image:: images/openni_cams.png
    :height: 390px
 
 Simple Example
@@ -43,6 +43,9 @@ So let's look at the code. From *visualization/tools/openni_viewer_simple.cpp*
 
     #include <pcl/io/openni_grabber.h>
     #include <pcl/visualization/cloud_viewer.h>
+    #ifdef _WIN32
+    # define sleep(x) Sleep((x)*1000) 
+    #endif
     
     class SimpleOpenNIViewer
     {
@@ -89,7 +92,7 @@ As you can see, the *run ()* function of *SimpleOpenNIViewer* first creates a
 new *OpenNIGrabber* interface. The next line might seem a bit intimidating at
 first, but it's not that bad. We create a *boost::bind* object with the address
 of the callback *cloud_cb_*, we pass a reference to our *SimpleOpenNIViewer*
-and the argument place holder *_1*.
+and the argument palce holder *_1*.
 
 The *bind* then gets casted to a *boost::function* object which is templated on
 the callback function type, in this case *void (const
@@ -171,7 +174,7 @@ Add the following lines to your CMakeLists.txt file:
 Troubleshooting
 ---------------
 
-Q: I get an error that there's no device connected:
+Q: I get an error that theres now device connected:
 
 .. note::
 

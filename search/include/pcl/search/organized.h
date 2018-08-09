@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -48,7 +48,6 @@
 #include <algorithm>
 #include <queue>
 #include <vector>
-#include <pcl/common/projection_matrix.h>
 
 namespace pcl
 {
@@ -112,7 +111,7 @@ namespace pcl
           // 2 * tan (85 degree) ~ 22.86
           float min_f = 0.043744332f * static_cast<float>(input_->width);
           //std::cout << "isValid: " << determinant3x3Matrix<Eigen::Matrix3f> (KR_ / sqrt (KR_KRT_.coeff (8))) << " >= " << (min_f * min_f) << std::endl;
-          return (determinant3x3Matrix<Eigen::Matrix3f> (KR_ / std::sqrt (KR_KRT_.coeff (8))) >= (min_f * min_f));
+          return (determinant3x3Matrix<Eigen::Matrix3f> (KR_ / sqrt (KR_KRT_.coeff (8))) >= (min_f * min_f));
         }
         
         /** \brief Compute the camera matrix
@@ -208,9 +207,9 @@ namespace pcl
         /** \brief test if point given by index is among the k NN in results to the query point.
           * \param[in] query query point
           * \param[in] k number of maximum nn interested in
-          * \param[in,out] queue priority queue with k NN
+          * \param[in] queue priority queue with k NN
           * \param[in] index index on point to be tested
-          * \return whether the top element changed or not.
+          * \return wheter the top element changed or not.
           */
         inline bool 
         testPoint (const PointT& query, unsigned k, std::priority_queue<Entry>& queue, unsigned index) const
@@ -218,16 +217,9 @@ namespace pcl
           const PointT& point = input_->points [index];
           if (mask_ [index] && pcl_isfinite (point.x))
           {
-            //float squared_distance = (point.getVector3fMap () - query.getVector3fMap ()).squaredNorm ();
-            float dist_x = point.x - query.x;
-            float dist_y = point.y - query.y;
-            float dist_z = point.z - query.z;
-            float squared_distance = dist_x * dist_x + dist_y * dist_y + dist_z * dist_z;
+            float squared_distance = (point.getVector3fMap () - query.getVector3fMap ()).squaredNorm ();
             if (queue.size () < k)
-            {
               queue.push (Entry (index, squared_distance));
-              return queue.size () == k;
-            }
             else if (queue.top ().distance > squared_distance)
             {
               queue.pop ();
@@ -258,6 +250,10 @@ namespace pcl
                                      unsigned& maxX, unsigned& maxY) const;
 
 
+        /** \brief copys upper or lower triangular part of the matrix to the other one */
+        template <typename MatrixType> void
+        makeSymmetric (MatrixType& matrix, bool use_upper_triangular = true) const;
+
         /** \brief the projection matrix. Either set by user or calculated by the first / each input cloud */
         Eigen::Matrix<float, 3, 4, Eigen::RowMajor> projection_matrix_;
 
@@ -280,10 +276,6 @@ namespace pcl
     };
   }
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/search/impl/organized.hpp>
-#endif
 
 #endif
 

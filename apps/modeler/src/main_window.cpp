@@ -34,31 +34,56 @@
  *
  */
 
+#include <ui_main_window.h>
 #include <pcl/apps/modeler/main_window.h>
-
-#include <pcl/apps/modeler/scene_tree.h>
+#include <pcl/apps/modeler/pcl_modeler.h>
+#include <pcl/apps/modeler/render_widget.h>
 #include <pcl/apps/modeler/dock_widget.h>
-#include <pcl/apps/modeler/render_window.h>
-#include <pcl/apps/modeler/render_window_item.h>
+#include <pcl/apps/modeler/cloud_actor.h>
+#include <pcl/apps/modeler/color_handler_switcher.h>
+#include <pcl/apps/modeler/downsample_worker.h>
 
-#include <QFileInfo>
+#include <QFile>
+#include <QColor>
+#include <QThread>
+#include <QSettings>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QColorDialog>
+#include <QStandardItem>
+#include <QStandardItemModel>
+
 #include <vtkActor.h>
 #include <vtkRenderer.h>
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-pcl::modeler::MainWindow::MainWindow()
-  : ui_(new Ui::MainWindow)
+pcl::modeler::MainWindow::MainWindow() :
+  ui_(new Ui::MainWindow),
+  pcl_modeler_(new pcl::modeler::PCLModeler(this))
 {
   ui_->setupUi(this);
+  ui_->treeViewSceneExplorer->setHeaderHidden(true);
+  ui_->treeViewSceneExplorer->setModel(pcl_modeler_.get());
 
-  RenderWindowItem* central_render_window_item = new RenderWindowItem(ui_->scene_tree_);
-  central_render_window_item->getRenderWindow()->setParent(this);
-  setCentralWidget(central_render_window_item->getRenderWindow());
-  ui_->scene_tree_->addTopLevelItem(central_render_window_item);
+  RenderWidget* main_render_widget = new RenderWidget(this, 0);
+  setCentralWidget(main_render_widget);
+  pcl_modeler_->appendRow(main_render_widget);
+
+  // Set up action signals and slots
+  connect(ui_->treeViewSceneExplorer->selectionModel(),
+    SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+    this, SLOT(slotUpdateSelection(const QItemSelection &, const QItemSelection &)));
+  connect(ui_->treeViewSceneExplorer,
+    SIGNAL(clicked(const QModelIndex &)),
+    this, SLOT(slotOnTreeViewItemClick(const QModelIndex &)));
+  connect(ui_->treeViewSceneExplorer,
+    SIGNAL(doubleClicked(const QModelIndex &)),
+    this, SLOT(slotOnTreeViewItemDoubleClick(const QModelIndex &)));
 
   connectFileMenuActions();
   connectViewMenuActions();
+  connectRenderMenuActions();
   connectEditMenuActions();
 
   loadGlobalSettings();
@@ -73,14 +98,73 @@ pcl::modeler::MainWindow::~MainWindow()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::setActiveDockWidget(RenderWidget* render_widget)
+{
+  ui_->treeViewSceneExplorer->selectionModel()->clearSelection();
+  ui_->treeViewSceneExplorer->selectionModel()->select(
+    pcl_modeler_->indexFromItem(render_widget), QItemSelectionModel::Select);
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::addActionsToRenderWidget(QMenu* menu)
+{
+  menu->addAction(ui_->actionOpenPointCloud);
+  menu->addAction(ui_->actionChangeBackgroundColor);
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::addActionsToCloudActor(QMenu* menu)
+{
+  menu->addAction(ui_->actionSavePointCloud);
+  menu->addAction(ui_->actionClosePointCloud);
+  menu->addAction(ui_->actionSwitchColorHandler);
+  menu->addAction(ui_->actionDownSampleFilter);
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+pcl::modeler::RenderWidget*
+pcl::modeler::MainWindow::getActiveRenderWidget()
+{
+  RenderWidget* render_widget = NULL;
+
+  QModelIndexList selected_indexes = ui_->treeViewSceneExplorer->selectionModel()->selectedIndexes();
+  for (QModelIndexList::const_iterator selected_indexes_it = selected_indexes.begin();
+    selected_indexes_it != selected_indexes.end();
+    ++ selected_indexes_it)
+  {
+    QStandardItem* item = pcl_modeler_->itemFromIndex(*selected_indexes_it);
+    render_widget = dynamic_cast<RenderWidget*>(item);
+    if (render_widget == NULL)
+      return (render_widget);
+  }
+
+  return (render_widget);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+vtkSmartPointer<vtkRenderer>
+pcl::modeler::MainWindow::getActiveRender()
+{
+  return (getActiveRenderWidget()->getRenderer());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 void 
 pcl::modeler::MainWindow::connectFileMenuActions()
 {
-  connect(ui_->actionOpenPointCloud, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotOpenPointCloud()));
-  connect(ui_->actionImportPointCloud, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotImportPointCloud()));
-  connect(ui_->actionSavePointCloud, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotSavePointCloud()));
-  connect(ui_->actionClosePointCloud, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotClosePointCloud()));
-  connect(ui_->scene_tree_, SIGNAL(fileOpened(QString)), this, SLOT(slotUpdateRecentFile(QString)));
+  connect(ui_->actionOpenPointCloud, SIGNAL(triggered()), this, SLOT(slotOpenPointCloud()));
+  connect(ui_->actionImportPointCloud, SIGNAL(triggered()), this, SLOT(slotImportPointCloud()));
+  connect(ui_->actionSavePointCloud, SIGNAL(triggered()), this, SLOT(slotSavePointCloud()));
+  connect(ui_->actionClosePointCloud, SIGNAL(triggered()), this, SLOT(slotClosePointCloud()));
   createRecentPointCloudActions();
 
   connect(ui_->actionOpenProject, SIGNAL(triggered()), this, SLOT(slotOpenProject()));
@@ -96,18 +180,88 @@ void
 pcl::modeler::MainWindow::connectViewMenuActions()
 {
   connect(ui_->actionCreateRenderWindow, SIGNAL(triggered()), this, SLOT(slotCreateRenderWindow()));
-  connect(ui_->actionCloseRenderWindow, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotCloseRenderWindow()));
+  connect(ui_->actionChangeBackgroundColor, SIGNAL(triggered()), this, SLOT(slotChangeBackgroundColor()));
+
+  QList<QAction *> actions = ui_->menuView->actions();
+  ui_->menuView->insertAction(actions[actions.size()-2], ui_->dockWidgetSceneExplorer->toggleViewAction());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::connectRenderMenuActions()
+{
+  connect(ui_->actionSwitchColorHandler, SIGNAL(triggered()), this, SLOT(slotSwitchColorHandler()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void 
 pcl::modeler::MainWindow::connectEditMenuActions()
 {
-  connect(ui_->actionICPRegistration, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotICPRegistration()));
-  connect(ui_->actionVoxelGridDownsample, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotVoxelGridDownsampleFilter()));
-  connect(ui_->actionStatisticalOutlierRemoval, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotStatisticalOutlierRemovalFilter()));
-  connect(ui_->actionEstimateNormals, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotEstimateNormal()));
-  connect(ui_->actionPoissonReconstruction, SIGNAL(triggered()), ui_->scene_tree_, SLOT(slotPoissonReconstruction()));
+  connect(ui_->actionDownSampleFilter, SIGNAL(triggered()), this, SLOT(slotDownSampleFilter()));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::slotOpenPointCloud()
+{
+  QStringList filenames = QFileDialog::getOpenFileNames(this,
+    tr("Open Point Cloud"),
+    getRecentFolder(),
+    tr("Point Cloud(*.pcd)\n")
+    );
+
+  if (filenames.isEmpty())
+    return;
+
+  slotClosePointCloud();
+
+  openPointCloudImpl(filenames);
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::slotImportPointCloud()
+{
+  QStringList filenames = QFileDialog::getOpenFileNames(this,
+    tr("Import Point Cloud"),
+    getRecentFolder(),
+    tr("Point Cloud(*.pcd)\n")
+    );
+
+  if (filenames.isEmpty())
+    return;
+
+  openPointCloudImpl(filenames);
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::slotSavePointCloud()
+{
+  QString filename = QFileDialog::getSaveFileName(this,
+    tr("Save Point Cloud"),
+    getRecentFolder(),
+    tr("Save Cloud(*.pcd)\n"));
+
+  if (filename.isEmpty())
+    return;
+
+  pcl_modeler_->savePointCloud(filename.toStdString());
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::slotClosePointCloud()
+{
+  pcl_modeler_->closePointCloud();
+
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,37 +294,24 @@ pcl::modeler::MainWindow::slotExit() {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::modeler::MainWindow::slotUpdateRecentFile(const QString& filename)
-{
-  recent_files_.removeAll(filename);
-  recent_files_.prepend(filename);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-pcl::modeler::RenderWindowItem*
-pcl::modeler::MainWindow::createRenderWindow()
+pcl::modeler::MainWindow::slotCreateRenderWindow()
 {
   DockWidget* dock_widget = new DockWidget(this);
-  addDockWidget(Qt::RightDockWidgetArea, dock_widget);
   dock_widget->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
-  RenderWindowItem* render_window_item = new RenderWindowItem(ui_->scene_tree_);
-  render_window_item->getRenderWindow()->setParent(dock_widget);
-  dock_widget->setWidget(render_window_item->getRenderWindow());
-  ui_->scene_tree_->addTopLevelItem(render_window_item);
+  RenderWidget* render_widget = new RenderWidget(this, dock_widget);
+
+  dock_widget->setWidget(render_widget);
+  addDockWidget(Qt::RightDockWidgetArea, dock_widget);
 
   // add the toggle action to view menu
   QList<QAction *> actions = ui_->menuView->actions();
   ui_->menuView->insertAction(actions[actions.size()-2], dock_widget->toggleViewAction());
 
-  return render_window_item;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::modeler::MainWindow::slotCreateRenderWindow()
-{
-  createRenderWindow();
+  // keep a track of the qvtk widget
+  pcl_modeler_->appendRow(render_widget);
+  render_widget->setCheckState(Qt::Checked);
+  setActiveDockWidget(render_widget);
 
   return;
 }
@@ -181,7 +322,7 @@ pcl::modeler::MainWindow::slotOpenRecentPointCloud()
 {
   QAction* action = qobject_cast<QAction*>(sender());
   if (action)
-    ui_->scene_tree_->openPointCloud(action->data().toString());
+    openPointCloudImpl(action->data().toString());
 
   return;
 }
@@ -193,6 +334,116 @@ pcl::modeler::MainWindow::slotOpenRecentProject()
   QAction* action = qobject_cast<QAction*>(sender());
   if (action)
     openProjectImpl(action->data().toString());
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::updateRenderWidgetSelection(const QItemSelection & selection, bool selected)
+{
+  QModelIndexList selected_index_list = selection.indexes();
+  for (QModelIndexList::iterator selected_index_list_it = selected_index_list.begin();
+    selected_index_list_it != selected_index_list.end();
+    ++ selected_index_list_it)
+  {
+    QStandardItem* item = dynamic_cast<QStandardItem*>(pcl_modeler_->itemFromIndex(*selected_index_list_it));
+    RenderWidget* render_widget = dynamic_cast<RenderWidget*>(item);
+    if (render_widget != NULL)
+    {
+      DockWidget* dock_widget = dynamic_cast<DockWidget*>(render_widget->QVTKWidget::parent());
+      if (dock_widget != NULL)
+        dock_widget->setFocusBasedStyle(selected);
+    }
+  }
+
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+void 
+pcl::modeler::MainWindow::slotUpdateSelection(const QItemSelection & selected, const QItemSelection & deselected)
+{
+  updateRenderWidgetSelection(selected, true);
+  updateRenderWidgetSelection(deselected, false);
+
+  return;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::slotChangeBackgroundColor()
+{
+  double r, g, b;
+  vtkRenderer* renderer = getActiveRender();
+  renderer->GetBackground(r, g, b);
+  QColor color = QColorDialog::getColor(QColor(r, g, b), this);
+
+  if (color.isValid()) {
+    r = color.red();
+    g = color.green();
+    b = color.blue();
+    renderer->SetBackground(r, g, b);
+  }
+
+  return;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+std::vector<pcl::modeler::CloudActor*>
+pcl::modeler::MainWindow::getSelectedCloud()
+{
+  std::vector<CloudActor*> cloud_actors;
+  QModelIndexList selected_indexes = ui_->treeViewSceneExplorer->selectionModel()->selectedIndexes();
+  for (QModelIndexList::const_iterator selected_indexes_it = selected_indexes.begin();
+    selected_indexes_it != selected_indexes.end();
+    ++ selected_indexes_it)
+  {
+    const QModelIndex& index = *selected_indexes_it;
+    QStandardItem* item = pcl_modeler_->itemFromIndex(index);
+    CloudActor* cloud_actor = dynamic_cast<CloudActor*>(item);
+    if (cloud_actor == NULL)
+      continue;
+
+    cloud_actors.push_back(cloud_actor);
+  }
+
+  return (cloud_actors);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::slotSwitchColorHandler()
+{
+  std::vector<CloudActor*> cloud_actors = getSelectedCloud();
+
+  ColorHandlerSwitcher color_handler_switcher(cloud_actors, this);
+
+  return;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::modeler::MainWindow::slotDownSampleFilter()
+{
+  std::vector<CloudActor*> cloud_actors = getSelectedCloud();
+
+  AbstractWorker* worker = new DownSampleWorker(cloud_actors, this);
+
+  if (worker->exec() == QDialog::Accepted)
+  {
+    QThread* thread = new QThread;
+    worker->moveToThread(thread);
+    connect(thread, SIGNAL(started()), worker, SLOT(process()));
+    connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    connect(worker, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
+  }
+  else
+  {
+    delete worker;
+  }
 
   return;
 }
@@ -216,9 +467,43 @@ pcl::modeler::MainWindow::createRecentPointCloudActions()
 void 
 pcl::modeler::MainWindow::updateRecentPointCloudActions()
 {
-  updateRecentActions(recent_pointcloud_actions_, recent_files_);
+  updateRecentActions(recent_pointcloud_actions_, recent_pointclouds_);
 
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+bool
+pcl::modeler::MainWindow::openPointCloudImpl(const QStringList& filenames)
+{
+  for (QStringList::const_iterator filenames_it = filenames.begin();
+    filenames_it != filenames.end();
+    ++ filenames_it)
+  {
+    if (!openPointCloudImpl(*filenames_it))
+      QMessageBox::warning(this, 
+      tr("Failed to Import Point Cloud"), 
+      tr("Can not import point cloud file %1, please check if it's in valid .pcd format!").arg(*filenames_it));
+  }
+
+  return (true);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+bool 
+pcl::modeler::MainWindow::openPointCloudImpl(const QString& filename)
+{
+  if(!pcl_modeler_->openPointCloud(filename.toStdString()))
+  {
+    return (false);
+  }
+
+  ui_->treeViewSceneExplorer->expand(pcl_modeler_->indexFromItem(getActiveRenderWidget()));
+
+  recent_pointclouds_.removeAll(filename);
+  recent_pointclouds_.prepend(filename);
+
+  return (true);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,37 +532,42 @@ pcl::modeler::MainWindow::updateRecentProjectActions()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool 
-pcl::modeler::MainWindow::openProjectImpl (const QString&)
+pcl::modeler::MainWindow::openProjectImpl(const QString& filename)
 {
   return (true);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void 
-pcl::modeler::MainWindow::updateRecentActions (std::vector<boost::shared_ptr<QAction> >& recent_actions, QStringList& recent_items)
+pcl::modeler::MainWindow::updateRecentActions(std::vector<boost::shared_ptr<QAction> >& recent_actions, QStringList& recent_items)
 {
-  QMutableStringListIterator recent_items_it (recent_items);
-  while (recent_items_it.hasNext ())
+  QMutableStringListIterator recent_items_it(recent_items);
+  while (recent_items_it.hasNext())
   {
-    if (!QFile::exists (recent_items_it.next ()))
-      recent_items_it.remove ();
+    if (!QFile::exists(recent_items_it.next()))
+      recent_items_it.remove();
   }
 
-  recent_items.removeDuplicates ();
-  int recent_number = std::min (int (MAX_RECENT_NUMBER), recent_items.size ());
+  recent_items.removeDuplicates();
+  int recent_number = std::min((int)MAX_RECENT_NUMBER, recent_items.size());
   for (int i = 0; i < recent_number; ++ i)
   {
-    QString text = tr ("%1 %2").arg (i + 1).arg (recent_items[i]);
-    recent_actions[i]->setText (text);
-    recent_actions[i]->setData (recent_items[i]);
-    recent_actions[i]->setVisible (true);
+    QString text = tr("%1 %2").arg(i+1).arg(recent_items[i]);
+    recent_actions[i]->setText(text);
+    recent_actions[i]->setData(recent_items[i]);
+    recent_actions[i]->setVisible(true);
   }
 
-  for (size_t i = recent_number, i_end = recent_actions.size (); i < i_end; ++ i)
-    recent_actions[i]->setVisible (false);
+  for (size_t i = recent_number, i_end = recent_actions.size(); i < i_end; ++ i)
+  {
+    recent_actions[i]->setVisible(false);
+  }
 
-  while (recent_items.size () > recent_number)
-    recent_items.pop_back ();
+  while (recent_items.size() > recent_number) {
+    recent_items.pop_back();
+  }
+
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -287,8 +577,8 @@ pcl::modeler::MainWindow::getRecentFolder()
   QString recent_filename;
   if (!recent_projects_.empty())
     recent_filename = recent_projects_.front();
-  else if (!recent_files_.empty())
-    recent_filename = recent_files_.front();
+  else if (!recent_pointclouds_.empty())
+    recent_filename = recent_pointclouds_.front();
 
   if (!recent_filename.isEmpty())
     return QFileInfo(recent_filename).path();
@@ -302,7 +592,7 @@ pcl::modeler::MainWindow::loadGlobalSettings()
 {
   QSettings global_settings("PCL", "Modeler");
 
-  recent_files_ = global_settings.value("recent_pointclouds").toStringList();
+  recent_pointclouds_ = global_settings.value("recent_pointclouds").toStringList();
   updateRecentPointCloudActions();
 
   recent_projects_ = global_settings.value("recent_projects").toStringList();
@@ -317,7 +607,7 @@ pcl::modeler::MainWindow::saveGlobalSettings()
 {
   QSettings global_settings("PCL", "Modeler");
 
-  global_settings.setValue("recent_pointclouds", recent_files_);
+  global_settings.setValue("recent_pointclouds", recent_pointclouds_);
 
   global_settings.setValue("recent_projects", recent_projects_);
 
@@ -326,14 +616,32 @@ pcl::modeler::MainWindow::saveGlobalSettings()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void 
-pcl::modeler::MainWindow::slotOnWorkerStarted()
+pcl::modeler::MainWindow::slotOnTreeViewItemClick(const QModelIndex & index)
 {
-  statusBar()->showMessage(QString("Working thread running..."));
+  QStandardItem* item = pcl_modeler_->itemFromIndex(index);
+  if (!item->isCheckable())
+    return;
+
+  TreeItem* tree_item = dynamic_cast<TreeItem*>(item);
+  if (tree_item != NULL)
+  tree_item->updateOnStateChange(item->checkState());
+
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 void 
-pcl::modeler::MainWindow::slotOnWorkerFinished()
+pcl::modeler::MainWindow::slotOnTreeViewItemDoubleClick(const QModelIndex & index)
 {
-  statusBar()->showMessage(QString("Working thread finished..."));
+  QStandardItem* item = pcl_modeler_->itemFromIndex(index);
+  if (!item->isCheckable())
+    return;
+  
+  item->setCheckState((item->checkState()==Qt::Checked)?Qt::Unchecked:Qt::Checked);
+
+  TreeItem* tree_item = dynamic_cast<TreeItem*>(item);
+  if (tree_item != NULL)
+    tree_item->updateOnStateChange(item->checkState());
+
+  return;
 }

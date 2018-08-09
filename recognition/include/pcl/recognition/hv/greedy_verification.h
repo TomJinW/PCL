@@ -163,7 +163,7 @@ namespace pcl
     public:
 
       /** \brief Constructor
-       * \param[in] reg Regularizer value
+       * \param[in] Regularizer value
        **/
       GreedyVerification (float reg = 1.5f) :
         HypothesisVerification<ModelT, SceneT> ()
@@ -176,9 +176,5 @@ namespace pcl
       verify ();
     };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/recognition/impl/hv/greedy_verification.hpp>
-#endif
 
 #endif /* PCL_RECOGNITION_HV_GREEDY_H_ */

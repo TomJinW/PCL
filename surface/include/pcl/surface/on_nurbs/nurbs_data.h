@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -82,10 +82,6 @@ namespace pcl
       std::vector<unsigned> common_boundary_idx;
       vector_vec2d common_boundary_param;
 
-      std::vector<unsigned> common_idx;
-      vector_vec2d common_param1;
-      vector_vec2d common_param2;
-
       /** \brief Clear all interior data */
       inline void
       clear_interior ()
@@ -112,14 +108,6 @@ namespace pcl
         boundary_normals.clear ();
       }
 
-      inline void
-      clear_common()
-      {
-        common_idx.clear();
-        common_param1.clear();
-        common_param2.clear();
-      }
-
       /** \brief Clear all common data */
       inline void
       clear_common_boundary ()
@@ -129,7 +117,6 @@ namespace pcl
         common_boundary_param.clear ();
       }
 
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 
     /** \brief Data structure for 3D NURBS curve fitting
@@ -158,7 +145,6 @@ namespace pcl
         interior_normals.clear ();
       }
 
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 
     /** \brief Data structure for 2D NURBS curve fitting
@@ -204,7 +190,6 @@ namespace pcl
         interior_normals.clear ();
       }
 
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 
   }

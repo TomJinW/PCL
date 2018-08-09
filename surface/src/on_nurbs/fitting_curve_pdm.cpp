@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,12 +31,11 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
 #include <pcl/surface/on_nurbs/fitting_curve_pdm.h>
-#include <pcl/pcl_macros.h>
 #include <stdexcept>
 
 using namespace pcl;
@@ -69,25 +68,6 @@ FittingCurve::FittingCurve (NurbsDataCurve *data, const ON_NurbsCurve &ns)
   m_quiet = true;
 }
 
-int
-FittingCurve::findElement (double xi, const std::vector<double> &elements)
-{
-  if (xi >= elements.back ())
-    return (int (elements.size ()) - 2);
-
-  for (unsigned i = 0; i < elements.size () - 1; i++)
-  {
-    if (xi >= elements[i] && xi < elements[i + 1])
-    {
-      return i;
-    }
-  }
-
-  //  xi < elements.front()
-  return 0;
-
-}
-
 void
 FittingCurve::refine ()
 {
@@ -105,10 +85,14 @@ FittingCurve::refine ()
 void
 FittingCurve::assemble (const Parameter &parameter)
 {
+  clock_t time_start, time_end;
+  if (!m_quiet)
+    time_start = clock ();
+
   int cp_red = m_nurbs.m_order - 2;
   int ncp = m_nurbs.m_cv_count - 2 * cp_red;
   int nCageReg = m_nurbs.m_cv_count - 2 * cp_red;
-  int nInt = int (m_data->interior.size ());
+  int nInt = m_data->interior.size ();
 
   int nrows = nInt + nCageReg;
 
@@ -119,20 +103,38 @@ FittingCurve::assemble (const Parameter &parameter)
 
   unsigned row (0);
 
-  assembleInterior (wInt, row);
+  assembleInterior (wInt, parameter.sigma, row);
 
   addCageRegularisation (wCageReg, row);
+
+  if (!m_quiet)
+  {
+    time_end = clock ();
+    double solve_time = (double)(time_end - time_start) / (double)(CLOCKS_PER_SEC);
+    printf ("[FittingPatch::assemble()] (assemble (%d,%d): %f sec)\n", nrows, ncp, solve_time);
+  }
 }
 
 void
 FittingCurve::solve (double damp)
 {
+  clock_t time_start, time_end;
+  if (!m_quiet)
+    time_start = clock ();
+
   if (m_solver.solve ())
     updateCurve (damp);
+
+  if (!m_quiet)
+  {
+    time_end = clock ();
+    double solve_time = (double)(time_end - time_start) / (double)(CLOCKS_PER_SEC);
+    printf ("[FittingPatch::solve()] (%f sec)\n", solve_time);
+  }
 }
 
 void
-FittingCurve::updateCurve (double)
+FittingCurve::updateCurve (double damp)
 {
   int cp_red = m_nurbs.m_order - 2;
   int ncp = m_nurbs.m_cv_count - 2 * cp_red;
@@ -165,7 +167,7 @@ FittingCurve::addPointConstraint (const double &param, const Eigen::Vector3d &po
 {
   int cp_red = m_nurbs.m_order - 2;
   int ncp = m_nurbs.m_cv_count - 2 * cp_red;
-  double *N = new double[m_nurbs.m_order * m_nurbs.m_order];
+  double N[m_nurbs.m_order * m_nurbs.m_order];
 
   int E = ON_NurbsSpanIndex (m_nurbs.m_order, m_nurbs.m_cv_count, m_nurbs.m_knot, param, 0, 0);
 
@@ -179,8 +181,6 @@ FittingCurve::addPointConstraint (const double &param, const Eigen::Vector3d &po
     m_solver.K (row, (E + i) % ncp, weight * N[i]);
 
   row++;
-
-  delete [] N;
 }
 
 void
@@ -212,7 +212,7 @@ FittingCurve::initNurbsCurve2D (int order, const vector_vec2d &data)
 
   Eigen::Vector2d mean = NurbsTools::computeMean (data);
 
-  unsigned s = unsigned (data.size ());
+  unsigned s = data.size ();
 
   double r (0.0);
   for (unsigned i = 0; i < s; i++)
@@ -242,7 +242,7 @@ FittingCurve::initNurbsCurve2D (int order, const vector_vec2d &data)
 }
 
 ON_NurbsCurve
-FittingCurve::initNurbsCurvePCA (int order, const vector_vec3d &data, int ncps, double rf)
+FittingCurve::initNurbsCurvePCA (int order, const vector_vec3d &data)
 {
   if (data.empty ())
     printf ("[FittingCurve::initNurbsCurvePCA] Warning, no boundary parameters available\n");
@@ -251,23 +251,21 @@ FittingCurve::initNurbsCurvePCA (int order, const vector_vec3d &data, int ncps, 
   Eigen::Matrix3d eigenvectors;
   Eigen::Vector3d eigenvalues;
 
-  unsigned s = unsigned (data.size ());
+  unsigned s = data.size ();
 
   NurbsTools::pca (data, mean, eigenvectors, eigenvalues);
 
   eigenvalues = eigenvalues / s; // seems that the eigenvalues are dependent on the number of points (???)
 
-  double r = rf * sqrt (eigenvalues (0));
+  double r = 2.0 * sqrt (eigenvalues (0));
 
-  if (ncps < 2 * order)
-    ncps = 2 * order;
+  int ncpsV (2 * order);
+  ON_NurbsCurve nurbs = ON_NurbsCurve (3, false, order, ncpsV);
+  nurbs.MakePeriodicUniformKnotVector (1.0 / (ncpsV - order + 1));
 
-  ON_NurbsCurve nurbs = ON_NurbsCurve (3, false, order, ncps);
-  nurbs.MakePeriodicUniformKnotVector (1.0 / (ncps - order + 1));
-
-  double dcv = (2.0 * M_PI) / (ncps - order + 1);
+  double dcv = (2.0 * M_PI) / (ncpsV - order + 1);
   Eigen::Vector3d cv, cv_t;
-  for (int j = 0; j < ncps; j++)
+  for (int j = 0; j < ncpsV; j++)
   {
     cv (0) = r * sin (dcv * j);
     cv (1) = r * cos (dcv * j);
@@ -309,9 +307,10 @@ FittingCurve::getElementVector (const ON_NurbsCurve &nurbs)
 }
 
 void
-FittingCurve::assembleInterior (double wInt, unsigned &row)
+FittingCurve::assembleInterior (double wInt, double sigma, unsigned &row)
 {
-  int nInt = int (m_data->interior.size ());
+  double ds = 1.0 / (2.0 * sigma * sigma);
+  int nInt = m_data->interior.size ();
   m_data->interior_line_start.clear ();
   m_data->interior_line_end.clear ();
   m_data->interior_error.clear ();
@@ -324,7 +323,7 @@ FittingCurve::assembleInterior (double wInt, unsigned &row)
     double param;
     Eigen::Vector3d pt, t;
     double error;
-    if (p < int (m_data->interior_param.size ()))
+    if (p < (int)m_data->interior_param.size ())
     {
       param = inverseMapping (m_nurbs, pcp, m_data->interior_param[p], error, pt, t, in_max_steps, in_accuracy);
       m_data->interior_param[p] = param;
@@ -340,7 +339,9 @@ FittingCurve::assembleInterior (double wInt, unsigned &row)
     m_data->interior_line_start.push_back (pcp);
     m_data->interior_line_end.push_back (pt);
 
-    addPointConstraint (m_data->interior_param[p], m_data->interior[p], wInt, row);
+    double w = wInt * exp (-(error * error) * ds);
+    if (w > 1e-6) // avoids ill-conditioned matrix
+      addPointConstraint (m_data->interior_param[p], m_data->interior[p], w, row);
   }
 }
 
@@ -348,8 +349,8 @@ double
 FittingCurve::inverseMapping (const ON_NurbsCurve &nurbs, const Eigen::Vector3d &pt, const double &hint, double &error,
                               Eigen::Vector3d &p, Eigen::Vector3d &t, int maxSteps, double accuracy, bool quiet)
 {
-  //int cp_red = (nurbs.m_order - 2);
-  //int ncpj = int (nurbs.m_cv_count - 2 * cp_red);
+  int cp_red = (nurbs.m_order - 2);
+  int ncpj = (nurbs.m_cv_count - 2 * cp_red);
   double pointAndTangents[6];
 
   double current, delta;
@@ -375,11 +376,7 @@ FittingCurve::inverseMapping (const ON_NurbsCurve &nurbs, const Eigen::Vector3d 
 
     r = p - pt;
 
-    // step width control
-    int E = findElement (current, elements);
-    double e = elements[E + 1] - elements[E];
-
-    delta = -(0.5 * e) * r.dot (t) / t.norm (); //  A.ldlt().solve(b);
+    delta = -(1.0 / ncpj) * r.dot (t) / t.norm (); //  A.ldlt().solve(b);
 
     if (std::fabs (delta) < accuracy)
     {

@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010, Willow Garage, Inc.
- *  Copyright (c) 2017-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -52,7 +49,6 @@ using namespace pcl;
 
 #include <pcl/octree/octree.h>
 #include <pcl/octree/octree_impl.h>
-#include <pcl/octree/octree_pointcloud_adjacency.h>
 
 using namespace octree;
 
@@ -90,28 +86,28 @@ TEST (PCL, Octree_Test)
     voxels[i].z = i;
 
     // add data to leaf node voxel
-    int* voxel_container = octreeA.createLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
-    *voxel_container = data[i];
+    octreeA.addData (voxels[i].x, voxels[i].y, voxels[i].z, data[i]);
   }
 
+  int LeafNode;
   for (i = 0; i < 128; i++)
   {
     // retrieve data from leaf node voxel
-    int* voxel_container = octreeA.createLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
+    octreeA.getData (voxels[i].x, voxels[i].y, voxels[i].z, LeafNode);
     // check if retrieved data is identical to data[]
-    ASSERT_EQ (data[i], *voxel_container);
+    ASSERT_EQ(LeafNode, data[i]);
   }
 
   for (i = 128; i < 256; i++)
   {
     // check if leaf node exists in tree
-    ASSERT_TRUE (octreeA.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeA.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), true);
 
     // remove leaf node
     octreeA.removeLeaf (voxels[i].x, voxels[i].y, voxels[i].z);
 
     //  leaf node shouldn't exist in tree anymore
-    ASSERT_FALSE (octreeA.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeA.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   // test serialization
@@ -119,8 +115,8 @@ TEST (PCL, Octree_Test)
   std::vector<char> treeBinaryA;
   std::vector<char> treeBinaryB;
 
-  std::vector<int*> leafVectorA;
-  std::vector<int*> leafVectorB;
+  std::vector<int> leafVectorA;
+  std::vector<int> leafVectorB;
 
   // serialize tree - generate binary octree description
   octreeA.serializeTree (treeBinaryA);
@@ -131,39 +127,39 @@ TEST (PCL, Octree_Test)
   for (i = 0; i < 128; i++)
   {
     // check if leafs exist in both octrees
-    ASSERT_TRUE (octreeA.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
-    ASSERT_TRUE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeA.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), true);
+    ASSERT_EQ( octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), true);
   }
 
   for (i = 128; i < 256; i++)
   {
     // these leafs were not copies and should not exist
-    ASSERT_FALSE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   // testing deleteTree();
   octreeB.deleteTree ();
 
   // octreeB.getLeafCount() should be zero now;
-  ASSERT_EQ (0u, octreeB.getLeafCount ());
+  ASSERT_EQ (static_cast <unsigned int> (0), octreeB.getLeafCount());
 
   // .. and previous leafs deleted..
   for (i = 0; i < 128; i++)
   {
-    ASSERT_FALSE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ(octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   // test tree serialization
   octreeA.serializeTree (treeBinaryA, leafVectorA);
 
   // make sure, we retrieved all data objects
-  ASSERT_EQ (octreeA.getLeafCount (), leafVectorA.size ());
+  ASSERT_EQ(leafVectorA.size(), octreeA.getLeafCount());
 
   // check if leaf data is found in octree input data
   bool bFound;
   for (i = 0; i < 128; i++)
   {
-    int leafInt = *leafVectorA.back ();
+    int leafInt = leafVectorA.back ();
     leafVectorA.pop_back ();
 
     bFound = false;
@@ -174,7 +170,7 @@ TEST (PCL, Octree_Test)
         break;
       }
 
-    ASSERT_TRUE (bFound);
+    ASSERT_EQ(bFound, true);
   }
 
   // test tree serialization
@@ -182,7 +178,7 @@ TEST (PCL, Octree_Test)
 
   for (i = 0; i < 128; i++)
   {
-    int leafInt = *leafVectorA.back ();
+    int leafInt = leafVectorA.back ();
     leafVectorA.pop_back ();
 
     bFound = false;
@@ -193,7 +189,7 @@ TEST (PCL, Octree_Test)
         break;
       }
 
-    ASSERT_TRUE (bFound);
+    ASSERT_EQ(bFound, true);
   }
 
   // test tree serialization with leaf data vectors
@@ -201,35 +197,33 @@ TEST (PCL, Octree_Test)
   octreeB.deserializeTree (treeBinaryA, leafVectorA);
 
   // test size and leaf count of reconstructed octree
-  ASSERT_EQ (octreeA.getLeafCount (), octreeB.getLeafCount ());
-  ASSERT_EQ (128u, octreeB.getLeafCount ());
+  ASSERT_EQ(octreeA.getLeafCount(), octreeB.getLeafCount());
+  ASSERT_EQ(static_cast<unsigned int> (128), octreeB.getLeafCount());
 
   octreeB.serializeTree (treeBinaryB, leafVectorB);
 
   // compare octree data content of octree A and octree B
-  ASSERT_EQ (leafVectorB.size (), octreeB.getLeafCount ());
-  ASSERT_EQ (leafVectorA.size (), leafVectorB.size ());
+  ASSERT_EQ(leafVectorB.size(), octreeB.getLeafCount());
+  ASSERT_EQ(leafVectorA.size(), leafVectorB.size());
 
   for (i = 0; i < leafVectorB.size (); i++)
   {
-    ASSERT_EQ (*leafVectorA[i], *leafVectorB[i]);
+    ASSERT_EQ( (leafVectorA[i] == leafVectorB[i]), true);
   }
 
   //  test iterator
 
-  OctreeBase<int>::Iterator a_it;
-  OctreeBase<int>::Iterator a_it_end = octreeA.end();
-
+  OctreeBase<int>::Iterator a_it (octreeA);
   unsigned int node_count = 0;
   unsigned int branch_count = 0;
   unsigned int leaf_count = 0;
 
   // iterate over tree
-  for (a_it=octreeA.begin(); a_it!=a_it_end; ++a_it)
+  while (*++a_it)
   {
     // depth should always be less than tree depth
     unsigned int depth = a_it.getCurrentOctreeDepth ();
-    ASSERT_LE (depth, octreeA.getTreeDepth ());
+    ASSERT_LE(depth, octreeA.getTreeDepth());
 
     // store node, branch and leaf count
     const OctreeNode* node = a_it.getCurrentOctreeNode ();
@@ -245,8 +239,9 @@ TEST (PCL, Octree_Test)
   }
 
   // compare node, branch and leaf count against actual tree values
-  ASSERT_EQ (branch_count + leaf_count, node_count);
-  ASSERT_EQ (octreeA.getLeafCount (), leaf_count);
+  ASSERT_EQ(node_count, branch_count + leaf_count);
+  ASSERT_EQ(leaf_count, octreeA.getLeafCount ());
+
 }
 
 TEST (PCL, Octree_Dynamic_Depth_Test)
@@ -272,37 +267,6 @@ TEST (PCL, Octree_Dynamic_Depth_Test)
 
   for (test = 0; test < test_runs; ++test)
   {
-    // clean up
-    cloud->points.clear ();
-    octree.deleteTree ();
-
-    PointXYZ newPoint (1.5, 2.5, 3.5);
-    cloud->push_back (newPoint);
-
-    for (point = 0; point < 15; point++)
-    {
-      // gereate a random point
-      PointXYZ newPoint (1.0, 2.0, 3.0);
-
-      // OctreePointCloudPointVector can store all points..
-      cloud->push_back (newPoint);
-    }
-
-    // check if all points from leaf data can be found in input pointcloud data sets
-    octree.defineBoundingBox ();
-    octree.enableDynamicDepth (leafAggSize);
-    octree.addPointsFromInputCloud ();
-
-    unsigned int leaf_node_counter = 0;
-    // iterate over tree
-    OctreePointCloudPointVector<PointXYZ>::LeafNodeDepthFirstIterator it2;
-    const OctreePointCloudPointVector<PointXYZ>::LeafNodeDepthFirstIterator it2_end = octree.leaf_depth_end();
-    for (it2 = octree.leaf_depth_begin(); it2 != it2_end; ++it2)
-    {
-      ++leaf_node_counter;
-      unsigned int depth = it2.getCurrentOctreeDepth ();
-      ASSERT_TRUE ((depth == 1) || (depth == 6));
-    }
 
     // clean up
     cloud->points.clear ();
@@ -319,68 +283,65 @@ TEST (PCL, Octree_Dynamic_Depth_Test)
       cloud->push_back (newPoint);
     }
 
-
     // check if all points from leaf data can be found in input pointcloud data sets
     octree.defineBoundingBox ();
     octree.enableDynamicDepth (leafAggSize);
     octree.addPointsFromInputCloud ();
 
     //  test iterator
-    OctreePointCloudPointVector<PointXYZ>::LeafNodeDepthFirstIterator it;
-    const OctreePointCloudPointVector<PointXYZ>::LeafNodeDepthFirstIterator it_end = octree.leaf_depth_end();
+    OctreePointCloudPointVector<PointXYZ>::LeafNodeIterator it (octree);
     unsigned int leaf_count = 0;
+
 
     std::vector<int> indexVector;
 
     // iterate over tree
-    for (it = octree.leaf_depth_begin(); it != it_end; ++it)
+    while (*++it)
     {
       OctreeNode* node = it.getCurrentOctreeNode ();
 
+      ASSERT_EQ(node->getNodeType(), LEAF_NODE);
 
-      ASSERT_EQ (LEAF_NODE, node->getNodeType());
-
-      OctreeContainerPointIndices& container = it.getLeafContainer();
       if (it.getCurrentOctreeDepth () < octree.getTreeDepth ())
-        ASSERT_LE (container.getSize (), leafAggSize);
+        ASSERT_LE(it.getSize(), leafAggSize);
 
       // add points from leaf node to indexVector
-      container.getPointIndices (indexVector);
+      it.getData (indexVector);
 
       // test points against bounding box of leaf node
       std::vector<int> tmpVector;
-      container.getPointIndices (tmpVector);
+      it.getData (tmpVector);
 
       Eigen::Vector3f min_pt, max_pt;
       octree.getVoxelBounds (it, min_pt, max_pt);
 
       for (i=0; i<tmpVector.size(); ++i)
       {
-        ASSERT_GE (cloud->points[tmpVector[i]].x, min_pt(0));
-        ASSERT_GE (cloud->points[tmpVector[i]].y, min_pt(1));
-        ASSERT_GE (cloud->points[tmpVector[i]].z, min_pt(2));
-        ASSERT_LE (cloud->points[tmpVector[i]].x, max_pt(0));
-        ASSERT_LE (cloud->points[tmpVector[i]].y, max_pt(1));
-        ASSERT_LE (cloud->points[tmpVector[i]].z, max_pt(2));
+        ASSERT_GE(cloud->points[tmpVector[i]].x, min_pt(0));
+        ASSERT_GE(cloud->points[tmpVector[i]].y, min_pt(1));
+        ASSERT_GE(cloud->points[tmpVector[i]].z, min_pt(2));
+        ASSERT_LE(cloud->points[tmpVector[i]].x, max_pt(0));
+        ASSERT_LE(cloud->points[tmpVector[i]].y, max_pt(1));
+        ASSERT_LE(cloud->points[tmpVector[i]].z, max_pt(2));
       }
 
       leaf_count++;
 
     }
-
-    ASSERT_EQ (indexVector.size(), pointcount);
+    ASSERT_EQ(pointcount, indexVector.size());
 
     // make sure all indices are within indexVector
     for (i = 0; i < indexVector.size (); ++i)
     {
 #if !defined(__APPLE__)
       bool indexFound = (std::find(indexVector.begin(), indexVector.end(), i) != indexVector.end());
-      ASSERT_TRUE (indexFound);
+      ASSERT_EQ(indexFound, true);
 #endif
     }
 
     // compare node, branch and leaf count against actual tree values
-    ASSERT_EQ (octree.getLeafCount (), leaf_count);
+    ASSERT_EQ(leaf_count, octree.getLeafCount ());
+
   }
 }
 
@@ -418,30 +379,31 @@ TEST (PCL, Octree2Buf_Test)
     voxels[i].z = i;
 
     // add data to leaf node voxel
-    int* voxel_container = octreeA.createLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
-    data[i] = *voxel_container;
+    octreeA.addData (voxels[i].x, voxels[i].y, voxels[i].z, data[i]);
 
   }
 
-  ASSERT_EQ (static_cast<unsigned int> (256), octreeA.getLeafCount ());
+  ASSERT_EQ(static_cast<unsigned int> (256), octreeA.getLeafCount());
+
+  int TreeData;
 
   for (i = 0; i < 128; i++)
   {
     // retrieve and check data from leaf voxel
-    int* voxel_container = octreeA.findLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
-    ASSERT_EQ (data[i], *voxel_container);
+    octreeA.getData (voxels[i].x, voxels[i].y, voxels[i].z, TreeData);
+    ASSERT_EQ(TreeData, data[i]);
   }
 
   for (i = 128; i < 256; i++)
   {
     // check if leaf node exists in tree
-    ASSERT_TRUE (octreeA.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeA.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), true);
 
     // remove leaf node
     octreeA.removeLeaf (voxels[i].x, voxels[i].y, voxels[i].z);
 
     //  leaf node shouldn't exist in tree anymore
-    ASSERT_FALSE (octreeA.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeA.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   ////////////
@@ -451,8 +413,8 @@ TEST (PCL, Octree2Buf_Test)
   std::vector<char> treeBinaryA;
   std::vector<char> treeBinaryB;
 
-  std::vector<int*> leafVectorA;
-  std::vector<int*> leafVectorB;
+  std::vector<int> leafVectorA;
+  std::vector<int> leafVectorB;
 
   // serialize tree - generate binary octree description
   octreeA.serializeTree (treeBinaryA);
@@ -463,13 +425,13 @@ TEST (PCL, Octree2Buf_Test)
   // check if leafs exist in octrees
   for (i = 0; i < 128; i++)
   {
-    ASSERT_TRUE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), true);
   }
 
   // these leafs should not exist..
   for (i = 128; i < 256; i++)
   {
-    ASSERT_FALSE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   // checking deleteTree();
@@ -477,24 +439,24 @@ TEST (PCL, Octree2Buf_Test)
   octreeB.setTreeDepth (8);
 
   // octreeB.getLeafCount() should be zero now;
-  ASSERT_EQ (static_cast<unsigned int> (0), octreeB.getLeafCount ());
+  ASSERT_EQ(static_cast<unsigned int> (0), octreeB.getLeafCount());
 
   for (i = 0; i < 128; i++)
   {
-    ASSERT_FALSE (octreeB.existLeaf (voxels[i].x, voxels[i].y, voxels[i].z));
+    ASSERT_EQ( octreeB.existLeaf(voxels[i].x,voxels[i].y,voxels[i].z), false);
   }
 
   // test tree serialization
   octreeA.serializeTree (treeBinaryA, leafVectorA);
 
   // make sure, we retrieved all data objects
-  ASSERT_EQ (octreeA.getLeafCount (), leafVectorA.size ());
+  ASSERT_EQ(leafVectorA.size(), octreeA.getLeafCount());
 
   // check if leaf data is found in octree input data
   bool bFound;
   for (i = 0; i < 128; i++)
   {
-    int leafInt = *leafVectorA.back ();
+    int leafInt = leafVectorA.back ();
     leafVectorA.pop_back ();
 
     bFound = false;
@@ -505,7 +467,7 @@ TEST (PCL, Octree2Buf_Test)
         break;
       }
 
-    ASSERT_TRUE (bFound);
+    ASSERT_EQ(bFound, true);
   }
 
   // test tree serialization
@@ -513,7 +475,7 @@ TEST (PCL, Octree2Buf_Test)
 
   for (i = 0; i < 128; i++)
   {
-    int leafInt = *leafVectorA.back ();
+    int leafInt = leafVectorA.back ();
     leafVectorA.pop_back ();
 
     bFound = false;
@@ -524,27 +486,29 @@ TEST (PCL, Octree2Buf_Test)
         break;
       }
 
-    ASSERT_TRUE (bFound);
+    ASSERT_EQ(bFound, true);
   }
 
   // test tree serialization with leaf data vectors
   octreeA.serializeTree (treeBinaryA, leafVectorA);
   octreeB.deserializeTree (treeBinaryA, leafVectorA);
 
-  ASSERT_EQ (octreeA.getLeafCount (), octreeB.getLeafCount ());
-  ASSERT_EQ (static_cast<unsigned int> (128), octreeB.getLeafCount ());
+  ASSERT_EQ(octreeA.getLeafCount(), octreeB.getLeafCount());
+  ASSERT_EQ(static_cast<unsigned int> (128), octreeB.getLeafCount());
 
   octreeB.serializeTree (treeBinaryB, leafVectorB);
 
   // test size and leaf count of reconstructed octree
-  ASSERT_EQ (leafVectorB.size (), octreeB.getLeafCount ());
-  ASSERT_EQ (leafVectorA.size (), leafVectorB.size ());
+  ASSERT_EQ(leafVectorB.size(), octreeB.getLeafCount());
+  ASSERT_EQ(leafVectorA.size(), leafVectorB.size());
 
   for (i = 0; i < leafVectorB.size (); i++)
   {
-    ASSERT_EQ (*leafVectorA[i], *leafVectorB[i]);
+    ASSERT_EQ( (leafVectorA[i] == leafVectorB[i]), true);
   }
+
 }
+
 
 TEST (PCL, Octree2Buf_Base_Double_Buffering_Test)
 {
@@ -558,8 +522,8 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_Test)
   std::vector<char> treeBinaryA;
   std::vector<char> treeBinaryB;
 
-  std::vector<int*> leafVectorA;
-  std::vector<int*> leafVectorB;
+  std::vector<int> leafVectorA;
+  std::vector<int> leafVectorB;
 
   octreeA.setTreeDepth (5);
   octreeB.setTreeDepth (5);
@@ -603,8 +567,7 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_Test)
 
         // add data to octree
 
-        int* container = octreeA.createLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
-        *container = data[i];
+        octreeA.addData (voxels[i].x, voxels[i].y, voxels[i].z, data[i]);
 
       }
 
@@ -616,14 +579,14 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_Test)
     octreeB.serializeTree (treeBinaryB, leafVectorB, true);
 
     // check leaf count of rebuilt octree
-    ASSERT_EQ (octreeA.getLeafCount (), octreeB.getLeafCount ());
-    ASSERT_EQ (leafVectorB.size (), octreeB.getLeafCount ());
-    ASSERT_EQ (leafVectorA.size (), leafVectorB.size ());
+    ASSERT_EQ(octreeA.getLeafCount(), octreeB.getLeafCount());
+    ASSERT_EQ(leafVectorB.size(), octreeB.getLeafCount());
+    ASSERT_EQ(leafVectorA.size(), leafVectorB.size());
 
     // check if octree octree structure is consistent.
     for (i = 0; i < leafVectorB.size (); i++)
     {
-      ASSERT_EQ (*leafVectorA[i], *leafVectorB[i]);
+      ASSERT_EQ( (leafVectorA[i] == leafVectorB[i]), true);
     }
 
   }
@@ -642,8 +605,8 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_XOR_Test)
   std::vector<char> treeBinaryA;
   std::vector<char> treeBinaryB;
 
-  std::vector<int*> leafVectorA;
-  std::vector<int*> leafVectorB;
+  std::vector<int> leafVectorA;
+  std::vector<int> leafVectorB;
 
   octreeA.setTreeDepth (5);
   octreeB.setTreeDepth (5);
@@ -675,8 +638,7 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_XOR_Test)
 
       // add data to octree
 
-      int* container = octreeA.createLeaf(voxels[i].x, voxels[i].y, voxels[i].z);
-      *container = data[i];
+      octreeA.addData (voxels[i].x, voxels[i].y, voxels[i].z, data[i]);
     }
 
     // test serialization - XOR tree binary data
@@ -685,26 +647,29 @@ TEST (PCL, Octree2Buf_Base_Double_Buffering_XOR_Test)
     octreeB.serializeTree (treeBinaryB, leafVectorB, true);
 
     // check leaf count of rebuilt octree
-    ASSERT_EQ (octreeA.getLeafCount (), octreeB.getLeafCount ());
-    ASSERT_EQ (leafVectorB.size (), octreeB.getLeafCount ());
-    ASSERT_EQ (leafVectorA.size (), leafVectorB.size ());
-    ASSERT_EQ (treeBinaryA.size (), octreeB.getBranchCount ());
-    ASSERT_EQ (treeBinaryA.size (), treeBinaryB.size ());
+    ASSERT_EQ(octreeA.getLeafCount(), octreeB.getLeafCount());
+    ASSERT_EQ(leafVectorB.size(), octreeB.getLeafCount());
+    ASSERT_EQ(leafVectorA.size(), leafVectorB.size());
+    ASSERT_EQ(treeBinaryA.size(), octreeB.getBranchCount());
+    ASSERT_EQ(treeBinaryA.size(), treeBinaryB.size());
 
     // check if octree octree structure is consistent.
     for (i = 0; i < leafVectorB.size (); i++)
     {
-      ASSERT_EQ (*leafVectorA[i], *leafVectorB[i]);
+      ASSERT_EQ( (leafVectorA[i] == leafVectorB[i]), true);
     }
 
     // switch buffers
     octreeA.switchBuffers ();
     octreeB.switchBuffers ();
+
   }
+
 }
 
 TEST (PCL, Octree_Pointcloud_Test)
 {
+
   size_t i;
   int test_runs = 100;
   int pointcount = 300;
@@ -742,8 +707,8 @@ TEST (PCL, Octree_Pointcloud_Test)
     for (point = 0; point < pointcount; point++)
     {
       // gereate a random point
-      PointXYZ newPoint (static_cast<float> (1024.0 * rand () / RAND_MAX),
-                         static_cast<float> (1024.0 * rand () / RAND_MAX),
+      PointXYZ newPoint (static_cast<float> (1024.0 * rand () / RAND_MAX), 
+                         static_cast<float> (1024.0 * rand () / RAND_MAX), 
                          static_cast<float> (1024.0 * rand () / RAND_MAX));
 
       if (!octreeA.isVoxelOccupiedAtPoint (newPoint))
@@ -756,28 +721,24 @@ TEST (PCL, Octree_Pointcloud_Test)
       cloudB->push_back (newPoint);
     }
 
-    ASSERT_EQ (cloudA->points.size (), octreeA.getLeafCount ());
+    ASSERT_EQ(octreeA.getLeafCount(), cloudA->points.size());
 
     // checks for getVoxelDataAtPoint() and isVoxelOccupiedAtPoint() functionality
     for (i = 0; i < cloudA->points.size (); i++)
     {
-      ASSERT_TRUE (octreeA.isVoxelOccupiedAtPoint (cloudA->points[i]));
+      ASSERT_EQ(octreeA.isVoxelOccupiedAtPoint(cloudA->points[i]), true);
       octreeA.deleteVoxelAtPoint (cloudA->points[i]);
-      ASSERT_FALSE (octreeA.isVoxelOccupiedAtPoint (cloudA->points[i]));
+      ASSERT_EQ(octreeA.isVoxelOccupiedAtPoint(cloudA->points[i]), false);
     }
 
-    ASSERT_EQ (static_cast<unsigned int> (0), octreeA.getLeafCount ());
+    ASSERT_EQ(octreeA.getLeafCount(), static_cast<unsigned int> (0));
 
     // check if all points from leaf data can be found in input pointcloud data sets
     octreeB.defineBoundingBox ();
     octreeB.addPointsFromInputCloud ();
 
     //  test iterator
-    OctreePointCloudPointVector<PointXYZ>::Iterator b_it;
-    OctreePointCloudPointVector<PointXYZ>::Iterator b_it_end = octreeB.end();
-
-    // iterate over tree
-
+    OctreePointCloudSearch<PointXYZ>::Iterator b_it (octreeB);
     unsigned int node_count = 0;
     unsigned int branch_count = 0;
     unsigned int leaf_count = 0;
@@ -786,22 +747,22 @@ TEST (PCL, Octree_Pointcloud_Test)
     octreeB.getBoundingBox (minx, miny, minz, maxx, maxy, maxz);
 
     // iterate over tree
-    for (b_it = octreeB.begin(); b_it != b_it_end; ++b_it)
+    while (*++b_it)
     {
       // depth should always be less than tree depth
       unsigned int depth = b_it.getCurrentOctreeDepth ();
-      ASSERT_LE (depth, octreeB.getTreeDepth ());
+      ASSERT_LE(depth, octreeB.getTreeDepth());
 
       Eigen::Vector3f voxel_min, voxel_max;
       octreeB.getVoxelBounds (b_it, voxel_min, voxel_max);
 
-      ASSERT_GE (voxel_min.x (), minx - 1e-4);
-      ASSERT_GE (voxel_min.y (), miny - 1e-4);
-      ASSERT_GE (voxel_min.z (), minz - 1e-4);
+      ASSERT_GE(voxel_min.x (), minx - 1e-4);
+      ASSERT_GE(voxel_min.y (), miny - 1e-4);
+      ASSERT_GE(voxel_min.z (), minz - 1e-4);
 
-      ASSERT_LE (voxel_max.x (), maxx + 1e-4);
-      ASSERT_LE (voxel_max.y (), maxy + 1e-4);
-      ASSERT_LE (voxel_max.z (), maxz + 1e-4);
+      ASSERT_LE(voxel_max.x (), maxx + 1e-4);
+      ASSERT_LE(voxel_max.y (), maxy + 1e-4);
+      ASSERT_LE(voxel_max.z (), maxz + 1e-4);
 
       // store node, branch and leaf count
       const OctreeNode* node = b_it.getCurrentOctreeNode ();
@@ -817,11 +778,12 @@ TEST (PCL, Octree_Pointcloud_Test)
     }
 
     // compare node, branch and leaf count against actual tree values
-    ASSERT_EQ (branch_count + leaf_count, node_count);
-    ASSERT_EQ (octreeB.getLeafCount (), leaf_count);
+    ASSERT_EQ(node_count, branch_count + leaf_count);
+    ASSERT_EQ(leaf_count, octreeB.getLeafCount ());
 
     for (i = 0; i < cloudB->points.size (); i++)
     {
+
       std::vector<int> pointIdxVec;
       octreeB.voxelSearch (cloudB->points[i], pointIdxVec);
 
@@ -837,13 +799,58 @@ TEST (PCL, Octree_Pointcloud_Test)
         ++current;
       }
 
-      ASSERT_TRUE (bIdxFound);
+      ASSERT_EQ(bIdxFound, true);
+
     }
+
+    // test octree pointcloud serialization
+
+    std::vector<char> treeBinaryB;
+    std::vector<char> treeBinaryC;
+
+    std::vector<int> leafVectorB;
+    std::vector<int> leafVectorC;
+
+    double minX, minY, minZ, maxX, maxY, maxZ;
+
+    // serialize octreeB
+    octreeB.serializeTree (treeBinaryB, leafVectorB);
+    octreeB.getBoundingBox (minX, minY, minZ, maxX, maxY, maxZ);
+
+    ASSERT_EQ(cloudB->points.size(), leafVectorB.size());
+
+    // deserialize into octreeC
+    octreeC.deleteTree ();
+    octreeC.defineBoundingBox (minX, minY, minZ, maxX, maxY, maxZ);
+
+    octreeC.deserializeTree (treeBinaryB, leafVectorB);
+
+    // retrieve point data content of octreeC
+    octreeC.serializeTree (treeBinaryC, leafVectorC);
+
+    // check if data is consistent
+    ASSERT_EQ(octreeB.getLeafCount(), octreeC.getLeafCount());
+    ASSERT_EQ(treeBinaryB.size(), treeBinaryC.size());
+    ASSERT_EQ(octreeB.getLeafCount(), cloudB->points.size());
+
+    for (i = 0; i < leafVectorB.size (); ++i)
+    {
+      ASSERT_EQ(leafVectorB[i], leafVectorC[i]);
+    }
+
+    // check if binary octree output of both trees is equal
+    for (i = 0; i < treeBinaryB.size (); ++i)
+    {
+      ASSERT_EQ(treeBinaryB[i], treeBinaryC[i]);
+    }
+
   }
+
 }
 
 TEST (PCL, Octree_Pointcloud_Density_Test)
 {
+
   // instantiate point cloud and fill it with point data
 
   PointCloud<PointXYZ>::Ptr cloudIn (new PointCloud<PointXYZ> ());
@@ -873,12 +880,12 @@ TEST (PCL, Octree_Pointcloud_Density_Test)
   for (float z = 1.5f; z < 3.5f; z += 1.0f)
     for (float y = 1.5f; y < 3.5f; y += 1.0f)
       for (float x = 1.5f; x < 3.5f; x += 1.0f)
-        ASSERT_EQ (1000u, octreeA.getVoxelDensityAtPoint (PointXYZ(x, y, z)));
+        ASSERT_EQ(octreeA.getVoxelDensityAtPoint (PointXYZ(x, y, z)), static_cast<unsigned int> (1000));
 
   for (float z = 0.05f; z < 5.0f; z += 0.1f)
     for (float y = 0.05f; y < 5.0f; y += 0.1f)
       for (float x = 0.05f; x < 5.0f; x += 0.1f)
-        ASSERT_EQ (1u, octreeB.getVoxelDensityAtPoint (PointXYZ (x, y, z)));
+        ASSERT_EQ(octreeB.getVoxelDensityAtPoint (PointXYZ(x, y, z)), static_cast<unsigned int> (1));
 }
 
 TEST (PCL, Octree_Pointcloud_Iterator_Test)
@@ -902,54 +909,61 @@ TEST (PCL, Octree_Pointcloud_Iterator_Test)
   octreeA.addPointsFromInputCloud ();
 
   // instantiate iterator for octreeA
-  OctreePointCloud<PointXYZ>::LeafNodeDepthFirstIterator it1;
-  OctreePointCloud<PointXYZ>::LeafNodeDepthFirstIterator it1_end = octreeA.leaf_depth_end();
+  OctreePointCloud<PointXYZ>::LeafNodeIterator it1 (octreeA);
 
   std::vector<int> indexVector;
   unsigned int leafNodeCounter = 0;
 
-  for (it1 = octreeA.leaf_depth_begin(); it1 != it1_end; ++it1)
+  // test preincrement
+  ++it1;
+  it1.getData (indexVector);
+  leafNodeCounter++;
+
+  // test postincrement
+  it1++;
+  it1.getData (indexVector);
+  leafNodeCounter++;
+
+  while (*++it1)
   {
-    it1.getLeafContainer().getPointIndices(indexVector);
+    it1.getData (indexVector);
     leafNodeCounter++;
   }
 
-  ASSERT_EQ (cloudIn->points.size (), indexVector.size());
-  ASSERT_EQ (octreeA.getLeafCount (), leafNodeCounter);
+  ASSERT_EQ(indexVector.size(), cloudIn->points.size ());
+  ASSERT_EQ(leafNodeCounter, octreeA.getLeafCount());
 
-  OctreePointCloud<PointXYZ>::Iterator it2;
-  OctreePointCloud<PointXYZ>::Iterator it2_end = octreeA.end();
+  OctreePointCloud<PointXYZ>::Iterator it2 (octreeA);
 
   unsigned int traversCounter = 0;
-  for (it2 = octreeA.begin(); it2 != it2_end; ++it2)
+  while (*++it2)
   {
     traversCounter++;
   }
 
-  ASSERT_EQ (octreeA.getLeafCount () + octreeA.getBranchCount (), traversCounter);
+  ASSERT_EQ(traversCounter > octreeA.getLeafCount() + octreeA.getBranchCount(), true);
 
   // breadth-first iterator test
 
+  OctreePointCloud<PointXYZ>::BreadthFirstIterator bfIt (octreeA);
+
   unsigned int lastDepth = 0;
-  unsigned int branchNodeCount = 0;
+  unsigned int branchNodeCount = 1;
   unsigned int leafNodeCount = 0;
 
   bool leafNodeVisited = false;
 
-  OctreePointCloud<PointXYZ>::BreadthFirstIterator bfIt;
-  const OctreePointCloud<PointXYZ>::BreadthFirstIterator bfIt_end = octreeA.breadth_end();
-
-  for (bfIt = octreeA.breadth_begin(); bfIt != bfIt_end; ++bfIt)
+  while (*++bfIt)
   {
     // tree depth of visited nodes must grow
-    ASSERT_TRUE (bfIt.getCurrentOctreeDepth () >= lastDepth);
+    ASSERT_EQ( bfIt.getCurrentOctreeDepth()>=lastDepth, true);
     lastDepth = bfIt.getCurrentOctreeDepth ();
 
     if (bfIt.isBranchNode ())
     {
       branchNodeCount++;
       // leaf nodes are traversed in the end
-      ASSERT_FALSE (leafNodeVisited);
+      ASSERT_EQ( leafNodeVisited, false);
     }
 
     if (bfIt.isLeafNode ())
@@ -960,8 +974,9 @@ TEST (PCL, Octree_Pointcloud_Iterator_Test)
   }
 
   // check if every branch node and every leaf node has been visited
-  ASSERT_EQ (octreeA.getLeafCount (), leafNodeCount);
-  ASSERT_EQ (octreeA.getBranchCount (), branchNodeCount);
+  ASSERT_EQ( leafNodeCount, octreeA.getLeafCount());
+  ASSERT_EQ( branchNodeCount, octreeA.getBranchCount());
+
 }
 
 TEST(PCL, Octree_Pointcloud_Occupancy_Test)
@@ -1001,11 +1016,13 @@ TEST(PCL, Octree_Pointcloud_Occupancy_Test)
     // check occupancy of voxels
     for (i = 0; i < 1000; i++)
     {
-      ASSERT_TRUE (octree.isVoxelOccupiedAtPoint (cloudIn->points[i]));
+      ASSERT_EQ(octree.isVoxelOccupiedAtPoint(cloudIn->points[i]), true);
       octree.deleteVoxelAtPoint (cloudIn->points[i]);
-      ASSERT_FALSE (octree.isVoxelOccupiedAtPoint (cloudIn->points[i]));
+      ASSERT_EQ(octree.isVoxelOccupiedAtPoint(cloudIn->points[i]), false);
     }
+
   }
+
 }
 
 TEST (PCL, Octree_Pointcloud_Change_Detector_Test)
@@ -1048,7 +1065,7 @@ TEST (PCL, Octree_Pointcloud_Change_Detector_Test)
   for (i = 0; i < 1000; i++)
   {
     octree.addPointToCloud (
-        PointXYZ (static_cast<float> (100.0 + 5.0  * rand () / RAND_MAX),
+        PointXYZ (static_cast<float> (100.0 + 5.0  * rand () / RAND_MAX), 
                   static_cast<float> (100.0 + 10.0 * rand () / RAND_MAX),
                   static_cast<float> (100.0 + 10.0 * rand () / RAND_MAX)),
         cloudIn);
@@ -1060,12 +1077,12 @@ TEST (PCL, Octree_Pointcloud_Change_Detector_Test)
   octree.getPointIndicesFromNewVoxels (newPointIdxVector);
 
   // should be 1000
-  ASSERT_EQ (static_cast<std::size_t> (1000), newPointIdxVector.size ());
+  ASSERT_EQ( newPointIdxVector.size(), static_cast<std::size_t> (1000));
 
   // all point indices found should have an index of >= 1000
   for (i = 0; i < 1000; i++)
   {
-    ASSERT_TRUE (newPointIdxVector[i] >= 1000);
+    ASSERT_EQ( ( newPointIdxVector [i] >= 1000 ), true);
   }
 
 }
@@ -1107,40 +1124,14 @@ TEST (PCL, Octree_Pointcloud_Voxel_Centroid_Test)
   octree.getVoxelCentroids (voxelCentroids);
 
   // we expect 10 voxel centroids
-  ASSERT_EQ (static_cast<std::size_t> (10), voxelCentroids.size());
+  ASSERT_EQ (voxelCentroids.size(), static_cast<std::size_t> (10));
 
   // check centroid calculation
   for (i = 0; i < 10; i++)
   {
-    EXPECT_NEAR (voxelCentroids[i].x, static_cast<float> (i) + 0.4, 1e-4);
-    EXPECT_NEAR (voxelCentroids[i].y, static_cast<float> (i) + 0.4, 1e-4);
-    EXPECT_NEAR (voxelCentroids[i].z, static_cast<float> (i) + 0.4, 1e-4);
-  }
-
-  // ADDING AN ADDITIONAL POINT CLOUD TO OctreePointCloudVoxelCentroid
-
-  // generate new point data
-  for (i = 0; i < 10; i++)
-  {
-    // these three points should always be assigned to the same voxel in the octree
-    cloudIn->points[i * 3 + 0] = PointXYZ (static_cast<float> (i) + 0.1f, static_cast<float> (i) + 0.1f, static_cast<float> (i) + 0.1f);
-    cloudIn->points[i * 3 + 1] = PointXYZ (static_cast<float> (i) + 0.4f, static_cast<float> (i) + 0.4f, static_cast<float> (i) + 0.4f);
-    cloudIn->points[i * 3 + 2] = PointXYZ (static_cast<float> (i) + 0.7f, static_cast<float> (i) + 0.7f, static_cast<float> (i) + 0.7f);
-  }
-
-  // add points from new cloud to octree
-  octree.setInputCloud (cloudIn);
-  octree.addPointsFromInputCloud ();
-
-  voxelCentroids.clear();
-  octree.getVoxelCentroids (voxelCentroids);
-
-  // check centroid calculation
-  for (i = 0; i < 10; i++)
-  {
-    EXPECT_NEAR (voxelCentroids[i].x, static_cast<float> (i) + 0.4, 1e-4);
-    EXPECT_NEAR (voxelCentroids[i].y, static_cast<float> (i) + 0.4, 1e-4);
-    EXPECT_NEAR (voxelCentroids[i].z, static_cast<float> (i) + 0.4, 1e-4);
+    EXPECT_NEAR(voxelCentroids[i].x, static_cast<float> (i)+0.4, 1e-4);
+    EXPECT_NEAR(voxelCentroids[i].y, static_cast<float> (i)+0.4, 1e-4);
+    EXPECT_NEAR(voxelCentroids[i].z, static_cast<float> (i)+0.4, 1e-4);
   }
 
 }
@@ -1202,7 +1193,7 @@ TEST (PCL, Octree_Pointcloud_Nearest_K_Neighbour_Search)
   {
     // define a random search point
 
-    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX),
+    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX), 
                           static_cast<float> (10.0 * rand () / RAND_MAX),
                           static_cast<float> (10.0 * rand () / RAND_MAX));
 
@@ -1255,28 +1246,31 @@ TEST (PCL, Octree_Pointcloud_Nearest_K_Neighbour_Search)
 
       pointCandidates.pop ();
     }
-
+    
     // octree nearest neighbor search
     octree.deleteTree ();
     octree.addPointsFromInputCloud ();
     octree.nearestKSearch (searchPoint, static_cast<int> (K), k_indices, k_sqr_distances);
 
-    ASSERT_EQ (k_indices_bruteforce.size (), k_indices.size());
+    ASSERT_EQ( k_indices.size(), k_indices_bruteforce.size());
 
     // compare nearest neighbor results of octree with bruteforce search
     i = 0;
     while (k_indices_bruteforce.size ())
     {
-      ASSERT_EQ (k_indices_bruteforce.back(), k_indices.back ());
-      EXPECT_NEAR (k_sqr_distances_bruteforce.back (), k_sqr_distances.back (), 1e-4);
+      ASSERT_EQ( k_indices.back(), k_indices_bruteforce.back());
+      EXPECT_NEAR(k_sqr_distances.back(), k_sqr_distances_bruteforce.back(), 1e-4);
 
       k_indices_bruteforce.pop_back ();
       k_indices.pop_back ();
 
       k_sqr_distances_bruteforce.pop_back ();
       k_sqr_distances.pop_back ();
+
     }
+
   }
+
 }
 
 TEST (PCL, Octree_Pointcloud_Box_Search)
@@ -1346,8 +1340,10 @@ TEST (PCL, Octree_Pointcloud_Box_Search)
           idxInResults = true;
       }
 
-      ASSERT_EQ (idxInResults, inBox);
+      ASSERT_EQ(idxInResults, inBox);
+
     }
+
   }
 }
 
@@ -1374,7 +1370,7 @@ TEST(PCL, Octree_Pointcloud_Approx_Nearest_Neighbour_Search)
   {
     // define a random search point
 
-    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX),
+    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX), 
                           static_cast<float> (10.0 * rand () / RAND_MAX),
                           static_cast<float> (10.0 * rand () / RAND_MAX));
 
@@ -1418,14 +1414,15 @@ TEST(PCL, Octree_Pointcloud_Approx_Nearest_Neighbour_Search)
 
     if (BFindex == ANNindex)
     {
-      EXPECT_NEAR (ANNdistance, BFdistance, 1e-4);
+      EXPECT_NEAR(ANNdistance, BFdistance, 1e-4);
       bestMatchCount++;
     }
 
   }
 
   // we should have found the absolute nearest neighbor at least once
-  ASSERT_TRUE (bestMatchCount > 0);
+  ASSERT_EQ( (bestMatchCount > 0), true);
+
 }
 
 TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
@@ -1445,7 +1442,7 @@ TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
   for (test_id = 0; test_id < test_runs; test_id++)
   {
     // define a random search point
-    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX),
+    PointXYZ searchPoint (static_cast<float> (10.0 * rand () / RAND_MAX), 
                           static_cast<float> (10.0 * rand () / RAND_MAX),
                           static_cast<float> (10.0 * rand () / RAND_MAX));
 
@@ -1492,7 +1489,7 @@ TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
     // execute octree radius search
     octree.radiusSearch (searchPoint, searchRadius, cloudNWRSearch, cloudNWRRadius);
 
-    ASSERT_EQ (cloudSearchBruteforce.size (), cloudNWRRadius.size ());
+    ASSERT_EQ( cloudNWRRadius.size(), cloudSearchBruteforce.size());
 
     // check if result from octree radius search can be also found in bruteforce search
     std::vector<int>::const_iterator current = cloudNWRSearch.begin ();
@@ -1503,7 +1500,7 @@ TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
               + (cloudIn->points[*current].y - searchPoint.y) * (cloudIn->points[*current].y - searchPoint.y)
               + (cloudIn->points[*current].z - searchPoint.z) * (cloudIn->points[*current].z - searchPoint.z));
 
-      ASSERT_TRUE (pointDist <= searchRadius);
+      ASSERT_EQ( (pointDist<=searchRadius), true);
 
       ++current;
     }
@@ -1511,7 +1508,7 @@ TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
     // check if result limitation works
     octree.radiusSearch (searchPoint, searchRadius, cloudNWRSearch, cloudNWRRadius, 5);
 
-    ASSERT_TRUE (cloudNWRRadius.size () <= 5);
+    ASSERT_EQ( cloudNWRRadius.size() <= 5, true);
 
   }
 
@@ -1519,6 +1516,7 @@ TEST (PCL, Octree_Pointcloud_Neighbours_Within_Radius_Search)
 
 TEST (PCL, Octree_Pointcloud_Ray_Traversal)
 {
+
   const unsigned int test_runs = 100;
   unsigned int test_id;
 
@@ -1546,12 +1544,12 @@ TEST (PCL, Octree_Pointcloud_Ray_Traversal)
     cloudIn->height = 1;
     cloudIn->points.resize (cloudIn->width * cloudIn->height);
 
-    Eigen::Vector3f p (static_cast<float> (10.0 * rand () / RAND_MAX),
+    Eigen::Vector3f p (static_cast<float> (10.0 * rand () / RAND_MAX), 
                        static_cast<float> (10.0 * rand () / RAND_MAX),
                        static_cast<float> (10.0 * rand () / RAND_MAX));
 
     // origin
-    Eigen::Vector3f o (static_cast<float> (12.0 * rand () / RAND_MAX),
+    Eigen::Vector3f o (static_cast<float> (12.0 * rand () / RAND_MAX), 
                        static_cast<float> (12.0 * rand () / RAND_MAX),
                        static_cast<float> (12.0 * rand () / RAND_MAX));
 
@@ -1576,136 +1574,32 @@ TEST (PCL, Octree_Pointcloud_Ray_Traversal)
     octree_search.getIntersectedVoxelIndices (o, dir, indicesInRay);
 
     // check if all voxels in the cloud are penetraded by the ray
-    ASSERT_EQ (cloudIn->points.size (), voxelsInRay.size ());
+    ASSERT_EQ( voxelsInRay.size (), cloudIn->points.size ());
     // check if all indices of penetrated voxels are in cloud
-    ASSERT_EQ (cloudIn->points.size (), indicesInRay.size ());
+    ASSERT_EQ( indicesInRay.size (), cloudIn->points.size ());
 
     octree_search.getIntersectedVoxelCenters (o, dir, voxelsInRay2, 1);
     octree_search.getIntersectedVoxelIndices (o, dir, indicesInRay2, 1);
 
     // check if only the point from a single voxel has been returned
-    ASSERT_EQ (1u, voxelsInRay2.size ());
-    ASSERT_EQ (1u, indicesInRay2.size ());
+    ASSERT_EQ( voxelsInRay2.size (), 1u );
+    ASSERT_EQ( indicesInRay2.size (), 1u );
 
     // check if this point is the closest point to the origin
     pcl::PointXYZ pt = cloudIn->points[ indicesInRay2[0] ];
     Eigen::Vector3f d = Eigen::Vector3f (pt.x, pt.y, pt.z) - o;
     float min_dist = d.norm ();
 
-    for (unsigned int i = 0; i < cloudIn->width * cloudIn->height; i++)
-    {
-      pt = cloudIn->points[i];
-      d = Eigen::Vector3f (pt.x, pt.y, pt.z) - o;
-      ASSERT_GE (d.norm (), min_dist);
+    for (unsigned int i = 0; i < cloudIn->width * cloudIn->height; i++) {
+    	pt = cloudIn->points[i];
+    	d = Eigen::Vector3f (pt.x, pt.y, pt.z) - o;
+    	ASSERT_GE( d.norm (), min_dist );
     }
+
   }
+
 }
 
-TEST (PCL, Octree_Pointcloud_Adjacency)
-{
-  const unsigned int test_runs = 100;
-  unsigned int test_id;
-
-  srand (static_cast<unsigned int> (time (NULL)));
-
-  for (test_id = 0; test_id < test_runs; test_id++)
-  {
-    // instantiate point cloud
-    PointCloud<PointXYZ>::Ptr cloudIn (new PointCloud<PointXYZ> ());
-
-    float resolution = static_cast<float> (0.01 * rand () / RAND_MAX) + 0.00001f;
-    //Define a random point
-    PointXYZ point (static_cast<float> (0.5 * rand () / RAND_MAX),
-                    static_cast<float> (0.5 * rand () / RAND_MAX),
-                    static_cast<float> (0.5 * rand () / RAND_MAX));
-    //This is done to define the grid
-    PointXYZ p1 (10,10,10);
-    PointXYZ p2 (-10,-10,-10);
-    cloudIn->push_back(p1);
-    cloudIn->push_back(p2);
-    cloudIn->push_back (point);
-
-    // generate neighbors
-    for (int dx = -1; dx <= 1; ++dx)
-    {
-      for (int dy = -1; dy <= 1; ++dy)
-      {
-        for (int dz = -1; dz <= 1; ++dz)
-        {
-          float factor = 1.0f;//*std::sqrt (dx*dx + dy*dy + dz*dz);
-          PointXYZ neighbor (point.x+dx*resolution*factor, point.y+dy*resolution*factor, point.z+dz*resolution*factor);
-          cloudIn->push_back (neighbor);
-        }
-      }
-    }
-
-    //Add another point that isn't touching previous or neighbors
-    PointXYZ point2 (static_cast<float> (point.x + 10*resolution),
-                     static_cast<float> (point.y + 10*resolution),
-                     static_cast<float> (point.z + 10*resolution));
-    cloudIn->push_back (point2);
-    // Add points which are not neighbors
-    for (int i = 0; i < 100; ++i)
-    {
-      PointXYZ not_neighbor_point (static_cast<float> (10.0 * rand () / RAND_MAX),
-                     static_cast<float> (10.0 * rand () / RAND_MAX),
-                     static_cast<float> (10.0 * rand () / RAND_MAX));
-      if ( (point2.getVector3fMap () - not_neighbor_point.getVector3fMap ()).norm () > 3*resolution )
-      {
-        cloudIn->push_back(not_neighbor_point);
-      }
-    }
-
-
-
-    OctreePointCloudAdjacency<PointXYZ> octree (resolution);
-    octree.setInputCloud (cloudIn);
-    octree.addPointsFromInputCloud ();
-
-    OctreePointCloudAdjacencyContainer<PointXYZ> *leaf_container;
-
-    leaf_container = octree.getLeafContainerAtPoint (point);
-    //Point should have 26 neighbors, plus itself
-    ASSERT_EQ (27, leaf_container->size ());
-
-    leaf_container = octree.getLeafContainerAtPoint (point2);
-
-    //Other point should only have itself for neighbor
-    ASSERT_EQ (1, leaf_container->size ());
-  }
-}
-
-TEST (PCL, Octree_Pointcloud_Bounds)
-{
-    const double SOME_RESOLUTION (10 + 1/3.0);
-    const int SOME_DEPTH (4);
-    const double DESIRED_MAX = ((1<<SOME_DEPTH) + 0.5)*SOME_RESOLUTION;
-    const double DESIRED_MIN = 0;
-
-    OctreePointCloud<PointXYZ> tree (SOME_RESOLUTION);
-    tree.defineBoundingBox (DESIRED_MIN, DESIRED_MIN, DESIRED_MIN, DESIRED_MAX, DESIRED_MAX, DESIRED_MAX);
-
-    double min_x, min_y, min_z, max_x, max_y, max_z;
-    tree.getBoundingBox (min_x, min_y, min_z, max_x, max_y, max_z);
-
-    ASSERT_GE (max_x, DESIRED_MAX);
-    ASSERT_GE (DESIRED_MIN, min_x);
-
-    const double LARGE_MIN = 1e7-45*SOME_RESOLUTION;
-    const double LARGE_MAX = 1e7-5*SOME_RESOLUTION;
-    tree.defineBoundingBox (LARGE_MIN, LARGE_MIN, LARGE_MIN, LARGE_MAX, LARGE_MAX, LARGE_MAX);
-    tree.getBoundingBox (min_x, min_y, min_z, max_x, max_y, max_z);
-    const unsigned int depth = tree.getTreeDepth ();
-    tree.defineBoundingBox (min_x, min_y, min_z, max_x, max_y, max_z);
-
-    ASSERT_EQ (depth, tree.getTreeDepth ());
-
-    double min_x2, min_y2, min_z2, max_x2, max_y2, max_z2;
-    tree.getBoundingBox (min_x2, min_y2, min_z2, max_x2, max_y2, max_z2);
-
-    ASSERT_DOUBLE_EQ (min_x2, min_x);
-    ASSERT_DOUBLE_EQ (max_x2, max_x);
-}
 /* ---[ */
 int
 main (int argc, char** argv)

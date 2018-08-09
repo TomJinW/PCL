@@ -46,10 +46,10 @@
 #include <pcl/common/io.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-inline bool
-gcCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
-{
-  return (i.distance < j.distance);
+bool
+gcCorrespSorter (pcl::Correspondence i, pcl::Correspondence j) 
+{ 
+  return (i.distance < j.distance); 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
   model_scene_corrs_ = sorted_corrs;
 
   std::vector<int> consensus_set;
-  std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
+  std::vector<bool> taken_corresps (model_scene_corrs_->size ());
 
   Eigen::Vector3f dist_ref, dist_trg;
 
@@ -82,10 +82,10 @@ pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
   pcl::copyPointCloud<PointSceneT, PointModelT> (*scene_, *temp_scene_cloud_ptr);
 
   pcl::registration::CorrespondenceRejectorSampleConsensus<PointModelT> corr_rejector;
-  corr_rejector.setMaximumIterations (10000);
+  corr_rejector.setMaxIterations (10000);
   corr_rejector.setInlierThreshold (gc_size_);
-  corr_rejector.setInputSource(input_);
-  corr_rejector.setInputTarget (temp_scene_cloud_ptr);
+  corr_rejector.setInputCloud (input_);
+  corr_rejector.setTargetCloud (temp_scene_cloud_ptr);
 
   for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
   {

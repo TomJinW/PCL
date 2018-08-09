@@ -113,9 +113,6 @@ pcl::Keypoint<PointInT, PointOutT>::initCompute ()
     }
   }
 
-  keypoints_indices_.reset (new pcl::PointIndices);
-  keypoints_indices_->indices.reserve (input_->size ());
-
   return (true);
 }
 

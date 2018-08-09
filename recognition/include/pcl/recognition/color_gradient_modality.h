@@ -75,7 +75,7 @@ namespace pcl
         /** \brief Operator for comparing to candidates (by magnitude of the gradient).
           * \param[in] rhs the candidate to compare with.
           */
-        bool operator< (const Candidate & rhs) const
+        bool operator< (const Candidate & rhs)
         {
           return (gradient.magnitude > rhs.gradient.magnitude);
         }
@@ -149,7 +149,7 @@ namespace pcl
         return (filtered_quantized_color_gradients_);
       }
   
-      /** \brief Returns a reference to the internally computed spread quantized map. */
+      /** \brief Returns a reference to the internally computed spreaded quantized map. */
       inline QuantizedMap &
       getSpreadedQuantizedMap () 
       { 
@@ -167,7 +167,7 @@ namespace pcl
         * \param[in] mask defines the areas where features are searched in. 
         * \param[in] nr_features defines the number of features to be extracted 
         *            (might be less if not sufficient information is present in the modality).
-        * \param[in] modalityIndex the index which is stored in the extracted features.
+        * \param[in] modality_index the index which is stored in the extracted features.
         * \param[out] features the destination for the extracted features.
         */
       void
@@ -177,7 +177,7 @@ namespace pcl
       /** \brief Extracts all possible features from the modality within the specified mask.
         * \param[in] mask defines the areas where features are searched in. 
         * \param[in] nr_features IGNORED (TODO: remove this parameter).
-        * \param[in] modalityIndex the index which is stored in the extracted features.
+        * \param[in] modality_index the index which is stored in the extracted features.
         * \param[out] features the destination for the extracted features.
         */
       void
@@ -243,7 +243,7 @@ namespace pcl
       /** \brief Determines whether variable numbers of features are extracted or not. */
       bool variable_feature_nr_;
 
-      /** \brief Stores a smoothed version of the input cloud. */
+      /** \brief Stores a smoothed verion of the input cloud. */
 	    pcl::PointCloud<pcl::RGB>::Ptr smoothed_input_;
 
       /** \brief Defines which feature selection method is used. */
@@ -264,7 +264,7 @@ namespace pcl
       pcl::QuantizedMap quantized_color_gradients_;
       /** \brief The map which holds the filtered quantized data. */
       pcl::QuantizedMap filtered_quantized_color_gradients_;
-      /** \brief The map which holds the spread quantized data. */
+      /** \brief The map which holds the spreaded quantized data. */
       pcl::QuantizedMap spreaded_filtered_quantized_color_gradients_;
   
   };
@@ -296,12 +296,14 @@ pcl::ColorGradientModality<PointInT>::
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointInT> void
+template <typename PointInT>
+void
 pcl::ColorGradientModality<PointInT>::
 computeGaussianKernel (const size_t kernel_size, const float sigma, std::vector <float> & kernel_values)
 {
   // code taken from OpenCV
-  const int n = int (kernel_size);
+
+  const int n = kernel_size;
   const int SMALL_GAUSSIAN_SIZE = 7;
   static const float small_gaussian_tab[][SMALL_GAUSSIAN_SIZE] =
   {
@@ -328,16 +330,16 @@ computeGaussianKernel (const size_t kernel_size, const float sigma, std::vector 
   for( i = 0; i < n; i++ )
   {
     double x = i - (n-1)*0.5;
-    double t = fixed_kernel ? double (fixed_kernel[i]) : std::exp (scale2X*x*x);
+    double t = fixed_kernel ? (double)fixed_kernel[i] : std::exp(scale2X*x*x);
 
-    cf[i] = float (t);
+    cf[i] = (float)t;
     sum += cf[i];
   }
 
   sum = 1./sum;
-  for (i = 0; i < n; i++ )
+  for( i = 0; i < n; i++ )
   {
-    cf[i] = float (cf[i]*sum);
+    cf[i] = (float)(cf[i]*sum);
   }
 }
 
@@ -361,8 +363,8 @@ processInputData ()
 
   pcl::PointCloud<pcl::RGB>::Ptr rgb_input_ (new pcl::PointCloud<pcl::RGB>());
   
-  const uint32_t width = input_->width;
-  const uint32_t height = input_->height;
+  const size_t width = input_->width;
+  const size_t height = input_->height;
 
   rgb_input_->resize (width*height);
   rgb_input_->width = width;
@@ -700,9 +702,9 @@ extractFeatures (const MaskMap & mask, const size_t nr_features, const size_t mo
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointInT> void 
-pcl::ColorGradientModality<PointInT>::
-extractAllFeatures (const MaskMap & mask, const size_t, const size_t modality_index,
+template <typename PointInT>
+void pcl::ColorGradientModality<PointInT>::
+extractAllFeatures (const MaskMap & mask, const size_t nr_features, const size_t modality_index,
                  std::vector<QuantizedMultiModFeature> & features) const
 {
   const size_t width = mask.getWidth ();
@@ -761,7 +763,7 @@ computeMaxColorGradients (const typename pcl::PointCloud<pcl::RGB>::ConstPtr & c
   color_gradients_.width = width;
   color_gradients_.height = height;
 
-  const float pi = tan (1.0f) * 2;
+  const float pi = tan(1.0f)*2;
   for (int row_index = 0; row_index < height-2; ++row_index)
   {
     for (int col_index = 0; col_index < width-2; ++col_index)
@@ -915,8 +917,8 @@ computeMaxColorGradientsSobel (const typename pcl::PointCloud<pcl::RGB>::ConstPt
       if (sqr_mag_r > sqr_mag_g && sqr_mag_r > sqr_mag_b)
       {
         GradientXY gradient;
-        gradient.magnitude = std::sqrt (static_cast<float> (sqr_mag_r));
-        gradient.angle = atan2f (static_cast<float> (r_dy), static_cast<float> (r_dx)) * 180.0f / pi;
+        gradient.magnitude = sqrtf (static_cast<float> (sqr_mag_r));
+        gradient.angle = atan2 (static_cast<float> (r_dy), static_cast<float> (r_dx)) * 180.0f / pi;
         if (gradient.angle < -180.0f) gradient.angle += 360.0f;
         if (gradient.angle >= 180.0f) gradient.angle -= 360.0f;
         gradient.x = static_cast<float> (col_index);
@@ -927,8 +929,8 @@ computeMaxColorGradientsSobel (const typename pcl::PointCloud<pcl::RGB>::ConstPt
       else if (sqr_mag_g > sqr_mag_b)
       {
         GradientXY gradient;
-        gradient.magnitude = std::sqrt (static_cast<float> (sqr_mag_g));
-        gradient.angle = atan2f (static_cast<float> (g_dy), static_cast<float> (g_dx)) * 180.0f / pi;
+        gradient.magnitude = sqrtf (static_cast<float> (sqr_mag_g));
+        gradient.angle = atan2 (static_cast<float> (g_dy), static_cast<float> (g_dx)) * 180.0f / pi;
         if (gradient.angle < -180.0f) gradient.angle += 360.0f;
         if (gradient.angle >= 180.0f) gradient.angle -= 360.0f;
         gradient.x = static_cast<float> (col_index);
@@ -939,8 +941,8 @@ computeMaxColorGradientsSobel (const typename pcl::PointCloud<pcl::RGB>::ConstPt
       else
       {
         GradientXY gradient;
-        gradient.magnitude = std::sqrt (static_cast<float> (sqr_mag_b));
-        gradient.angle = atan2f (static_cast<float> (b_dy), static_cast<float> (b_dx)) * 180.0f / pi;
+        gradient.magnitude = sqrtf (static_cast<float> (sqr_mag_b));
+        gradient.angle = atan2 (static_cast<float> (b_dy), static_cast<float> (b_dx)) * 180.0f / pi;
         if (gradient.angle < -180.0f) gradient.angle += 360.0f;
         if (gradient.angle >= 180.0f) gradient.angle -= 360.0f;
         gradient.x = static_cast<float> (col_index);
@@ -982,8 +984,8 @@ quantizeColorGradients ()
 
   const float angleScale = 16.0f/360.0f;
 
-  //float min_angle = std::numeric_limits<float>::max ();
-  //float max_angle = -std::numeric_limits<float>::max ();
+  float min_angle = std::numeric_limits<float>::max ();
+  float max_angle = -std::numeric_limits<float>::max ();
   for (size_t row_index = 0; row_index < height; ++row_index)
   {
     for (size_t col_index = 0; col_index < width; ++col_index)

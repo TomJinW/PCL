@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -40,11 +40,10 @@
 #define PCL_DATA_TYPES_H_
 
 #include <pcl/pcl_macros.h>
+#include <pcl/common/eigen.h>
 #include <bitset>
-#include <pcl/register_point_struct.h>
-#include <boost/mpl/contains.hpp>
-#include <boost/mpl/fold.hpp>
-#include <boost/mpl/vector.hpp>
+#include <vector>
+#include <pcl/ros/register_point_struct.h>
 
 /**
   * \file pcl/point_types.h
@@ -54,12 +53,19 @@
 
 // We're doing a lot of black magic with Boost here, so disable warnings in Maintainer mode, as we will never
 // be able to fix them anyway
-#if defined _MSC_VER
-  #pragma warning(disable: 4201)
-#endif
+#pragma warning(disable: 4201)
 //#pragma warning(push, 1)
-#if defined __GNUC__
-#  pragma GCC system_header
+#ifdef BUILD_Maintainer
+#  if defined __GNUC__
+#    include <features.h>
+#    if __GNUC_PREREQ(4, 3)
+#      pragma GCC diagnostic ignored "-Weffc++"
+#      pragma GCC diagnostic ignored "-pedantic"
+#    else
+#      pragma GCC system_header
+#    endif
+//#  elif defined _MSC_VER
+#  endif
 #endif
 
 /** @{*/
@@ -74,21 +80,6 @@ namespace pcl
     * \ingroup common
     */
   struct RGB;
-
-  /** \brief Members: intensity (float)
-    * \ingroup common
-    */
-  struct Intensity;
-
-  /** \brief Members: intensity (uint8_t)
-    * \ingroup common
-    */
-  struct Intensity8u;
-
-  /** \brief Members: intensity (uint32_t)
-    * \ingroup common
-    */
-  struct Intensity32u;
 
   /** \brief Members: float x, y, z, intensity
     * \ingroup common
@@ -130,11 +121,6 @@ namespace pcl
     */
   struct PointXY;
 
-  /** \brief Members: float u, v
-    * \ingroup common
-    */
-  struct PointUV;
-
   /** \brief Members: float x, y, z, strength
     * \ingroup common
     */
@@ -164,11 +150,6 @@ namespace pcl
     * \ingroup common
     */
   struct PointXYZINormal;
-
-  /** \brief Members: float x, y, z, label, normal[3], curvature
-    * \ingroup common
-    */
-  struct PointXYZLNormal;
 
   /** \brief Members: float x, y, z (union with float point[4]), range
     * \ingroup common
@@ -200,6 +181,13 @@ namespace pcl
     */
   struct PrincipalCurvatures;
 
+  /** \brief Members: std::vector<float> descriptor, rf[9]
+    * \ingroup common
+    * \deprecated USE SHOT352 FOR SHAPE AND SHOT1344 FOR SHAPE+COLOR INSTEAD
+    */
+  struct
+  PCL_DEPRECATED_CLASS (SHOT, "USE SHOT352 FOR SHAPE AND SHOT1344 FOR SHAPE+COLOR INSTEAD");
+
   /** \brief Members: float descriptor[352], rf[9]
     * \ingroup common
     */
@@ -215,15 +203,10 @@ namespace pcl
     */
   struct ReferenceFrame;
 
-  /** \brief Members: float descriptor[1980], rf[9]
+  /** \brief Members: std::vector<float> descriptor, rf[9]
     * \ingroup common
     */
-  struct ShapeContext1980;
-
-  /** \brief Members: float descriptor[1960], rf[9]
-    * \ingroup common
-    */
-  struct UniqueShapeContext1960;
+  struct ShapeContext;
 
   /** \brief Members: float pfh[125]
     * \ingroup common
@@ -240,11 +223,6 @@ namespace pcl
     */
   struct PPFSignature;
 
-  /** \brief Members: float f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, alpha_m
-    * \ingroup common
-    */
-  struct CPPFSignature;
-
   /** \brief Members: float f1, f2, f3, f4, r_ratio, g_ratio, b_ratio, alpha_m
     * \ingroup common
     */
@@ -259,50 +237,19 @@ namespace pcl
     * \ingroup common
     */
   struct FPFHSignature33;
-  
+
   /** \brief Members: float vfh[308]
     * \ingroup common
     */
   struct VFHSignature308;
-  
-  /** \brief Members: float grsd[21]
-    * \ingroup common
-    */
-  struct GRSDSignature21;
-  
   /** \brief Members: float esf[640]
     * \ingroup common
     */
   struct ESFSignature640;
-
-  /** \brief Members: float gasd[512]
-  * \ingroup common
-  */
-  struct GASDSignature512;
-
-  /** \brief Members: float gasd[984]
-  * \ingroup common
-  */
-  struct GASDSignature984;
-
-  /** \brief Members: float gasd[7992]
-  * \ingroup common
-  */
-  struct GASDSignature7992;
-
-  /** \brief Members: float histogram[16]
+  /** \brief Members: float x, y, z, roll, pitch, yaw; float descriptor[36]
     * \ingroup common
     */
-  struct GFPFHSignature16;
 
-  /** \brief Members: float scale; float orientation; uint8_t descriptor[64]
-    * \ingroup common
-    */
-  struct BRISKSignature512;
-
-   /** \brief Members: float x, y, z, roll, pitch, yaw; float descriptor[36]
-     * \ingroup common
-     */
   struct Narf36;
 
   /** \brief Data type to store extended information about a transition from foreground to backgroundSpecification of the fields for BorderDescription::traits.
@@ -338,7 +285,7 @@ namespace pcl
   template<int N>
   struct Histogram;
 
-  /** \brief Members: float x, y, z, scale, angle, response, octave
+  /** \brief Members: float x, y, z, scale
     * \ingroup common
     */
   struct PointWithScale;
@@ -347,11 +294,6 @@ namespace pcl
     * \ingroup common
     */
   struct PointSurfel;
-
-  /** \brief Members: float x, y, z, intensity, intensity_variance, height_variance
-    * \ingroup common
-    */
-  struct PointDEM;
 }
 
 /** @} */
@@ -362,26 +304,9 @@ namespace pcl
 // =====POINT_CLOUD_REGISTER=====
 // ==============================
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_RGB,
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::RGB,
     (uint32_t, rgba, rgba)
 )
-POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::RGB, pcl::_RGB)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_Intensity,
-    (float, intensity, intensity)
-)
-POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::Intensity, pcl::_Intensity)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_Intensity8u,
-    (uint8_t, intensity, intensity)
-)
-POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::Intensity8u, pcl::_Intensity8u)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_Intensity32u,
-    (uint32_t, intensity, intensity)
-)
-POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::Intensity32u, pcl::_Intensity32u)
-
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointXYZ,
     (float, x, x)
     (float, y, y)
@@ -427,11 +352,6 @@ POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::PointXYZHSV, pcl::_PointXYZHSV)
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXY,
     (float, x, x)
     (float, y, y)
-)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointUV,
-    (float, u, u)
-    (float, v, v)
 )
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::InterestPoint,
@@ -505,16 +425,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXYZINormal,
     (float, normal_z, normal_z)
     (float, curvature, curvature)
 )
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXYZLNormal,
-    (float, x, x)
-    (float, y, y)
-    (float, z, z)
-    (uint32_t, label, label)
-    (float, normal_x, normal_x)
-    (float, normal_y, normal_y)
-    (float, normal_z, normal_z)
-    (float, curvature, curvature)
-)
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointWithRange,
     (float, x, x)
     (float, y, y)
@@ -571,20 +481,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PPFSignature,
     (float, alpha_m, alpha_m)
 )
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::CPPFSignature,
-    (float, f1, f1)
-    (float, f2, f2)
-    (float, f3, f3)
-    (float, f4, f4)
-    (float, f5, f5)
-    (float, f6, f6)
-    (float, f7, f7)
-    (float, f8, f8)
-    (float, f9, f9)
-    (float, f10, f10)
-    (float, alpha_m, alpha_m)
-)
-
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PPFRGBSignature,
     (float, f1, f1)
     (float, f2, f2)
@@ -598,16 +494,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PPFRGBSignature,
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::NormalBasedSignature12,
     (float[12], values, values)
-)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::ShapeContext1980,
-    (float[1980], descriptor, shape_context)
-    (float[9], rf, rf)
-)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::UniqueShapeContext1960,
-    (float[1960], descriptor, shape_context)
-    (float[9], rf, rf)
 )
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::SHOT352,
@@ -624,36 +510,12 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::FPFHSignature33,
     (float[33], histogram, fpfh)
 )
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::BRISKSignature512,
-    (float, scale, brisk_scale)
-    (float, orientation, brisk_orientation)
-    (unsigned char[64], descriptor, brisk_descriptor512)
-)
-
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::VFHSignature308,
     (float[308], histogram, vfh)
 )
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::GRSDSignature21,
-    (float[21], histogram, grsd)
-)
-
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::ESFSignature640,
     (float[640], histogram, esf)
 )
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::GASDSignature512,
-    (float[512], histogram, gasd)
-)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::GASDSignature984,
-    (float[984], histogram, gasd)
-)
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::GASDSignature7992,
-    (float[7992], histogram, gasd)
-)
-
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Narf36,
     (float[36], descriptor, descriptor)
 )
@@ -692,34 +554,27 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_ReferenceFrame,
     (float[3], x_axis, x_axis)
     (float[3], y_axis, y_axis)
     (float[3], z_axis, z_axis)
+    //(float, confidence, confidence)
 )
 POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::ReferenceFrame, pcl::_ReferenceFrame)
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::_PointDEM,
-    (float, x, x)
-    (float, y, y)
-    (float, z, z)
-    (float, intensity, intensity)
-    (float, intensity_variance, intensity_variance)
-    (float, height_variance, height_variance)
-)
-POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::PointDEM, pcl::_PointDEM)
+//POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::BorderDescription,
+//                                  (int, x, x)
+//                                  (int, y, y)
+//                                  (uint32_t, traits, traits)
+//)
 
-namespace pcl 
-{
+namespace pcl {
   // Allow float 'rgb' data to match to the newer uint32 'rgba' tag. This is so
   // you can load old 'rgb' PCD files into e.g. a PointCloud<PointXYZRGBA>.
   template<typename PointT>
   struct FieldMatches<PointT, fields::rgba>
   {
-    bool operator() (const pcl::PCLPointField& field)
+    bool operator() (const sensor_msgs::PointField& field)
     {
       if (field.name == "rgb")
       {
-        // For fixing the alpha value bug #1141, the rgb field can also match
-        // uint32.
-        return ((field.datatype == pcl::PCLPointField::FLOAT32 ||
-                 field.datatype == pcl::PCLPointField::UINT32) &&
+        return (field.datatype == sensor_msgs::PointField::FLOAT32 &&
                 field.count == 1);
       }
       else
@@ -730,109 +585,18 @@ namespace pcl
       }
     }
   };
-  template<typename PointT>
-  struct FieldMatches<PointT, fields::rgb>
-  {
-    bool operator() (const pcl::PCLPointField& field)
-    {
-      if (field.name == "rgba")
-      {
-        return (field.datatype == pcl::PCLPointField::UINT32 &&
-                field.count == 1);
-      }
-      else
-      {
-        // For fixing the alpha value bug #1141, rgb can also match uint32
-        return (field.name == traits::name<PointT, fields::rgb>::value &&
-                (field.datatype == traits::datatype<PointT, fields::rgb>::value ||
-                 field.datatype == pcl::PCLPointField::UINT32) &&
-                field.count == traits::datatype<PointT, fields::rgb>::size);
-      }
-    }
-  };
-
-  namespace traits
-  {
-
-    /** \brief Metafunction to check if a given point type has a given field.
-     *
-     *  Example usage at run-time:
-     *
-     *  \code
-     *  bool curvature_available = pcl::traits::has_field<PointT, pcl::fields::curvature>::value;
-     *  \endcode
-     *
-     *  Example usage at compile-time:
-     *
-     *  \code
-     *  BOOST_MPL_ASSERT_MSG ((pcl::traits::has_field<PointT, pcl::fields::label>::value),
-     *                        POINT_TYPE_SHOULD_HAVE_LABEL_FIELD,
-     *                        (PointT));
-     *  \endcode
-     */
-    template <typename PointT, typename Field>
-    struct has_field : boost::mpl::contains<typename pcl::traits::fieldList<PointT>::type, Field>::type
-    { };
-
-    /** Metafunction to check if a given point type has all given fields. */
-    template <typename PointT, typename Field>
-    struct has_all_fields : boost::mpl::fold<Field,
-                                             boost::mpl::bool_<true>,
-                                             boost::mpl::and_<boost::mpl::_1,
-                                                              has_field<PointT, boost::mpl::_2> > >::type
-    { };
-
-    /** Metafunction to check if a given point type has any of the given fields. */
-    template <typename PointT, typename Field>
-    struct has_any_field : boost::mpl::fold<Field,
-                                            boost::mpl::bool_<false>,
-                                            boost::mpl::or_<boost::mpl::_1,
-                                                            has_field<PointT, boost::mpl::_2> > >::type
-    { };
-
-    /** Metafunction to check if a given point type has x, y, and z fields. */
-    template <typename PointT>
-    struct has_xyz : has_all_fields<PointT, boost::mpl::vector<pcl::fields::x,
-                                                               pcl::fields::y,
-                                                               pcl::fields::z> >
-    { };
-
-    /** Metafunction to check if a given point type has normal_x, normal_y, and
-      * normal_z fields. */
-    template <typename PointT>
-    struct has_normal : has_all_fields<PointT, boost::mpl::vector<pcl::fields::normal_x,
-                                                                  pcl::fields::normal_y,
-                                                                  pcl::fields::normal_z> >
-    { };
-
-    /** Metafunction to check if a given point type has curvature field. */
-    template <typename PointT>
-    struct has_curvature : has_field<PointT, pcl::fields::curvature>
-    { };
-
-    /** Metafunction to check if a given point type has intensity field. */
-    template <typename PointT>
-    struct has_intensity : has_field<PointT, pcl::fields::intensity>
-    { };
-
-    /** Metafunction to check if a given point type has either rgb or rgba field. */
-    template <typename PointT>
-    struct has_color : has_any_field<PointT, boost::mpl::vector<pcl::fields::rgb,
-                                                                pcl::fields::rgba> >
-    { };
-
-    /** Metafunction to check if a given point type has label field. */
-    template <typename PointT>
-    struct has_label : has_field<PointT, pcl::fields::label>
-    { };
-
-  }
-
 } // namespace pcl
 
-#if defined _MSC_VER
-  #pragma warning(default: 4201)
-#endif
+#pragma warning(default: 4201)
 //#pragma warning(pop)
+#ifdef BUILD_Maintainer
+#  if defined __GNUC__
+#    if __GNUC_PREREQ(4, 3)
+#      pragma GCC diagnostic warning "-Weffc++"
+#      pragma GCC diagnostic warning "-pedantic"
+#    endif
+//#  elif defined _MSC_VER
+#  endif
+#endif
 
 #endif  //#ifndef PCL_DATA_TYPES_H_

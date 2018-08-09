@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -42,6 +41,7 @@
 #define PCL_FEATURES_CRH_H_
 
 #include <pcl/features/feature.h>
+#include <pcl/features/normal_3d.h>
 
 namespace pcl
 {
@@ -57,13 +57,11 @@ namespace pcl
    * \author Aitor Aldoma
    * \ingroup features
    */
-  template<typename PointInT, typename PointNT, typename PointOutT = pcl::Histogram<90> >
-  class CRHEstimation : public FeatureFromNormals<PointInT, PointNT, PointOutT>
-  {
-    public:
-      typedef boost::shared_ptr<CRHEstimation<PointInT, PointNT, PointOutT> > Ptr;
-      typedef boost::shared_ptr<const CRHEstimation<PointInT, PointNT, PointOutT> > ConstPtr;
 
+  template<typename PointInT, typename PointNT, typename PointOutT = pcl::Histogram<90> >
+    class CRHEstimation : public FeatureFromNormals<PointInT, PointNT, PointOutT>
+    {
+    public:
       using Feature<PointInT, PointOutT>::feature_name_;
       using Feature<PointInT, PointOutT>::getClassName;
       using Feature<PointInT, PointOutT>::indices_;
@@ -135,11 +133,17 @@ namespace pcl
        */
       void
       computeFeature (PointCloudOut &output);
-  };
-}
 
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/features/impl/crh.hpp>
-#endif
+    private:
+      /** \brief Make the computeFeature (&Eigen::MatrixXf); inaccessible from outside the class
+       * \param[out] output the output point cloud
+       */
+      void
+      computeFeatureEigen (pcl::PointCloud<Eigen::MatrixXf> &)
+      {
+      }
+    };
+
+}
 
 #endif  //#ifndef PCL_FEATURES_CRH_H_

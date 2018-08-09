@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -56,8 +56,8 @@ TEST (PCL, FeaturePtr)
   VFHEstimation<PointXYZ, PointNormal, VFHSignature308>::Ptr vfh (new VFHEstimation<PointXYZ, PointNormal, VFHSignature308> ());
   vfh->setViewPoint (1.0f, 1.0f, 1.0f);
 
-  UniqueShapeContext<PointXYZ, UniqueShapeContext1960, ReferenceFrame>::Ptr usc (new UniqueShapeContext<PointXYZ, UniqueShapeContext1960, ReferenceFrame> ());
-  usc->setMinimalRadius (5);
+  UniqueShapeContext<PointXYZ, SHOT, ReferenceFrame>::Ptr usc (new UniqueShapeContext<PointXYZ, SHOT, ReferenceFrame> ());
+  usc->setAzimuthBins (5);
 
   StatisticalMultiscaleInterestRegionExtraction<PointXYZ>::Ptr smire (new StatisticalMultiscaleInterestRegionExtraction<PointXYZ> ());
   smire->getScalesVector ();
@@ -68,10 +68,9 @@ TEST (PCL, FeaturePtr)
 //  RSDEstimation<PointXYZ, Normal, PrincipalRadiiRSD>::Ptr rsd (new RSDEstimation<PointXYZ, Normal, PrincipalRadiiRSD> ());
 //  rsd->setNrSubdivisions (20);
 
-#ifndef PCL_ONLY_CORE_POINT_TYPES
   RIFTEstimation<PointXYZI, IntensityGradient, Histogram<32> >::Ptr rift (new RIFTEstimation<PointXYZI, IntensityGradient, Histogram<32> > ());
   rift->setNrDistanceBins (10);
-#endif
+
   NormalBasedSignatureEstimation<PointXYZ, Normal, NormalBasedSignature12>::Ptr nbs (new NormalBasedSignatureEstimation<PointXYZ, Normal, NormalBasedSignature12> ());
   nbs->setN (20);
 }

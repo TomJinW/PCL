@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -36,7 +36,7 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/console/print.h>
@@ -77,7 +77,7 @@ printHelp (int, char **argv)
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -93,7 +93,7 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 
 template <typename FeatureAlgorithm, typename PointIn, typename NormalT, typename PointOut>
 void
-computeFeatureViaNormals (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output,
+computeFeatureViaNormals (const sensor_msgs::PointCloud2::ConstPtr &input, sensor_msgs::PointCloud2 &output,
          int argc, char** argv, bool set_search_flag = true)
 {
   int n_k = default_n_k;
@@ -107,7 +107,7 @@ computeFeatureViaNormals (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPo
 
   // Convert data to PointCloud<PointIn>
   typename PointCloud<PointIn>::Ptr xyz (new PointCloud<PointIn>);
-  fromPCLPointCloud2 (*input, *xyz);
+  fromROSMsg (*input, *xyz);
 
   // Estimate
   TicToc tt;
@@ -142,11 +142,11 @@ computeFeatureViaNormals (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPo
   print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", output.width * output.height); print_info (" points]\n");
 
   // Convert data back
-  toPCLPointCloud2 (output_features, output);
+  toROSMsg (output_features, output);
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &output)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &output)
 {
   TicToc tt;
   tt.tic ();
@@ -184,12 +184,12 @@ main (int argc, char** argv)
   parse_argument (argc, argv, "-feature", feature_name);
 
   // Load the first file
-  pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2);
   if (!loadCloud (argv[p_file_indices[0]], *cloud))
     return (-1);
 
   // Perform the feature estimation
-  pcl::PCLPointCloud2 output;
+  sensor_msgs::PointCloud2 output;
   if (feature_name == "PFHEstimation") 
     computeFeatureViaNormals< PFHEstimation<PointXYZ, Normal, PFHSignature125>, PointXYZ, Normal, PFHSignature125>
       (cloud, output, argc, argv);
@@ -199,11 +199,6 @@ main (int argc, char** argv)
   else if (feature_name == "VFHEstimation")
     computeFeatureViaNormals< VFHEstimation<PointXYZ, Normal, VFHSignature308>, PointXYZ, Normal, VFHSignature308>
     (cloud, output, argc, argv, false);
-  else
-  {
-    print_error ("Valid feature names are PFHEstimation, FPFHEstimation, VFHEstimation.\n");
-    return (-1);
-  }
 
   // Save into the second file
   saveCloud (argv[p_file_indices[1]], output);

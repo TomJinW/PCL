@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -36,11 +33,7 @@
  *
  */
 
-#ifndef PCL_COMMON_NORMS_IMPL_HPP_
-#define PCL_COMMON_NORMS_IMPL_HPP_
-
 #include <pcl/pcl_macros.h>
-#include <pcl/console/print.h>
 
 namespace pcl
 {
@@ -109,7 +102,7 @@ L2_Norm_SQR (FloatVectorT a, FloatVectorT b, int dim)
 template <typename FloatVectorT> inline float
 L2_Norm (FloatVectorT a, FloatVectorT b, int dim)
 {
-  return std::sqrt (L2_Norm_SQR(a, b, dim));
+  return sqrtf(L2_Norm_SQR(a, b, dim));
 }
 
 
@@ -129,9 +122,9 @@ JM_Norm (FloatVectorT a, FloatVectorT b, int dim)
   float norm = 0.0;
 
   for (int i = 0; i < dim; ++i)
-    norm += (std::sqrt (a[i]) - std::sqrt (b[i])) * (std::sqrt (a[i]) - std::sqrt (b[i]));
+    norm += (sqrtf (a[i]) - sqrtf (b[i])) * (sqrtf (a[i]) - sqrtf (b[i]));
 
-  return std::sqrt (norm);
+  return sqrtf (norm);
 }
 
 
@@ -141,7 +134,7 @@ B_Norm (FloatVectorT a, FloatVectorT b, int dim)
   float norm = 0.0, result;
 
   for (int i = 0; i < dim; ++i)
-    norm += std::sqrt (a[i] * b[i]);
+    norm += sqrtf (a[i] * b[i]);
 
   if (norm > 0)
     result = -logf (norm);
@@ -158,7 +151,7 @@ Sublinear_Norm (FloatVectorT a, FloatVectorT b, int dim)
   float norm = 0.0;
 
   for (int i = 0; i < dim; ++i)
-    norm += std::sqrt (fabsf (a[i] - b[i]));
+    norm += sqrtf (fabsf (a[i] - b[i]));
 
   return norm;
 }
@@ -199,7 +192,7 @@ PF_Norm (FloatVectorT a, FloatVectorT b, int dim, float P1, float P2)
 
   for (int i = 0; i < dim; ++i)
     norm += (P1 * a[i] - P2 * b[i]) * (P1 * a[i] - P2 * b[i]);
-  return std::sqrt (norm);
+  return sqrtf (norm);
 }
 
 
@@ -238,5 +231,3 @@ HIK_Norm(FloatVectorT a, FloatVectorT b, int dim)
 }
 
 }
-#endif
-

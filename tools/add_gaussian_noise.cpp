@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -35,13 +35,14 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/console/print.h>
 #include <pcl/console/parse.h>
 #include <pcl/console/time.h>
-#include "boost.h"
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
 
 using namespace pcl;
 using namespace pcl::io;
@@ -59,7 +60,7 @@ printHelp (int, char **argv)
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -74,7 +75,7 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 }
 
 void
-compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output,
+compute (const sensor_msgs::PointCloud2::ConstPtr &input, sensor_msgs::PointCloud2 &output,
          double standard_deviation)
 {
   TicToc tt;
@@ -83,7 +84,7 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output
   print_highlight ("Adding Gaussian noise with mean 0.0 and standard deviation %f\n", standard_deviation);
 
   PointCloud<PointXYZ>::Ptr xyz_cloud (new pcl::PointCloud<PointXYZ> ());
-  fromPCLPointCloud2 (*input, *xyz_cloud);
+  fromROSMsg (*input, *xyz_cloud);
 
   PointCloud<PointXYZ>::Ptr xyz_cloud_filtered (new PointCloud<PointXYZ> ());
   xyz_cloud_filtered->points.resize (xyz_cloud->points.size ());
@@ -103,15 +104,15 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output
     xyz_cloud_filtered->points[point_i].z = xyz_cloud->points[point_i].z + static_cast<float> (var_nor ());
   }
 
-  pcl::PCLPointCloud2 input_xyz_filtered;
-  toPCLPointCloud2 (*xyz_cloud_filtered, input_xyz_filtered);
+  sensor_msgs::PointCloud2 input_xyz_filtered;
+  toROSMsg (*xyz_cloud_filtered, input_xyz_filtered);
   concatenateFields (*input, input_xyz_filtered, output);
 
   print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms: "); print_value ("%d", output.width * output.height); print_info (" points]\n");
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &output)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &output)
 {
   TicToc tt;
   tt.tic ();
@@ -149,12 +150,12 @@ main (int argc, char** argv)
   parse_argument (argc, argv, "-sd", standard_deviation);
 
   // Load the first file
-  pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2);
   if (!loadCloud (argv[p_file_indices[0]], *cloud))
     return (-1);
 
   // Add the noise
-  pcl::PCLPointCloud2 output;
+  sensor_msgs::PointCloud2 output;
   compute (cloud, output, standard_deviation);
 
   // Save into the second file

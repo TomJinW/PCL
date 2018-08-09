@@ -9,14 +9,7 @@
 #define PCL_SIMULATION_SUM_REDUCE
 
 #include <GL/glew.h>
-
-#include <pcl/pcl_config.h>
-#ifdef OPENGL_IS_A_FRAMEWORK
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
-
+#include <GL/gl.h>
 #include <pcl/simulation/glsl_shader.h>
 #include <pcl/simulation/model.h>
 
@@ -26,7 +19,7 @@ namespace pcl
   {
     /** \brief Implements a parallel summation of float arrays using GLSL.
      * The input array is provided as a float texture and the summation
-     * is performed over set number of levels, where each level halves each
+     * is performed over set number of levels, where each level halfs each
      * dimension.
      *
      * \author Hordur Johannsson

@@ -57,7 +57,7 @@ const float CLUST_TOL = 0.05f;
 pcl::gpu::people::RDFBodyPartsDetector::RDFBodyPartsDetector( const vector<string>& tree_files, int rows, int cols)    
 : max_cluster_size_(MAX_CLUST_SIZE), cluster_tolerance_(CLUST_TOL)
 {
-  PCL_DEBUG("[pcl::gpu::people::RDFBodyPartsDetector::RDFBodyPartsDetector] : (D) : Constructor called\n");
+  PCL_DEBUG("(I) : RDFBodyPartsDetector constructor called");
   //TODO replace all asserts with exceptions
   assert(!tree_files.empty());
 
@@ -141,7 +141,6 @@ pcl::gpu::people::RDFBodyPartsDetector::allocate_buffers(int rows, int cols)
   // Create all the label probabilities
   P_l_.create(rows,cols);
   P_l_Gaus_.create(rows,cols);
-  P_l_Gaus_Temp_.create(rows,cols);
   P_l_1_.create(rows,cols);
   P_l_2_.create(rows,cols);
   P_l_prev_1_.create(rows,cols);
@@ -295,7 +294,7 @@ pcl::gpu::people::RDFBodyPartsDetector::processSmooth (const pcl::device::Depth&
 
   // This was sort indices to blob (sortIndicesToBlob2) method (till line 236)
   {
-    ScopeTime time("[pcl::gpu::people::RDFBodyPartsDetector::processSmooth] : cvt");
+    ScopeTime time("cvt");
     std::fill(remap_.begin(), remap_.end(), -1);
     std::fill(region_sizes_.begin(), region_sizes_.end(), 0);
 
@@ -352,14 +351,14 @@ pcl::gpu::people::RDFBodyPartsDetector::processSmooth (const pcl::device::Depth&
   }
 }
 
-int
+void
 pcl::gpu::people::RDFBodyPartsDetector::processRelations ()
 {
-  return buildRelations ( blob_matrix_ );
+  buildRelations ( blob_matrix_ );
 }
 
-int
+void
 pcl::gpu::people::RDFBodyPartsDetector::processRelations (PersonAttribs::Ptr person_attribs)
 {
-  return buildRelations ( blob_matrix_, person_attribs );
+  buildRelations ( blob_matrix_, person_attribs );
 }

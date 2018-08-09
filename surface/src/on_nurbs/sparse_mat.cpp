@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -59,9 +59,9 @@ SparseMat::get (std::vector<int> &i, std::vector<int> &j, std::vector<double> &v
       i.push_back (it_row->first);
       j.push_back (it_col->first);
       v.push_back (it_col->second);
-      ++it_col;
+      it_col++;
     }
-    ++it_row;
+    it_row++;
   }
 
 }
@@ -111,7 +111,7 @@ SparseMat::set (int i, int j, double v)
 
     it_row->second.erase (it_col);
     if (it_row->second.empty ())
-    {}
+      ;
     m_mat.erase (it_row);
 
   }
@@ -148,7 +148,7 @@ SparseMat::deleteColumn (int j)
     it_col = it_row->second.find (j);
     if (it_col != it_row->second.end ())
       it_row->second.erase (it_col);
-    ++it_row;
+    it_row++;
   }
 
 }
@@ -173,15 +173,15 @@ SparseMat::size (int &si, int &sj)
   while (it_row != m_mat.end ())
   {
     it_col = it_row->second.end ();
-    --it_col;
+    it_col--;
     if (sj < ((*it_col).first + 1))
       sj = (*it_col).first + 1;
 
-    ++it_row;
+    it_row++;
   }
 
   it_row = m_mat.end ();
-  --it_row;
+  it_row--;
   si = (*it_row).first + 1;
 
 }
@@ -195,9 +195,10 @@ SparseMat::nonzeros ()
   it_row = m_mat.begin ();
   while (it_row != m_mat.end ())
   {
-    s += int (it_row->second.size ());
 
-    ++it_row;
+    s += it_row->second.size ();
+
+    it_row++;
   }
 
   return s;
@@ -236,10 +237,10 @@ SparseMat::print ()
     while (it_col != it_row->second.end ())
     {
       printf ("[%d,%d] %f ", it_row->first, it_col->first, it_col->second);
-      ++it_col;
+      it_col++;
     }
     printf ("\n");
-    ++it_row;
+    it_row++;
   }
 }
 

@@ -38,32 +38,30 @@
  *  Created on: May 28, 2012
  *      Author: somani
  */
-
-#ifndef PCL_2D_KEYPOINT_HPP_
-#define PCL_2D_KEYPOINT_HPP_
-
-#include <pcl/2d/edge.h>
-#include <pcl/2d/convolution.h>
+#include "../edge.h"
+#include "../convolution_2d.h"
 #include <limits>
 
-//////////////////////////////////////////////////////////////////////////////
+#ifndef KEYPOINT_HPP_
+#define KEYPOINT_HPP_
+
 void
-pcl::keypoint::harrisCorner (ImageType &output, ImageType &input, const float sigma_d, const float sigma_i, const float alpha, const float thresh){
+pcl::pcl_2d::keypoint::harrisCorner  (ImageType &output, ImageType &input, const float sigma_d, const float sigma_i, const float alpha, const float thresh){
 
   /*creating the gaussian kernels*/
   ImageType kernel_d;
   ImageType kernel_i;
-  conv_2d.gaussianKernel  (5, sigma_d, kernel_d);
-  conv_2d.gaussianKernel  (5, sigma_i, kernel_i);
+  conv_2d->gaussianKernel  (5, sigma_d, kernel_d);
+  conv_2d->gaussianKernel  (5, sigma_i, kernel_i);
 
   /*scaling the image with differentiation scale*/
   ImageType smoothed_image;
-  conv_2d.convolve  (smoothed_image, kernel_d, input);
+  conv_2d->convolve  (smoothed_image, kernel_d, input);
 
   /*image derivatives*/
   ImageType I_x, I_y;
-  edge_detection.ComputeDerivativeXCentral  (I_x, smoothed_image);
-  edge_detection.ComputeDerivativeYCentral  (I_y, smoothed_image);
+  edge_detection->ComputeDerivativeXCentral  (I_x, smoothed_image);
+  edge_detection->ComputeDerivativeYCentral  (I_y, smoothed_image);
 
   /*second moment matrix*/
   ImageType I_x2, I_y2, I_xI_y;
@@ -73,9 +71,9 @@ pcl::keypoint::harrisCorner (ImageType &output, ImageType &input, const float si
 
   /*scaling second moment matrix with integration scale*/
   ImageType M00, M10, M11;
-  conv_2d.convolve  (M00, kernel_i, I_x2);
-  conv_2d.convolve  (M10, kernel_i, I_xI_y);
-  conv_2d.convolve  (M11, kernel_i, I_y2);
+  conv_2d->convolve  (M00, kernel_i, I_x2);
+  conv_2d->convolve  (M10, kernel_i, I_xI_y);
+  conv_2d->convolve  (M11, kernel_i, I_y2);
 
   /*harris function*/
   const size_t height = input.size ();
@@ -110,29 +108,28 @@ pcl::keypoint::harrisCorner (ImageType &output, ImageType &input, const float si
         output[i][j] = 0;
     }
   }
-}
 
-//////////////////////////////////////////////////////////////////////////////
+}
 void
-pcl::keypoint::hessianBlob (ImageType &output, ImageType &input, const float sigma, bool SCALED){
+pcl::pcl_2d::keypoint::hessianBlob  (ImageType &output, ImageType &input, const float sigma, bool SCALED){
   /*creating the gaussian kernels*/
   ImageType kernel, cornerness;
-  conv_2d.gaussianKernel  (5, sigma, kernel);
+  conv_2d->gaussianKernel  (5, sigma, kernel);
 
   /*scaling the image with differentiation scale*/
   ImageType smoothed_image;
-  conv_2d.convolve  (smoothed_image, kernel, input);
+  conv_2d->convolve  (smoothed_image, kernel, input);
 
   /*image derivatives*/
   ImageType I_x, I_y;
-  edge_detection.ComputeDerivativeXCentral  (I_x, smoothed_image);
-  edge_detection.ComputeDerivativeYCentral  (I_y, smoothed_image);
+  edge_detection->ComputeDerivativeXCentral  (I_x, smoothed_image);
+  edge_detection->ComputeDerivativeYCentral  (I_y, smoothed_image);
 
   /*second moment matrix*/
   ImageType I_xx, I_yy, I_xy;
-  edge_detection.ComputeDerivativeXCentral  (I_xx, I_x);
-  edge_detection.ComputeDerivativeYCentral  (I_xy, I_x);
-  edge_detection.ComputeDerivativeYCentral  (I_yy, I_y);
+  edge_detection->ComputeDerivativeXCentral  (I_xx, I_x);
+  edge_detection->ComputeDerivativeYCentral  (I_xy, I_x);
+  edge_detection->ComputeDerivativeYCentral  (I_yy, I_y);
   /*Determinant of Hessian*/
   const size_t height = input.size ();
   const size_t width = input[0].size ();
@@ -171,9 +168,8 @@ pcl::keypoint::hessianBlob (ImageType &output, ImageType &input, const float sig
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
 void
-pcl::keypoint::hessianBlob (ImageType &output, ImageType &input, const float start_scale, const float scaling_factor, const int num_scales){
+pcl::pcl_2d::keypoint::hessianBlob  (ImageType &output, ImageType &input, const float start_scale, const float scaling_factor, const int num_scales){
   const size_t height = input.size();
   const size_t width = input[0].size();
   const int local_search_radius = 1;
@@ -227,10 +223,8 @@ pcl::keypoint::hessianBlob (ImageType &output, ImageType &input, const float sta
     }
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////
 void
-pcl::keypoint::imageElementMultiply (ImageType &output, ImageType &input1, ImageType &input2){
+pcl::pcl_2d::keypoint::imageElementMultiply  (ImageType &output, ImageType &input1, ImageType &input2){
   const size_t height = input1.size ();
   const size_t width = input1[0].size ();
   output.resize (height);
@@ -243,5 +237,4 @@ pcl::keypoint::imageElementMultiply (ImageType &output, ImageType &input1, Image
     }
   }
 }
-
-#endif  // PCL_2D_KEYPOINT_HPP_
+#endif /* KEYPOINT_HPP_ */

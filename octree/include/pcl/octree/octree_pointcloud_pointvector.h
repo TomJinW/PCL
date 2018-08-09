@@ -36,10 +36,15 @@
  * $Id$
  */
 
-#ifndef PCL_OCTREE_POINT_VECTOR_H
-#define PCL_OCTREE_POINT_VECTOR_H
+#ifndef OCTREE_POINT_VECTOR_H
+#define OCTREE_POINT_VECTOR_H
 
-#include <pcl/octree/octree_pointcloud.h>
+#include "octree_pointcloud.h"
+
+#include "octree_base.h"
+#include "octree2buf_base.h"
+
+#include "octree_nodes.h"
 
 namespace pcl
 {
@@ -56,25 +61,25 @@ namespace pcl
      *  \author Julius Kammerl (julius@kammerl.de)
      */
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    template<typename PointT,
-             typename LeafContainerT = OctreeContainerPointIndices,
-             typename BranchContainerT = OctreeContainerEmpty,
-             typename OctreeT = OctreeBase<LeafContainerT, BranchContainerT> >
-    class OctreePointCloudPointVector : public OctreePointCloud<PointT, LeafContainerT, BranchContainerT, OctreeT>
+    template<typename PointT, typename LeafT = OctreeContainerDataTVector<int>,
+        typename BranchT = OctreeContainerEmpty<int>,
+        typename OctreeT = OctreeBase<int, LeafT, BranchT> >
+    class OctreePointCloudPointVector : public OctreePointCloud<PointT, LeafT,
+        BranchT, OctreeT>
     {
 
       public:
         // public typedefs for single/double buffering
-        typedef OctreePointCloudPointVector<PointT, LeafContainerT, BranchContainerT,
-            OctreeBase<LeafContainerT, BranchContainerT> > SingleBuffer;
-      //  typedef OctreePointCloudPointVector<PointT, LeafContainerT, BranchContainerT,
-     //       Octree2BufBase<int, LeafContainerT, BranchContainerT> > DoubleBuffer;
+        typedef OctreePointCloudPointVector<PointT, LeafT, BranchT,
+            OctreeBase<int, LeafT, BranchT> > SingleBuffer;
+        typedef OctreePointCloudPointVector<PointT, LeafT, BranchT,
+            Octree2BufBase<int, LeafT, BranchT> > DoubleBuffer;
 
         /** \brief Constructor.
          *  \param resolution_arg: octree resolution at lowest octree level
          * */
         OctreePointCloudPointVector (const double resolution_arg) :
-            OctreePointCloud<PointT, LeafContainerT, BranchContainerT, OctreeT> (resolution_arg)
+            OctreePointCloud<PointT, LeafT, BranchT, OctreeT> (resolution_arg)
         {
         }
 

@@ -132,7 +132,7 @@ class TemplateAlignment
       max_correspondence_distance_ (0.01f*0.01f),
       nr_iterations_ (500)
     {
-      // Initialize the parameters in the Sample Consensus Initial Alignment (SAC-IA) algorithm
+      // Intialize the parameters in the Sample Consensus Intial Alignment (SAC-IA) algorithm
       sac_ia_.setMinSampleDistance (min_sample_distance_);
       sac_ia_.setMaxCorrespondenceDistance (max_correspondence_distance_);
       sac_ia_.setMaximumIterations (nr_iterations_);
@@ -264,10 +264,7 @@ main (int argc, char **argv)
   pcl::VoxelGrid<pcl::PointXYZ> vox_grid;
   vox_grid.setInputCloud (cloud);
   vox_grid.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
-  //vox_grid.filter (*cloud); // Please see this http://www.pcl-developers.org/Possible-problem-in-new-VoxelGrid-implementation-from-PCL-1-5-0-td5490361.html
-  pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud (new pcl::PointCloud<pcl::PointXYZ>); 
-  vox_grid.filter (*tempCloud);
-  cloud = tempCloud; 
+  vox_grid.filter (*cloud);
 
   // Assign to the target FeatureCloud
   FeatureCloud target_cloud;

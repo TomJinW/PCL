@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -87,11 +87,6 @@ namespace pcl
       typedef typename pcl::search::Search<PointT>::Ptr SearcherPtr;
 
     public:
-
-      typedef boost::shared_ptr< StatisticalOutlierRemoval<PointT> > Ptr;
-      typedef boost::shared_ptr< const StatisticalOutlierRemoval<PointT> > ConstPtr;
-
-
       /** \brief Constructor.
         * \param[in] extract_removed_indices Set to true if you want to be able to extract the indices of points being removed (default = false).
         */
@@ -136,6 +131,7 @@ namespace pcl
       /** \brief Get the standard deviation multiplier for the distance threshold calculation.
         * \details The distance threshold will be equal to: mean + stddev_mult * stddev.
         * Points will be classified as inlier or outlier if their average neighbor distance is below or above this threshold respectively.
+        * \param[in] stddev_mult The standard deviation multiplier.
         */
       inline double
       getStddevMulThresh ()
@@ -198,26 +194,26 @@ namespace pcl
     * \ingroup filters
     */
   template<>
-  class PCL_EXPORTS StatisticalOutlierRemoval<pcl::PCLPointCloud2> : public FilterIndices<pcl::PCLPointCloud2>
+  class PCL_EXPORTS StatisticalOutlierRemoval<sensor_msgs::PointCloud2> : public Filter<sensor_msgs::PointCloud2>
   {
-    using FilterIndices<pcl::PCLPointCloud2>::filter_name_;
-    using FilterIndices<pcl::PCLPointCloud2>::getClassName;
+    using Filter<sensor_msgs::PointCloud2>::filter_name_;
+    using Filter<sensor_msgs::PointCloud2>::getClassName;
 
-    using FilterIndices<pcl::PCLPointCloud2>::removed_indices_;
-    using FilterIndices<pcl::PCLPointCloud2>::extract_removed_indices_;
+    using Filter<sensor_msgs::PointCloud2>::removed_indices_;
+    using Filter<sensor_msgs::PointCloud2>::extract_removed_indices_;
 
     typedef pcl::search::Search<pcl::PointXYZ> KdTree;
     typedef pcl::search::Search<pcl::PointXYZ>::Ptr KdTreePtr;
 
-    typedef pcl::PCLPointCloud2 PCLPointCloud2;
-    typedef PCLPointCloud2::Ptr PCLPointCloud2Ptr;
-    typedef PCLPointCloud2::ConstPtr PCLPointCloud2ConstPtr;
+    typedef sensor_msgs::PointCloud2 PointCloud2;
+    typedef PointCloud2::Ptr PointCloud2Ptr;
+    typedef PointCloud2::ConstPtr PointCloud2ConstPtr;
 
     public:
       /** \brief Empty constructor. */
       StatisticalOutlierRemoval (bool extract_removed_indices = false) :
-        FilterIndices<pcl::PCLPointCloud2>::FilterIndices (extract_removed_indices), mean_k_ (2),
-        std_mul_ (0.0), tree_ ()
+        Filter<sensor_msgs::PointCloud2>::Filter (extract_removed_indices), mean_k_ (2), 
+        std_mul_ (0.0), tree_ (), negative_ (false)
       {
         filter_name_ = "StatisticalOutlierRemoval";
       }
@@ -257,6 +253,25 @@ namespace pcl
         return (std_mul_);
       }
 
+      /** \brief Set whether the indices should be returned, or all points \e except the indices.
+        * \param negative true if all points \e except the input indices will be returned, false otherwise
+        */
+      inline void
+      setNegative (bool negative)
+      {
+        negative_ = negative;
+      }
+
+      /** \brief Get the value of the internal #negative_ parameter. If
+        * true, all points \e except the input indices will be returned.
+        * \return The value of the "negative" flag
+        */
+      inline bool
+      getNegative ()
+      {
+        return (negative_);
+      }
+
     protected:
       /** \brief The number of points to use for mean distance estimation. */
       int mean_k_;
@@ -269,25 +284,13 @@ namespace pcl
       /** \brief A pointer to the spatial search object. */
       KdTreePtr tree_;
 
-      virtual void
-      applyFilter (std::vector<int> &indices);
+      /** \brief If true, the outliers will be returned instead of the inliers (default: false). */
+      bool negative_;
 
-      virtual void
-      applyFilter (PCLPointCloud2 &output);
-
-      /**
-       * \brief Compute the statistical values used in both applyFilter methods.
-       *
-       * This method tries to avoid duplicate code.
-       */
-      virtual void
-      generateStatistics (double& mean, double& variance, double& stddev, std::vector<float>& distances);
+      void
+      applyFilter (PointCloud2 &output);
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/filters/impl/statistical_outlier_removal.hpp>
-#endif
 
 #endif  // PCL_FILTERS_STATISTICAL_OUTLIER_REMOVAL_H_
 

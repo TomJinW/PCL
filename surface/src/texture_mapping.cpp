@@ -43,8 +43,4 @@
 
 
 // Instantiations of specific point types
-#ifdef PCL_ONLY_CORE_POINT_TYPES
-  PCL_INSTANTIATE(TextureMapping, (pcl::PointXYZ))
-#else
-  PCL_INSTANTIATE(TextureMapping, PCL_XYZ_POINT_TYPES)
-#endif
+PCL_INSTANTIATE(TextureMapping, (pcl::PointXYZ))

@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -61,33 +60,29 @@ namespace pcl
     *     (via \ref setEuclideanFitnessEpsilon)</li>
     * </ol>
     *
-    * \author Radu B. Rusu, Michael Dixon
+    * \author Radu Bogdan Rusu, Michael Dixon
     * \ingroup registration
     */
-  template <typename PointSource, typename PointTarget, typename Scalar = float>
-  class IterativeClosestPointNonLinear : public IterativeClosestPoint<PointSource, PointTarget, Scalar>
+  template <typename PointSource, typename PointTarget>
+  class IterativeClosestPointNonLinear : public IterativeClosestPoint<PointSource, PointTarget>
   {
-    using IterativeClosestPoint<PointSource, PointTarget, Scalar>::min_number_correspondences_;
-    using IterativeClosestPoint<PointSource, PointTarget, Scalar>::reg_name_;
-    using IterativeClosestPoint<PointSource, PointTarget, Scalar>::transformation_estimation_;
-    using IterativeClosestPoint<PointSource, PointTarget, Scalar>::computeTransformation;
+    using Registration<PointSource, PointTarget>::min_number_correspondences_;
+    using Registration<PointSource, PointTarget>::reg_name_;
+    using Registration<PointSource, PointTarget>::transformation_estimation_;
+    using IterativeClosestPoint<PointSource, PointTarget>::computeTransformation;
 
     public:
-
-      typedef boost::shared_ptr< IterativeClosestPointNonLinear<PointSource, PointTarget, Scalar> > Ptr;
-      typedef boost::shared_ptr< const IterativeClosestPointNonLinear<PointSource, PointTarget, Scalar> > ConstPtr;
-
-      typedef typename Registration<PointSource, PointTarget, Scalar>::Matrix4 Matrix4;
-
       /** \brief Empty constructor. */
       IterativeClosestPointNonLinear ()
       {
         min_number_correspondences_ = 4;
         reg_name_ = "IterativeClosestPointNonLinear";
 
-        transformation_estimation_.reset (new pcl::registration::TransformationEstimationLM<PointSource, PointTarget, Scalar>);
+        transformation_estimation_.reset (new pcl::registration::TransformationEstimationLM<PointSource, PointTarget>);
       }
   };
 }
+
+#include <pcl/registration/impl/icp_nl.hpp>
 
 #endif  //#ifndef PCL_ICP_NL_H_

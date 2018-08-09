@@ -1,10 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2011, Alexandru-Eugen Ichim
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
+ *                      Willow Garage, Inc
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -42,11 +40,10 @@
 
 #include <pcl/features/statistical_multiscale_interest_region_extraction.h>
 #include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/common/distances.h>
-#include <pcl/features/boost.h>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/property_map/property_map.hpp>
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
-
+#include <pcl/common/distances.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
@@ -68,7 +65,7 @@ pcl::StatisticalMultiscaleInterestRegionExtraction<PointT>::generateCloudGraph (
     kdtree.nearestKSearch (static_cast<int> (point_i), 16, k_indices, k_distances);
 
     for (int k_i = 0; k_i < static_cast<int> (k_indices.size ()); ++k_i)
-      add_edge (point_i, k_indices[k_i], Weight (std::sqrt (k_distances[k_i])), cloud_graph);
+      add_edge (point_i, k_indices[k_i], Weight (sqrtf (k_distances[k_i])), cloud_graph);
   }
 
   const size_t E = num_edges (cloud_graph),
@@ -159,7 +156,7 @@ pcl::StatisticalMultiscaleInterestRegionExtraction<PointT>::computeF ()
       for (size_t point_j = 0; point_j < input_->points.size (); ++point_j)
       {
         float d_g = geodesic_distances_[point_i][point_j];
-        float phi_i_j = 1.0f / std::sqrt (2.0f * static_cast<float> (M_PI) * scale_squared) * expf ( (-1) * d_g*d_g / (2.0f * scale_squared));
+        float phi_i_j = 1.0f / sqrtf (2.0f * static_cast<float> (M_PI) * scale_squared) * expf ( (-1) * d_g*d_g / (2.0f * scale_squared));
 
         point_density_i += phi_i_j;
         phi_row[point_j] = phi_i_j;

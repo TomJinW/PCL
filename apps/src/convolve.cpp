@@ -41,7 +41,6 @@
 #include <pcl/console/print.h>
 #include <pcl/filters/convolution.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/common/time.h>
 
 void
 usage (char ** argv)
@@ -64,7 +63,7 @@ main (int argc, char ** argv)
 {
   int viewport_source, viewport_convolved = 0;
   int direction = -1;
-  int nb_threads = 1;
+  int nb_threads = 0;
   char border_policy = 'Z';
   double threshold = 0.001;
   pcl::filters::Convolution<pcl::PointXYZRGB, pcl::PointXYZRGB> convolution;
@@ -116,20 +115,7 @@ main (int argc, char ** argv)
   {
     if (nb_threads <= 0)
       nb_threads = 1;
-#ifndef _OPENMP
-    if (nb_threads > 1)
-    {
-      pcl::console::print_info ("OpenMP not activated. Number of threads: 1\n");
-      nb_threads = 1;
-    }
-#endif
   }
-#ifdef _OPENMP
-  else
-  {
-    nb_threads = omp_get_num_procs();
-  }
-#endif
   convolution.setNumberOfThreads (nb_threads);
 
   // borders policy if any
@@ -201,12 +187,6 @@ main (int argc, char ** argv)
     }
   }
   convolved_label << pcl::getTime () - t0 << "s";
-#ifdef _OPENMP
-  convolved_label << "\ncpu cores: " << omp_get_num_procs() << " ";
-#else
-  convolved_label << "\n";
-#endif  
-  convolved_label << "threads: " << nb_threads;
   // Display
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("Convolution"));
   // viewport stuff

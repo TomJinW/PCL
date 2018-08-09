@@ -31,8 +31,8 @@ namespace OpenNIFrameSource
     onNewFrame (const PointCloudConstPtr &cloud);
 
     pcl::OpenNIGrabber grabber_;
-    PointCloudPtr most_recent_frame_;
     int frame_counter_;
+    PointCloudPtr most_recent_frame_;
     boost::mutex mutex_;
     bool active_;
   };

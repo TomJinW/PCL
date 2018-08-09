@@ -35,15 +35,12 @@
  */
 
 #include <pcl/apps/modeler/abstract_worker.h>
-
-#include <pcl/apps/modeler/qt.h>
 #include <pcl/apps/modeler/parameter_dialog.h>
-#include <pcl/apps/modeler/cloud_mesh_item.h>
-
+#include <pcl/apps/modeler/cloud_actor.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-pcl::modeler::AbstractWorker::AbstractWorker(const QList<CloudMeshItem*>& cloud_mesh_items, QWidget* parent) :
-  cloud_mesh_items_(cloud_mesh_items),
+pcl::modeler::AbstractWorker::AbstractWorker(const std::vector<CloudActor*>& cloud_actors, QWidget* parent) :
+  cloud_actors_(cloud_actors),
   parameter_dialog_(new ParameterDialog(getName(), parent))
 {
 }
@@ -51,17 +48,15 @@ pcl::modeler::AbstractWorker::AbstractWorker(const QList<CloudMeshItem*>& cloud_
 //////////////////////////////////////////////////////////////////////////////////////////////
 pcl::modeler::AbstractWorker::~AbstractWorker(void)
 {
-  parameter_dialog_->deleteLater();
+  delete parameter_dialog_;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 int
 pcl::modeler::AbstractWorker::exec()
 {
-  for (QList<CloudMeshItem*>::iterator cloud_mesh_items_it = cloud_mesh_items_.begin();
-    cloud_mesh_items_it != cloud_mesh_items_.end();
-    ++ cloud_mesh_items_it)
-    initParameters(*cloud_mesh_items_it);
+  for (size_t i = 0, i_end = cloud_actors_.size(); i < i_end; ++ i)
+    initParameters(cloud_actors_[i]->getCloud());
 
   setupParameters();
 
@@ -72,21 +67,16 @@ pcl::modeler::AbstractWorker::exec()
 void
 pcl::modeler::AbstractWorker::process()
 {
-  for (QList<CloudMeshItem*>::iterator cloud_mesh_items_it = cloud_mesh_items_.begin();
-    cloud_mesh_items_it != cloud_mesh_items_.end();
-    ++ cloud_mesh_items_it)
+  while (!cloud_actors_.empty())
   {
-    processImpl(*cloud_mesh_items_it);
+    sensor_msgs::PointCloud2::Ptr cloud(new sensor_msgs::PointCloud2);
+    processImpl(cloud_actors_.back()->getCloud(), cloud);
+
+    cloud_actors_.back()->updateCloud(cloud);
+    cloud_actors_.pop_back();
   }
 
   emit finished();
 
   return;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::modeler::AbstractWorker::emitDataUpdated(CloudMeshItem* cloud_mesh_item)
-{
-  emit dataUpdated(cloud_mesh_item);
 }

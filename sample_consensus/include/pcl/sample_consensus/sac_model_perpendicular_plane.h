@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -71,8 +70,6 @@ namespace pcl
   class SampleConsensusModelPerpendicularPlane : public SampleConsensusModelPlane<PointT>
   {
     public:
-      using SampleConsensusModel<PointT>::model_name_;
-
       typedef typename SampleConsensusModelPlane<PointT>::PointCloud PointCloud;
       typedef typename SampleConsensusModelPlane<PointT>::PointCloudPtr PointCloudPtr;
       typedef typename SampleConsensusModelPlane<PointT>::PointCloudConstPtr PointCloudConstPtr;
@@ -81,38 +78,25 @@ namespace pcl
 
       /** \brief Constructor for base SampleConsensusModelPerpendicularPlane.
         * \param[in] cloud the input point cloud dataset
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelPerpendicularPlane (const PointCloudConstPtr &cloud,
-                                              bool random = false) 
-        : SampleConsensusModelPlane<PointT> (cloud, random)
-        , axis_ (Eigen::Vector3f::Zero ())
-        , eps_angle_ (0.0)
+      SampleConsensusModelPerpendicularPlane (const PointCloudConstPtr &cloud) : 
+        SampleConsensusModelPlane<PointT> (cloud), 
+        axis_ (Eigen::Vector3f::Zero ()),
+        eps_angle_ (0.0)
       {
-        model_name_ = "SampleConsensusModelPerpendicularPlane";
-        sample_size_ = 3;
-        model_size_ = 4;
       }
 
       /** \brief Constructor for base SampleConsensusModelPerpendicularPlane.
         * \param[in] cloud the input point cloud dataset
         * \param[in] indices a vector of point indices to be used from \a cloud
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
       SampleConsensusModelPerpendicularPlane (const PointCloudConstPtr &cloud, 
-                                              const std::vector<int> &indices,
-                                              bool random = false) 
-        : SampleConsensusModelPlane<PointT> (cloud, indices, random)
-        , axis_ (Eigen::Vector3f::Zero ())
-        , eps_angle_ (0.0)
+                                              const std::vector<int> &indices) : 
+        SampleConsensusModelPlane<PointT> (cloud, indices), 
+        axis_ (Eigen::Vector3f::Zero ()),
+        eps_angle_ (0.0)
       {
-        model_name_ = "SampleConsensusModelPerpendicularPlane";
-        sample_size_ = 3;
-        model_size_ = 4;
       }
-
-      /** \brief Empty destructor */
-      virtual ~SampleConsensusModelPerpendicularPlane () {}
 
       /** \brief Set the axis along which we need to search for a plane perpendicular to.
         * \param[in] ax the axis along which we need to search for a plane perpendicular to
@@ -152,30 +136,27 @@ namespace pcl
         * \return the resultant number of inliers
         */
       virtual int
-      countWithinDistance (const Eigen::VectorXf &model_coefficients,
-                           const double threshold) const;
+      countWithinDistance (const Eigen::VectorXf &model_coefficients, 
+                           const double threshold);
 
       /** \brief Compute all distances from the cloud data to a given plane model.
         * \param[in] model_coefficients the coefficients of a plane model that we need to compute distances to
         * \param[out] distances the resultant estimated distances
         */
-      void
-      getDistancesToModel (const Eigen::VectorXf &model_coefficients,
-                           std::vector<double> &distances) const;
+      void 
+      getDistancesToModel (const Eigen::VectorXf &model_coefficients, 
+                           std::vector<double> &distances);
 
       /** \brief Return an unique id for this model (SACMODEL_PERPENDICULAR_PLANE). */
       inline pcl::SacModel 
       getModelType () const { return (SACMODEL_PERPENDICULAR_PLANE); }
 
     protected:
-      using SampleConsensusModel<PointT>::sample_size_;
-      using SampleConsensusModel<PointT>::model_size_;
-
       /** \brief Check whether a model is valid given the user constraints.
         * \param[in] model_coefficients the set of model coefficients
         */
-      virtual bool
-      isModelValid (const Eigen::VectorXf &model_coefficients) const;
+      bool 
+      isModelValid (const Eigen::VectorXf &model_coefficients);
 
       /** \brief The axis along which we need to search for a plane perpendicular to. */
       Eigen::Vector3f axis_;
@@ -184,9 +165,5 @@ namespace pcl
       double eps_angle_;
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/sample_consensus/impl/sac_model_perpendicular_plane.hpp>
-#endif
 
 #endif  //#ifndef PCL_SAMPLE_CONSENSUS_MODEL_PERPENDICULARPLANE_H_

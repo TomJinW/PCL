@@ -38,7 +38,6 @@
 
  #include <pcl/gpu/kinfu_large_scale/world_model.h>
  #include <pcl/gpu/kinfu_large_scale/impl/world_model.hpp>
- #include <pcl/impl/instantiate.hpp>
 
 
 

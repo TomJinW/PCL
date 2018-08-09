@@ -39,6 +39,10 @@
 #include <pcl/apps/modeler/parameter.h>
 
 
+#include <QComboBox>
+#include <QStandardItemModel>
+
+
 namespace pcl
 {
   namespace modeler
@@ -82,38 +86,57 @@ namespace pcl
     {
       QComboBox *comboBox = static_cast<QComboBox*>(editor);
 
-      T value = T (*this);
+      T value = (T)(*this);
       comboBox->setCurrentIndex(value);
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
     template <class T> void
-    EnumParameter<T>::getEditorData(QWidget *editor)
+    EnumParameter<T>::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index)
     {
       QComboBox *comboBox = static_cast<QComboBox*>(editor);
-      T value = T (comboBox->currentIndex());
+      T value = (T)(comboBox->currentIndex());
       current_value_ = value;
+      model->setData(index, toString(), Qt::EditRole);
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-    template <class T> std::pair<QVariant, int>
-    EnumParameter<T>::toModelData()
+    template <class T> QString
+    EnumParameter<T>::toString()
     {
-      std::pair<QVariant, int> model_data;
+      T value = (T)(*this);
+      std::string valueString = "should not see this";
       for (typename std::map<T, std::string>::const_iterator it = candidates_.begin();
         it != candidates_.end();
         ++ it) 
       {
-        if (it->first == value)
-        {
-          model_data.first = it->second;
-          break;
-        }
+          if (it->first == value)
+          {
+            valueString = it->second;
+            break;
+          }
       }
-      model_data.second = Qt::EditRole;
 
-      return (model_data);
+      return QString(valueString.c_str());
     }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+    template <class T> void
+    EnumParameter<T>::loadValue(const std::string& valueString)
+    {
+      for (typename std::map<T, std::string>::const_iterator it = candidates_.begin();
+        it != candidates_.end();
+        ++ it)
+      {
+          if (it->second == valueString)
+          {
+            current_value_ = it->first;
+            break;
+          }
+      }
+      return;
+    }
+
   }
 }
 

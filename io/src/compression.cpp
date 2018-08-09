@@ -35,9 +35,12 @@
  *
  * Author: Julius Kammerl (julius@kammerl.de)
  */
-#define PCL_NO_PRECOMPILE
+
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
+
+#include <pcl/octree/octree.h>
+#include <pcl/octree/octree_impl.h>
 
 #include <pcl/compression/entropy_range_coder.h>
 #include <pcl/compression/impl/entropy_range_coder.hpp>
@@ -45,18 +48,6 @@
 #include <pcl/compression/octree_pointcloud_compression.h>
 #include <pcl/compression/impl/octree_pointcloud_compression.hpp>
 
-template class PCL_EXPORTS pcl::io::OctreePointCloudCompression<pcl::PointXYZ>;
-template class PCL_EXPORTS pcl::io::OctreePointCloudCompression<pcl::PointXYZRGB>;
-template class PCL_EXPORTS pcl::io::OctreePointCloudCompression<pcl::PointXYZRGBA>;
-
-#ifdef HAVE_PNG
-#ifdef HAVE_OPENNI
-#include <pcl/compression/organized_pointcloud_compression.h>
-#include <pcl/compression/impl/organized_pointcloud_compression.hpp>
-
-template class PCL_EXPORTS pcl::io::OrganizedPointCloudCompression<pcl::PointXYZ>;
-template class PCL_EXPORTS pcl::io::OrganizedPointCloudCompression<pcl::PointXYZRGB>;
-template class PCL_EXPORTS pcl::io::OrganizedPointCloudCompression<pcl::PointXYZRGBA>;
-#endif //HAVE_OPENNI
-#endif //HAVE_PNG
-
+template class PCL_EXPORTS pcl::octree::PointCloudCompression<pcl::PointXYZ>;
+template class PCL_EXPORTS pcl::octree::PointCloudCompression<pcl::PointXYZRGB>;
+template class PCL_EXPORTS pcl::octree::PointCloudCompression<pcl::PointXYZRGBA>;

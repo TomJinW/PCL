@@ -25,21 +25,9 @@
 # include <windows.h>
 #endif
 #include <GL/glew.h>
-
-#include <pcl/pcl_config.h>
-#ifdef OPENGL_IS_A_FRAMEWORK
-# include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
-#else
-# include <GL/gl.h>
-# include <GL/glu.h>
-#endif
-#ifdef GLUT_IS_A_FRAMEWORK
-# include <GLUT/glut.h>
-#else
-# include <GL/glut.h>
-#endif
-
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
@@ -91,7 +79,7 @@ int window_height_;
 bool paused_;
 bool write_file_;
 
-void printHelp (int, char **argv)
+void printHelp (int argc, char **argv)
 {
   print_error ("Syntax is: %s <filename>\n", argv[0]);
   print_info ("acceptable filenames include vtk, obj and ply. ply can support colour\n");
@@ -156,7 +144,8 @@ void display_depth_image (const float* depth_buffer, int width, int height)
     float b = 0.075f;
     float f = 580.0f;
     uint16_t kd = static_cast<uint16_t>(1090 - b*f/z*8);
-    if (kd > 2047) kd = 2047;
+    if (kd < 0) kd = 0;
+    else if (kd > 2047) kd = 2047;
 
     int pval = t_gamma[kd];
     int lb = pval & 0xff;
@@ -291,7 +280,7 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> simpleVis (pcl::PointCloud<
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
   viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
   viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-  viewer->addCoordinateSystem (1.0, "reference");
+  viewer->addCoordinateSystem (1.0);
   viewer->initCameraParameters ();
   return (viewer);
 }
@@ -416,14 +405,14 @@ void display ()
     boost::this_thread::sleep (boost::posix_time::microseconds (100000));
   }    
   
-  // doesn't work:
+  // doesnt work:
 //    viewer->~PCLVisualizer();
 //    viewer.reset();
     
     
     cout << "done\n";
-    // Problem: vtk and opengl don't seem to play very well together
-    // vtk seems to misbehave after a little while and won't keep the window on the screen
+    // Problem: vtk and opengl dont seem to play very well together
+    // vtk seems to misbehave after a little while and wont keep the window on the screen
 
     // method1: kill with [x] - but eventually it crashes:
     //while (!viewer.wasStopped ()){
@@ -448,7 +437,7 @@ void display ()
 
 // Handle normal keys
 void
-on_keyboard (unsigned char key, int, int)
+on_keyboard (unsigned char key, int x, int y)
 {
   double speed = 0.1;
 
@@ -477,7 +466,7 @@ on_keyboard (unsigned char key, int, int)
 
 // Handle special keys, e.g. F1, F2, ...
 void
-on_special(int key, int, int)
+on_special(int key, int x, int y)
 {
   switch (key) {
   case GLUT_KEY_F1:
@@ -496,7 +485,7 @@ on_reshape(int w, int h)
 }
 
 void
-on_mouse(int, int, int, int)
+on_mouse(int button, int state, int x, int y)
 {
   // button:
   // GLUT_LEFT_BUTTON
@@ -509,7 +498,7 @@ on_mouse(int, int, int, int)
 }
 
 void
-on_motion(int, int)
+on_motion(int x, int y)
 {
 }
 
@@ -525,7 +514,7 @@ on_passive_motion(int x, int y)
   camera_->setYaw (yaw);
 }
 
-void on_entry (int)
+void on_entry (int state)
 {
   // state:
   // GLUT_LEFT
@@ -553,7 +542,7 @@ void load_PolygonMesh_model (char* polygon_file)
 }
 
 void
-initialize (int, char** argv)
+initialize (int argc, char** argv)
 {
   const GLubyte* version = glGetString (GL_VERSION);
   std::cout << "OpenGL Version: " << version << std::endl;

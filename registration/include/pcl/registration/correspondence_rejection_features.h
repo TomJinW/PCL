@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,22 +33,23 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
  *
  */
 #ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_FEATURES_H_
 #define PCL_REGISTRATION_CORRESPONDENCE_REJECTION_FEATURES_H_
 
+#include <boost/function.hpp>
+#include <boost/unordered_map.hpp>
 #include <pcl/registration/correspondence_rejection.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_representation.h>
-#include <pcl/registration/boost.h>
 
 namespace pcl
 {
   namespace registration
   {
-    /** \brief CorrespondenceRejectorFeatures implements a correspondence rejection method based on a set of feature
+    /**
+      * @b CorrespondenceRejectorFeatures implements a correspondence rejection method based on a set of feature
       * descriptors. Given an input feature space, the method checks if each feature in the source cloud has a
       * correspondence in the target cloud, either by checking the first K (given) point correspondences, or 
       * by defining a tolerance threshold via a radius in feature space.
@@ -57,24 +57,18 @@ namespace pcl
       * \author Radu B. Rusu
       * \ingroup registration
       */
-    class PCL_EXPORTS CorrespondenceRejectorFeatures: public CorrespondenceRejector
+    class CorrespondenceRejectorFeatures: public CorrespondenceRejector
     {
       using CorrespondenceRejector::input_correspondences_;
       using CorrespondenceRejector::rejection_name_;
       using CorrespondenceRejector::getClassName;
 
       public:
-        typedef boost::shared_ptr<CorrespondenceRejectorFeatures> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorFeatures> ConstPtr;
-
         /** \brief Empty constructor. */
-        CorrespondenceRejectorFeatures () : max_distance_ (std::numeric_limits<float>::max ()), features_map_ ()
+        CorrespondenceRejectorFeatures () : max_distance_ (std::numeric_limits<float>::max ())
         {
           rejection_name_ = "CorrespondenceRejectorFeatures";
         }
-
-        /** \brief Empty destructor. */
-        virtual ~CorrespondenceRejectorFeatures () {}
 
         /** \brief Get a list of valid correspondences after rejection from the original set of correspondences
           * \param[in] original_correspondences the set of initial correspondences given
@@ -154,8 +148,6 @@ namespace pcl
         class FeatureContainerInterface
         {
           public:
-            /** \brief Empty destructor */
-            virtual ~FeatureContainerInterface () {}
             virtual bool isValid () = 0;
             virtual double getCorrespondenceScore (int index) = 0;
             virtual bool isCorrespondenceValid (int index) = 0;
@@ -185,9 +177,6 @@ namespace pcl
             FeatureContainer () : thresh_(std::numeric_limits<double>::max ()), feature_representation_()
             {
             }
-      
-            /** \brief Empty destructor */
-            virtual ~FeatureContainer () {}
 
             inline void 
             setSourceFeature (const FeatureCloudConstPtr &source_features)
@@ -239,7 +228,7 @@ namespace pcl
             }
 
             /** \brief Obtain a score between a pair of correspondences.
-              * \param[in] index the index to check in the list of correspondences
+              * \param[in] the index to check in the list of correspondences
               * \return score the resultant computed score
               */
             virtual inline double
@@ -256,7 +245,7 @@ namespace pcl
               // Check if the representations are valid
               if (!feature_representation_->isValid (feat_src) || !feature_representation_->isValid (feat_tgt))
               {
-                PCL_ERROR ("[pcl::registration::%s::getCorrespondenceScore] Invalid feature representation given!\n", this->getClassName ().c_str ());
+                PCL_ERROR ("[pcl::registration::CorrespondenceRejectorFeatures::getCorrespondenceScore] Invalid feature representation given!\n");
                 return (std::numeric_limits<double>::max ());
               }
 
@@ -272,7 +261,7 @@ namespace pcl
 
             /** \brief Check whether the correspondence pair at the given index is valid
               * by computing the score and testing it against the user given threshold 
-              * \param[in] index the index to check in the list of correspondences
+              * \param[in] the index to check in the list of correspondences
               * \return true if the correspondence is good, false otherwise
               */
             virtual inline bool

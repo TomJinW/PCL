@@ -1,10 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2009, Willow Garage, Inc.
  *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -42,6 +40,7 @@
 #define PCL_FEATURES_IMPL_GFPFH_H_
 
 #include <pcl/features/gfpfh.h>
+#include <pcl/octree/octree.h>
 #include <pcl/octree/octree_search.h>
 #include <pcl/common/eigen.h>
 
@@ -210,7 +209,7 @@ pcl::GFPFHEstimation<PointInT, PointNT, PointOutT>::computeDistanceHistogram (co
   const int max_bin = descriptorSize () - 1;
   for (size_t i = 0; i < distances.size (); ++i)
   {
-    const float raw_bin = static_cast<float> (descriptorSize ()) * (distances[i] - min_value) / range;
+    const float raw_bin = descriptorSize() * (distances[i] - min_value) / range;
     int bin = std::min (max_bin, static_cast<int> (floor (raw_bin)));
     histogram[bin] += 1;
   }

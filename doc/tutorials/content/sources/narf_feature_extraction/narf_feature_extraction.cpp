@@ -49,9 +49,16 @@ setViewerPose (pcl::visualization::PCLVisualizer& viewer, const Eigen::Affine3f&
   Eigen::Vector3f pos_vector = viewer_pose * Eigen::Vector3f (0, 0, 0);
   Eigen::Vector3f look_at_vector = viewer_pose.rotation () * Eigen::Vector3f (0, 0, 1) + pos_vector;
   Eigen::Vector3f up_vector = viewer_pose.rotation () * Eigen::Vector3f (0, -1, 0);
-  viewer.setCameraPosition (pos_vector[0], pos_vector[1], pos_vector[2],
-                            look_at_vector[0], look_at_vector[1], look_at_vector[2],
-                            up_vector[0], up_vector[1], up_vector[2]);
+  viewer.camera_.pos[0] = pos_vector[0];
+  viewer.camera_.pos[1] = pos_vector[1];
+  viewer.camera_.pos[2] = pos_vector[2];
+  viewer.camera_.focal[0] = look_at_vector[0];
+  viewer.camera_.focal[1] = look_at_vector[1];
+  viewer.camera_.focal[2] = look_at_vector[2];
+  viewer.camera_.view[0] = up_vector[0];
+  viewer.camera_.view[1] = up_vector[1];
+  viewer.camera_.view[2] = up_vector[2];
+  viewer.updateCamera ();
 }
 
 // --------------
@@ -149,7 +156,7 @@ main (int argc, char** argv)
   pcl::visualization::PointCloudColorHandlerCustom<pcl::PointWithRange> range_image_color_handler (range_image_ptr, 0, 0, 0);
   viewer.addPointCloud (range_image_ptr, range_image_color_handler, "range image");
   viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "range image");
-  //viewer.addCoordinateSystem (1.0f, "global");
+  //viewer.addCoordinateSystem (1.0f);
   //PointCloudColorHandlerCustom<PointType> point_cloud_color_handler (point_cloud_ptr, 150, 150, 150);
   //viewer.addPointCloud (point_cloud_ptr, point_cloud_color_handler, "original point cloud");
   viewer.initCameraParameters ();

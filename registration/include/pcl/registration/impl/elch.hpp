@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -44,9 +43,13 @@
 #include <list>
 #include <algorithm>
 
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+
+#include <Eigen/Geometry>
+
 #include <pcl/common/transforms.h>
-#include <pcl/registration/eigen.h>
-#include <pcl/registration/boost.h>
 #include <pcl/registration/registration.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,10 +77,7 @@ pcl::registration::ELCH<PointT>::loopOptimizerAlgorithm (LOAGraph &g, double *we
     // find shortest crossing for all vertices on the loop
     for (crossings_it = crossings.begin (); crossings_it != crossings.end (); )
     {
-      dijkstra_shortest_paths (g, *crossings_it,
-          predecessor_map(boost::make_iterator_property_map(p, get(boost::vertex_index, g))).
-          distance_map(boost::make_iterator_property_map(d, get(boost::vertex_index, g))));
-
+      dijkstra_shortest_paths (g, *crossings_it, boost::predecessor_map (p).distance_map (d));
       end_it = crossings_it;
       end_it++;
       // find shortest crossing for one vertex
@@ -200,7 +200,7 @@ pcl::registration::ELCH<PointT>::initCompute ()
 
     reg_->setInputTarget (meta_start);
 
-    reg_->setInputSource (meta_end);
+    reg_->setInputCloud (meta_end);
 
     reg_->align (*tmp);
 
@@ -266,7 +266,6 @@ pcl::registration::ELCH<PointT>::compute ()
     //a = aend * a * aendI;
 
     pcl::transformPointCloud (*(*loop_graph_)[i].cloud, *(*loop_graph_)[i].cloud, a);
-    (*loop_graph_)[i].transform = a;
   }
 
   add_edge (loop_start_, loop_end_, *loop_graph_);

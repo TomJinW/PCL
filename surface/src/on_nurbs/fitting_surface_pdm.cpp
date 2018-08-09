@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -101,23 +101,13 @@ FittingSurface::refine (int dim)
 }
 
 void
-FittingSurface::refine (ON_NurbsSurface &nurbs, int dim)
-{
-  std::vector<double> xi;
-  std::vector<double> elements = getElementVector (nurbs, dim);
-
-  for (unsigned i = 0; i < elements.size () - 1; i++)
-    xi.push_back (elements[i] + 0.5 * (elements[i + 1] - elements[i]));
-
-  for (unsigned i = 0; i < xi.size (); i++)
-    nurbs.InsertKnot (dim, xi[i], 1);
-}
-
-void
 FittingSurface::assemble (Parameter param)
 {
-  int nBnd = static_cast<int> (m_data->boundary.size ());
-  int nInt = static_cast<int> (m_data->interior.size ());
+  clock_t time_start, time_end;
+  time_start = clock ();
+
+  int nBnd = m_data->boundary.size ();
+  int nInt = m_data->interior.size ();
   int nCurInt = param.regularisation_resU * param.regularisation_resV;
   int nCurBnd = 2 * param.regularisation_resU + 2 * param.regularisation_resV;
   int nCageReg = (m_nurbs.m_cv_count[0] - 2) * (m_nurbs.m_cv_count[1] - 2);
@@ -182,6 +172,13 @@ FittingSurface::assemble (Parameter param)
     addCageBoundaryRegularisation (param.boundary_smoothness, WEST, row);
     addCageBoundaryRegularisation (param.boundary_smoothness, EAST, row);
     addCageCornerRegularisation (param.boundary_smoothness * 2.0, row);
+  }
+
+  time_end = clock ();
+  if (!m_quiet)
+  {
+    double solve_time = (double)(time_end - time_start) / (double)(CLOCKS_PER_SEC);
+    printf ("[FittingSurface::assemble()] (assemble (%d,%d): %f sec)\n", nrows, ncp, solve_time);
   }
 }
 
@@ -276,7 +273,7 @@ FittingSurface::assembleInterior (double wInt, unsigned &row)
   m_data->interior_line_end.clear ();
   m_data->interior_error.clear ();
   m_data->interior_normals.clear ();
-  unsigned nInt = static_cast<unsigned> (m_data->interior.size ());
+  unsigned nInt = m_data->interior.size ();
   for (unsigned p = 0; p < nInt; p++)
   {
     Vector3d &pcp = m_data->interior[p];
@@ -320,7 +317,7 @@ FittingSurface::assembleBoundary (double wBnd, unsigned &row)
   m_data->boundary_line_end.clear ();
   m_data->boundary_error.clear ();
   m_data->boundary_normals.clear ();
-  unsigned nBnd = static_cast<unsigned> (m_data->boundary.size ());
+  unsigned nBnd = m_data->boundary.size ();
   for (unsigned p = 0; p < nBnd; p++)
   {
     Vector3d &pcp = m_data->boundary[p];
@@ -401,7 +398,7 @@ FittingSurface::initNurbsPCA (int order, NurbsDataSurface *m_data, Eigen::Vector
   Eigen::Matrix3d eigenvectors;
   Eigen::Vector3d eigenvalues;
 
-  unsigned s = static_cast<unsigned> (m_data->interior.size ());
+  unsigned s = m_data->interior.size ();
 
   NurbsTools::pca (m_data->interior, mean, eigenvectors, eigenvalues);
 
@@ -449,7 +446,7 @@ FittingSurface::initNurbsPCABoundingBox (int order, NurbsDataSurface *m_data, Ei
   Eigen::Matrix3d eigenvectors;
   Eigen::Vector3d eigenvalues;
 
-  unsigned s = static_cast<unsigned> (m_data->interior.size ());
+  unsigned s = m_data->interior.size ();
   m_data->interior_param.clear ();
 
   NurbsTools::pca (m_data->interior, mean, eigenvectors, eigenvalues);
@@ -464,11 +461,11 @@ FittingSurface::initNurbsPCABoundingBox (int order, NurbsDataSurface *m_data, Ei
   eigenvalues = eigenvalues / s; // seems that the eigenvalues are dependent on the number of points (???)
   Eigen::Matrix3d eigenvectors_inv = eigenvectors.inverse ();
 
-  Eigen::Vector3d v_max (-DBL_MAX, -DBL_MAX, -DBL_MAX);
+  Eigen::Vector3d v_max (0.0, 0.0, 0.0);
   Eigen::Vector3d v_min (DBL_MAX, DBL_MAX, DBL_MAX);
   for (unsigned i = 0; i < s; i++)
   {
-    Eigen::Vector3d p (eigenvectors_inv * (m_data->interior[i] - mean));
+    Eigen::Vector3d p = eigenvectors_inv * (m_data->interior[i] - mean);
     m_data->interior_param.push_back (Eigen::Vector2d (p (0), p (1)));
 
     if (p (0) > v_max (0))
@@ -529,8 +526,8 @@ void
 FittingSurface::addPointConstraint (const Eigen::Vector2d &params, const Eigen::Vector3d &point, double weight,
                                     unsigned &row)
 {
-  double *N0 = new double[m_nurbs.Order (0) * m_nurbs.Order (0)];
-  double *N1 = new double[m_nurbs.Order (1) * m_nurbs.Order (1)];
+  double N0[m_nurbs.Order (0) * m_nurbs.Order (0)];
+  double N1[m_nurbs.Order (1) * m_nurbs.Order (1)];
 
   int E = ON_NurbsSpanIndex (m_nurbs.m_order[0], m_nurbs.m_cv_count[0], m_nurbs.m_knot[0], params (0), 0, 0);
   int F = ON_NurbsSpanIndex (m_nurbs.m_order[1], m_nurbs.m_cv_count[1], m_nurbs.m_knot[1], params (1), 0, 0);
@@ -556,8 +553,6 @@ FittingSurface::addPointConstraint (const Eigen::Vector2d &params, const Eigen::
 
   row++;
 
-  delete [] N1;
-  delete [] N0;
 }
 
 //void FittingSurface::addBoundaryPointConstraint(double paramU, double paramV, double weight, unsigned &row)
@@ -742,8 +737,8 @@ FittingSurface::addCageCornerRegularisation (double weight, unsigned &row)
 void
 FittingSurface::addInteriorRegularisation (int order, int resU, int resV, double weight, unsigned &row)
 {
-  double *N0 = new double[m_nurbs.Order (0) * m_nurbs.Order (0)];
-  double *N1 = new double[m_nurbs.Order (1) * m_nurbs.Order (1)];
+  double N0[m_nurbs.Order (0) * m_nurbs.Order (0)];
+  double N1[m_nurbs.Order (1) * m_nurbs.Order (1)];
 
   double dU = (m_maxU - m_minU) / resU;
   double dV = (m_maxV - m_minV) / resV;
@@ -789,15 +784,13 @@ FittingSurface::addInteriorRegularisation (int order, int resU, int resV, double
     }
   }
 
-  delete [] N1;
-  delete [] N0;
 }
 
 void
 FittingSurface::addBoundaryRegularisation (int order, int resU, int resV, double weight, unsigned &row)
 {
-  double *N0 = new double[m_nurbs.Order (0) * m_nurbs.Order (0)];
-  double *N1 = new double[m_nurbs.Order (1) * m_nurbs.Order (1)];
+  double N0[m_nurbs.Order (0) * m_nurbs.Order (0)];
+  double N1[m_nurbs.Order (1) * m_nurbs.Order (1)];
 
   double dU = (m_maxU - m_minU) / resU;
   double dV = (m_maxV - m_minV) / resV;
@@ -946,8 +939,6 @@ FittingSurface::addBoundaryRegularisation (int order, int resU, int resV, double
 
   }
 
-  delete [] N1;
-  delete [] N0;
 }
 
 Vector2d
@@ -1022,84 +1013,6 @@ FittingSurface::inverseMapping (const ON_NurbsSurface &nurbs, const Vector3d &pt
   }
 
   error = r.norm ();
-
-  if (!quiet)
-  {
-    printf ("[FittingSurface::inverseMapping] Warning: Method did not converge (%e %d)\n", accuracy, maxSteps);
-    printf ("  %f %f ... %f %f\n", hint (0), hint (1), current (0), current (1));
-  }
-
-  return current;
-
-}
-
-Vector2d
-FittingSurface::inverseMapping (const ON_NurbsSurface &nurbs, const Vector3d &pt, const Vector2d &hint, Vector3d &p,
-                                int maxSteps, double accuracy, bool quiet)
-{
-
-  double pointAndTangents[9];
-
-  Vector2d current, delta;
-  Matrix2d A;
-  Vector2d b;
-  Vector3d r, tu, tv;
-  std::vector<double> elementsU = getElementVector (nurbs, 0);
-  std::vector<double> elementsV = getElementVector (nurbs, 1);
-  double minU = elementsU[0];
-  double minV = elementsV[0];
-  double maxU = elementsU[elementsU.size () - 1];
-  double maxV = elementsV[elementsV.size () - 1];
-
-  current = hint;
-
-  for (int k = 0; k < maxSteps; k++)
-  {
-
-    nurbs.Evaluate (current (0), current (1), 1, 3, pointAndTangents);
-    p (0) = pointAndTangents[0];
-    p (1) = pointAndTangents[1];
-    p (2) = pointAndTangents[2];
-    tu (0) = pointAndTangents[3];
-    tu (1) = pointAndTangents[4];
-    tu (2) = pointAndTangents[5];
-    tv (0) = pointAndTangents[6];
-    tv (1) = pointAndTangents[7];
-    tv (2) = pointAndTangents[8];
-
-    r = p - pt;
-
-    b (0) = -r.dot (tu);
-    b (1) = -r.dot (tv);
-
-    A (0, 0) = tu.dot (tu);
-    A (0, 1) = tu.dot (tv);
-    A (1, 0) = A (0, 1);
-    A (1, 1) = tv.dot (tv);
-
-    delta = A.ldlt ().solve (b);
-
-    if (delta.norm () < accuracy)
-    {
-      return current;
-    }
-    else
-    {
-      current = current + delta;
-
-      if (current (0) < minU)
-        current (0) = minU;
-      else if (current (0) > maxU)
-        current (0) = maxU;
-
-      if (current (1) < minV)
-        current (1) = minV;
-      else if (current (1) > maxV)
-        current (1) = maxV;
-
-    }
-
-  }
 
   if (!quiet)
   {

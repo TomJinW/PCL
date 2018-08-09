@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2009-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -68,15 +67,14 @@ namespace pcl
   template <typename PointT, typename PointNT>
   class SampleConsensusModelNormalSphere : public SampleConsensusModelSphere<PointT>, public SampleConsensusModelFromNormals<PointT, PointNT>
   {
+    using SampleConsensusModel<PointT>::input_;
+    using SampleConsensusModel<PointT>::indices_;
+    using SampleConsensusModel<PointT>::radius_min_;
+    using SampleConsensusModel<PointT>::radius_max_;
+    using SampleConsensusModelFromNormals<PointT, PointNT>::normals_;
+    using SampleConsensusModelFromNormals<PointT, PointNT>::normal_distance_weight_;
+
     public:
-      using SampleConsensusModel<PointT>::model_name_;
-      using SampleConsensusModel<PointT>::input_;
-      using SampleConsensusModel<PointT>::indices_;
-      using SampleConsensusModel<PointT>::radius_min_;
-      using SampleConsensusModel<PointT>::radius_max_;
-      using SampleConsensusModelFromNormals<PointT, PointNT>::normals_;
-      using SampleConsensusModelFromNormals<PointT, PointNT>::normal_distance_weight_;
-      using SampleConsensusModel<PointT>::error_sqr_dists_;
 
       typedef typename SampleConsensusModel<PointT>::PointCloud PointCloud;
       typedef typename SampleConsensusModel<PointT>::PointCloudPtr PointCloudPtr;
@@ -89,36 +87,18 @@ namespace pcl
 
       /** \brief Constructor for base SampleConsensusModelNormalSphere.
         * \param[in] cloud the input point cloud dataset
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelNormalSphere (const PointCloudConstPtr &cloud, 
-                                        bool random = false) 
-        : SampleConsensusModelSphere<PointT> (cloud, random)
-        , SampleConsensusModelFromNormals<PointT, PointNT> ()
+      SampleConsensusModelNormalSphere (const PointCloudConstPtr &cloud) : SampleConsensusModelSphere<PointT> (cloud)
       {
-        model_name_ = "SampleConsensusModelNormalSphere";
-        sample_size_ = 4;
-        model_size_ = 4;
       }
 
       /** \brief Constructor for base SampleConsensusModelNormalSphere.
         * \param[in] cloud the input point cloud dataset
         * \param[in] indices a vector of point indices to be used from \a cloud
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelNormalSphere (const PointCloudConstPtr &cloud, 
-                                        const std::vector<int> &indices,
-                                        bool random = false) 
-        : SampleConsensusModelSphere<PointT> (cloud, indices, random)
-        , SampleConsensusModelFromNormals<PointT, PointNT> ()
+      SampleConsensusModelNormalSphere (const PointCloudConstPtr &cloud, const std::vector<int> &indices) : SampleConsensusModelSphere<PointT> (cloud, indices)
       {
-        model_name_ = "SampleConsensusModelNormalSphere";
-        sample_size_ = 4;
-        model_size_ = 4;
       }
-      
-      /** \brief Empty destructor */
-      virtual ~SampleConsensusModelNormalSphere () {}
 
       /** \brief Select all the points which respect the given model coefficients as inliers.
         * \param[in] model_coefficients the coefficients of a sphere model that we need to compute distances to
@@ -136,16 +116,16 @@ namespace pcl
         * \return the resultant number of inliers
         */
       virtual int
-      countWithinDistance (const Eigen::VectorXf &model_coefficients,
-                           const double threshold) const;
+      countWithinDistance (const Eigen::VectorXf &model_coefficients, 
+                           const double threshold);
 
       /** \brief Compute all distances from the cloud data to a given sphere model.
         * \param[in] model_coefficients the coefficients of a sphere model that we need to compute distances to
         * \param[out] distances the resultant estimated distances
         */
-      void
-      getDistancesToModel (const Eigen::VectorXf &model_coefficients,
-                           std::vector<double> &distances) const;
+      void 
+      getDistancesToModel (const Eigen::VectorXf &model_coefficients, 
+                           std::vector<double> &distances);
 
       /** \brief Return an unique id for this model (SACMODEL_NORMAL_SPHERE). */
       inline pcl::SacModel 
@@ -154,20 +134,13 @@ namespace pcl
     	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     protected:
-      using SampleConsensusModel<PointT>::sample_size_;
-      using SampleConsensusModel<PointT>::model_size_;
-
       /** \brief Check whether a model is valid given the user constraints.
         * \param[in] model_coefficients the set of model coefficients
         */
-      virtual bool
-      isModelValid (const Eigen::VectorXf &model_coefficients) const;
+      bool 
+      isModelValid (const Eigen::VectorXf &model_coefficients);
 
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/sample_consensus/impl/sac_model_normal_sphere.hpp>
-#endif
 
 #endif  //#ifndef PCL_SAMPLE_CONSENSUS_MODEL_NORMALSPHERE_H_

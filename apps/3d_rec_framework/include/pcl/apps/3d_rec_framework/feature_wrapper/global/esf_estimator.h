@@ -25,7 +25,7 @@ namespace pcl
         void
         estimate (PointInTPtr & in, PointInTPtr & processed,
                   typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
-                  std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > & centroids)
+                  std::vector<Eigen::Vector3f> & centroids)
         {
 
           typedef typename pcl::ESFEstimation<PointInT, FeatureT> ESFEstimation;
@@ -44,8 +44,7 @@ namespace pcl
           pcl::compute3DCentroid (*in, centroid4f);
           centroids[0] = Eigen::Vector3f (centroid4f[0], centroid4f[1], centroid4f[2]);
 
-          pcl::copyPointCloud(*in, *processed);
-          //processed = in;
+          processed = in;
         }
 
         bool

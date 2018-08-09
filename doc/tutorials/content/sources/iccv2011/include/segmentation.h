@@ -26,7 +26,7 @@
 pcl::ModelCoefficients::Ptr
 fitPlane (const PointCloudPtr & input, float distance_threshold, float max_iterations)
 {
-  // Initialize the SACSegmentation object
+  // Intialize the SACSegmentation object
   pcl::SACSegmentation<PointT> seg;
   seg.setOptimizeCoefficients (true);
   seg.setModelType (pcl::SACMODEL_PLANE);

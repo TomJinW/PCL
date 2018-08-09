@@ -37,7 +37,7 @@
 #ifndef PCL_MODELER_DOCK_WIDGET_H_
 #define PCL_MODELER_DOCK_WIDGET_H_
 
-#include <pcl/apps/modeler/qt.h>
+#include <QDockWidget>
 
 namespace pcl
 {

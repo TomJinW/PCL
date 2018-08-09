@@ -33,6 +33,8 @@
  *
  */
 
+#include <boost/thread/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/openni_grabber.h>
@@ -40,7 +42,7 @@
 #include <pcl/io/openni_camera/openni_driver.h>
 #include <pcl/console/parse.h>
 #include <pcl/common/time.h>
-#include <pcl/surface/mls.h>
+#include <pcl/surface/mls_omp.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
 #define FPS_CALC(_WHAT_) \
@@ -96,6 +98,7 @@ class OpenNISmoothing
     , device_id_(device_id)
     {
       // Start 4 threads
+      smoother_.setNumberOfThreads (4);
       smoother_.setSearchRadius (search_radius);
       if (sqr_gauss_param_set) smoother_.setSqrGaussParam (sqr_gauss_param);
       smoother_.setPolynomialFit (use_polynomial_fit);
@@ -162,7 +165,7 @@ class OpenNISmoothing
       interface->stop ();
     }
 
-    pcl::MovingLeastSquares<PointType, PointType> smoother_;
+    pcl::MovingLeastSquaresOMP<PointType, PointType> smoother_;
     pcl::visualization::PCLVisualizer viewer;
     std::string device_id_;
     boost::mutex mtx_;

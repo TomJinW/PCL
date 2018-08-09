@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -43,7 +42,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 void
-getFieldsSizes (const std::vector<pcl::PCLPointField> &fields,
+getFieldsSizes (const std::vector<sensor_msgs::PointField> &fields,
                 std::vector<int> &fields_sizes)
 {
   int valid = 0;
@@ -60,16 +59,16 @@ getFieldsSizes (const std::vector<pcl::PCLPointField> &fields,
   fields_sizes.resize (valid);
 }
 
-bool fieldComp (const pcl::PCLPointField* i, const pcl::PCLPointField* j)
+bool fieldComp (const sensor_msgs::PointField* i, const sensor_msgs::PointField* j)
 {
   return i->offset < j->offset;
 }
 
 //////////////////////////////////////////////////////////////////////////
 bool
-pcl::concatenateFields (const pcl::PCLPointCloud2 &cloud1,
-                        const pcl::PCLPointCloud2 &cloud2,
-                        pcl::PCLPointCloud2 &cloud_out)
+pcl::concatenateFields (const sensor_msgs::PointCloud2 &cloud1, 
+                        const sensor_msgs::PointCloud2 &cloud2, 
+                        sensor_msgs::PointCloud2 &cloud_out)
 {
   // If the cloud's sizes differ (points wise), then exit with error
   if (cloud1.width != cloud2.width || cloud1.height != cloud2.height)
@@ -99,13 +98,13 @@ pcl::concatenateFields (const pcl::PCLPointCloud2 &cloud1,
 
   //for the non-matching fields in cloud1, we need to store the offset
   //from the beginning of the point
-  std::vector<const pcl::PCLPointField*> cloud1_unique_fields;
+  std::vector<const sensor_msgs::PointField*> cloud1_unique_fields;
   std::vector<int> field_sizes;
 
   //We need to make sure that the fields for cloud 1 are sorted
   //by offset so that we can compute sizes correctly. There is no
   //guarantee that the fields are in the correct order when they come in
-  std::vector<const pcl::PCLPointField*> cloud1_fields_sorted;
+  std::vector<const sensor_msgs::PointField*> cloud1_fields_sorted;
   for (size_t i = 0; i < cloud1.fields.size (); ++i)
     cloud1_fields_sorted.push_back (&(cloud1.fields[i]));
 
@@ -171,7 +170,7 @@ pcl::concatenateFields (const pcl::PCLPointCloud2 &cloud1,
 
   for (size_t d = 0; d < cloud1_unique_fields.size (); ++d)
   {
-    const pcl::PCLPointField& f = *cloud1_unique_fields[d];
+    const sensor_msgs::PointField& f = *cloud1_unique_fields[d];
     cloud_out.fields[cloud2.fields.size () + d].name = f.name;
     cloud_out.fields[cloud2.fields.size () + d].datatype = f.datatype;
     cloud_out.fields[cloud2.fields.size () + d].count = f.count;
@@ -191,7 +190,7 @@ pcl::concatenateFields (const pcl::PCLPointCloud2 &cloud1,
     // since some fields are not unique
     for (size_t i = 0; i < cloud1_unique_fields.size (); ++i)
     {
-      const pcl::PCLPointField& f = *cloud1_unique_fields[i];
+      const sensor_msgs::PointField& f = *cloud1_unique_fields[i];
       int local_data_size = f.count * pcl::getFieldSize (f.datatype);
       int padding_size = field_sizes[i] - local_data_size;
       
@@ -216,40 +215,29 @@ pcl::concatenateFields (const pcl::PCLPointCloud2 &cloud1,
 
 //////////////////////////////////////////////////////////////////////////
 bool
-pcl::concatenatePointCloud (const pcl::PCLPointCloud2 &cloud1,
-                            const pcl::PCLPointCloud2 &cloud2,
-                            pcl::PCLPointCloud2 &cloud_out)
+pcl::concatenatePointCloud (const sensor_msgs::PointCloud2 &cloud1, 
+                            const sensor_msgs::PointCloud2 &cloud2, 
+                            sensor_msgs::PointCloud2 &cloud_out)
 {
-  //if one input cloud has no points, but the other input does, just return the cloud with points
-  if (cloud1.width*cloud1.height == 0 && cloud2.width*cloud2.height > 0)
-  {
-    cloud_out = cloud2;
-    return (true);
-  }
-  else if (cloud1.width*cloud1.height > 0 && cloud2.width*cloud2.height == 0)
-  {
-    cloud_out = cloud1;
-    return (true);
-  }
-
-  bool strip = false;
-  for (size_t i = 0; i < cloud1.fields.size (); ++i)
-    if (cloud1.fields[i].name == "_")
-      strip = true;
-
-  for (size_t i = 0; i < cloud2.fields.size (); ++i)
-    if (cloud2.fields[i].name == "_")
-      strip = true;
-
-  if (!strip && cloud1.fields.size () != cloud2.fields.size ())
+  if (cloud1.fields.size () != cloud2.fields.size ())
   {
     PCL_ERROR ("[pcl::concatenatePointCloud] Number of fields in cloud1 (%u) != Number of fields in cloud2 (%u)\n", cloud1.fields.size (), cloud2.fields.size ());
     return (false);
   }
   
+  for (size_t i = 0; i < cloud1.fields.size (); ++i)
+    if (cloud1.fields[i].name != cloud2.fields[i].name)
+    {
+      PCL_ERROR ("[pcl::concatenatePointCloud] Name of field %d in cloud1, %s, does not match name in cloud2, %s\n", i, cloud1.fields[i].name.c_str (), cloud2.fields[i].name.c_str () );      
+      return (false);
+    }
+  
   // Copy cloud1 into cloud_out
   cloud_out = cloud1;
   size_t nrpts = cloud_out.data.size ();
+  cloud_out.data.resize (nrpts + cloud2.data.size ());
+  memcpy (&cloud_out.data[nrpts], &cloud2.data[0], cloud2.data.size ());
+
   // Height = 1 => no more organized
   cloud_out.width    = cloud1.width * cloud1.height + cloud2.width * cloud2.height;
   cloud_out.height   = 1;
@@ -258,74 +246,12 @@ pcl::concatenatePointCloud (const pcl::PCLPointCloud2 &cloud1,
   else
     cloud_out.is_dense = true;
 
-  // We need to strip the extra padding fields
-  if (strip)
-  {
-    // Get the field sizes for the second cloud
-    std::vector<pcl::PCLPointField> fields2;
-    std::vector<int> fields2_sizes;
-    for (size_t j = 0; j < cloud2.fields.size (); ++j)
-    {
-      if (cloud2.fields[j].name == "_")
-        continue;
-
-      fields2_sizes.push_back (cloud2.fields[j].count * 
-                               pcl::getFieldSize (cloud2.fields[j].datatype));
-      fields2.push_back (cloud2.fields[j]);
-    }
-
-    cloud_out.data.resize (nrpts + (cloud2.width * cloud2.height) * cloud_out.point_step);
-
-    // Copy the second cloud
-    for (size_t cp = 0; cp < cloud2.width * cloud2.height; ++cp)
-    {
-      int i = 0;
-      for (size_t j = 0; j < fields2.size (); ++j)
-      {
-        if (cloud1.fields[i].name == "_")
-        {
-          ++i;
-          continue;
-        }
-
-        // We're fine with the special RGB vs RGBA use case
-        if ((cloud1.fields[i].name == "rgb" && fields2[j].name == "rgba") ||
-            (cloud1.fields[i].name == "rgba" && fields2[j].name == "rgb") ||
-            (cloud1.fields[i].name == fields2[j].name))
-        {
-          memcpy (reinterpret_cast<char*> (&cloud_out.data[nrpts + cp * cloud1.point_step + cloud1.fields[i].offset]), 
-                  reinterpret_cast<const char*> (&cloud2.data[cp * cloud2.point_step + cloud2.fields[j].offset]), 
-                  fields2_sizes[j]);
-          ++i;  // increment the field size i
-        }
-      }
-    }
-  }
-  else
-  {
-    for (size_t i = 0; i < cloud1.fields.size (); ++i)
-    {
-      // We're fine with the special RGB vs RGBA use case
-      if ((cloud1.fields[i].name == "rgb" && cloud2.fields[i].name == "rgba") ||
-          (cloud1.fields[i].name == "rgba" && cloud2.fields[i].name == "rgb"))
-        continue;
-      // Otherwise we need to make sure the names are the same
-      if (cloud1.fields[i].name != cloud2.fields[i].name)
-      {
-        PCL_ERROR ("[pcl::concatenatePointCloud] Name of field %d in cloud1, %s, does not match name in cloud2, %s\n", i, cloud1.fields[i].name.c_str (), cloud2.fields[i].name.c_str ());      
-        return (false);
-      }
-    }
-    
-    cloud_out.data.resize (nrpts + cloud2.data.size ());
-    memcpy (&cloud_out.data[nrpts], &cloud2.data[0], cloud2.data.size ());
-  }
   return (true);
 }
 
 //////////////////////////////////////////////////////////////////////////
 bool
-pcl::getPointCloudAsEigen (const pcl::PCLPointCloud2 &in, Eigen::MatrixXf &out)
+pcl::getPointCloudAsEigen (const sensor_msgs::PointCloud2 &in, Eigen::MatrixXf &out)
 {
   // Get X-Y-Z indices
   int x_idx = getFieldIndex (in, "x");
@@ -338,9 +264,9 @@ pcl::getPointCloudAsEigen (const pcl::PCLPointCloud2 &in, Eigen::MatrixXf &out)
     return (false);
   }
 
-  if (in.fields[x_idx].datatype != pcl::PCLPointField::FLOAT32 ||
-      in.fields[y_idx].datatype != pcl::PCLPointField::FLOAT32 ||
-      in.fields[z_idx].datatype != pcl::PCLPointField::FLOAT32)
+  if (in.fields[x_idx].datatype != sensor_msgs::PointField::FLOAT32 || 
+      in.fields[y_idx].datatype != sensor_msgs::PointField::FLOAT32 || 
+      in.fields[z_idx].datatype != sensor_msgs::PointField::FLOAT32)
   {
     PCL_ERROR ("X-Y-Z coordinates not floats. Currently only floats are supported.\n");
     return (false);
@@ -367,7 +293,7 @@ pcl::getPointCloudAsEigen (const pcl::PCLPointCloud2 &in, Eigen::MatrixXf &out)
 
 //////////////////////////////////////////////////////////////////////////
 bool 
-pcl::getEigenAsPointCloud (Eigen::MatrixXf &in, pcl::PCLPointCloud2 &out)
+pcl::getEigenAsPointCloud (Eigen::MatrixXf &in, sensor_msgs::PointCloud2 &out)
 {
   // Get X-Y-Z indices
   int x_idx = getFieldIndex (out, "x");
@@ -380,9 +306,9 @@ pcl::getEigenAsPointCloud (Eigen::MatrixXf &in, pcl::PCLPointCloud2 &out)
     return (false);
   }
 
-  if (out.fields[x_idx].datatype != pcl::PCLPointField::FLOAT32 ||
-      out.fields[y_idx].datatype != pcl::PCLPointField::FLOAT32 ||
-      out.fields[z_idx].datatype != pcl::PCLPointField::FLOAT32)
+  if (out.fields[x_idx].datatype != sensor_msgs::PointField::FLOAT32 || 
+      out.fields[y_idx].datatype != sensor_msgs::PointField::FLOAT32 || 
+      out.fields[z_idx].datatype != sensor_msgs::PointField::FLOAT32)
   {
     PCL_ERROR ("X-Y-Z coordinates not floats. Currently only floats are supported.\n");
     return (false);
@@ -415,9 +341,8 @@ pcl::getEigenAsPointCloud (Eigen::MatrixXf &in, pcl::PCLPointCloud2 &out)
 //////////////////////////////////////////////////////////////////////////
 void 
 pcl::copyPointCloud (
-    const pcl::PCLPointCloud2 &cloud_in,
-    const std::vector<int> &indices, 
-    pcl::PCLPointCloud2 &cloud_out)
+    const sensor_msgs::PointCloud2 &cloud_in, const std::vector<int> &indices, 
+    sensor_msgs::PointCloud2 &cloud_out)
 {
   cloud_out.header       = cloud_in.header;
   cloud_out.height       = 1;
@@ -425,43 +350,30 @@ pcl::copyPointCloud (
   cloud_out.fields       = cloud_in.fields;
   cloud_out.is_bigendian = cloud_in.is_bigendian;
   cloud_out.point_step   = cloud_in.point_step;
-  cloud_out.row_step     = cloud_in.point_step * static_cast<uint32_t> (indices.size ());
-  cloud_out.is_dense     = cloud_in.is_dense;
+  cloud_out.row_step     = cloud_in.row_step;
+  if (cloud_in.is_dense)
+    cloud_out.is_dense = true;
+  else
+    // It's not necessarily true that is_dense is false if cloud_in.is_dense is false
+    // To verify this, we would need to iterate over all points and check for NaNs
+    cloud_out.is_dense = false;
 
   cloud_out.data.resize (cloud_out.width * cloud_out.height * cloud_out.point_step);
 
   // Iterate over each point
   for (size_t i = 0; i < indices.size (); ++i)
+  {
     memcpy (&cloud_out.data[i * cloud_out.point_step], &cloud_in.data[indices[i] * cloud_in.point_step], cloud_in.point_step);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void 
-pcl::copyPointCloud (
-    const pcl::PCLPointCloud2 &cloud_in,
-    const std::vector<int, Eigen::aligned_allocator<int> > &indices, 
-    pcl::PCLPointCloud2 &cloud_out)
-{
-  cloud_out.header       = cloud_in.header;
-  cloud_out.height       = 1;
-  cloud_out.width        = static_cast<uint32_t> (indices.size ()); 
-  cloud_out.fields       = cloud_in.fields;
-  cloud_out.is_bigendian = cloud_in.is_bigendian;
-  cloud_out.point_step   = cloud_in.point_step;
-  cloud_out.row_step     = cloud_in.point_step * static_cast<uint32_t> (indices.size ());
-  cloud_out.is_dense     = cloud_in.is_dense;
-
-  cloud_out.data.resize (cloud_out.width * cloud_out.height * cloud_out.point_step);
-
-  // Iterate over each point
-  for (size_t i = 0; i < indices.size (); ++i)
-    memcpy (&cloud_out.data[i * cloud_out.point_step], &cloud_in.data[indices[i] * cloud_in.point_step], cloud_in.point_step);
+    // Check for NaNs, set is_dense to true/false based on this
+    // ...
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void 
-pcl::copyPointCloud (const pcl::PCLPointCloud2 &cloud_in,
-                     pcl::PCLPointCloud2 &cloud_out)
+pcl::copyPointCloud (
+    const sensor_msgs::PointCloud2 &cloud_in, 
+    sensor_msgs::PointCloud2 &cloud_out)
 {
   cloud_out.header       = cloud_in.header;
   cloud_out.height       = cloud_in.height;
@@ -470,48 +382,14 @@ pcl::copyPointCloud (const pcl::PCLPointCloud2 &cloud_in,
   cloud_out.is_bigendian = cloud_in.is_bigendian;
   cloud_out.point_step   = cloud_in.point_step;
   cloud_out.row_step     = cloud_in.row_step;
-  cloud_out.is_dense     = cloud_in.is_dense;
-  cloud_out.data         = cloud_in.data;
-}
 
-////////////////////////////////////////////////////////////////////////////////
-int
-pcl::interpolatePointIndex (int p, int len, InterpolationType type)
-{
-  if (static_cast<unsigned> (p) >= static_cast<unsigned> (len))
-  {
-    if (type == BORDER_REPLICATE)
-      p = p < 0 ? 0 : len - 1;
-    else if (type == BORDER_REFLECT || type == BORDER_REFLECT_101)
-    {
-      int delta = type == BORDER_REFLECT_101;
-      if (len == 1)
-        return 0;
-      do
-      {
-        if (p < 0)
-          p = -p - 1 + delta;
-        else
-          p = len - 1 - (p - len) - delta;
-      }
-      while (static_cast<unsigned> (p) >= static_cast<unsigned> (len));
-    }
-    else if (type == BORDER_WRAP)
-    {
-      if (p < 0)
-        p -= ((p-len+1)/len)*len;
-      if (p >= len)
-        p %= len;
-    }
-    else if (type == BORDER_CONSTANT)
-      p = -1;
-    else
-    {
-      PCL_THROW_EXCEPTION (BadArgumentException,
-                           "[pcl::interpolate_point_index] error: Unhandled interpolation type "
-                           << type << " !");
-    }
-  }
+  if (cloud_in.is_dense)
+    cloud_out.is_dense = true;
+  else
+    cloud_out.is_dense = false;
 
-  return (p);
+  cloud_out.data.resize (cloud_out.width * cloud_out.height * cloud_out.point_step);
+
+  //copy the data directly
+  memcpy ( &cloud_out.data[0], &cloud_in.data[0], cloud_in.point_step * cloud_in.width * cloud_in.height );
 }

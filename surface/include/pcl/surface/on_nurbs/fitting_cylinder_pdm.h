@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,14 +31,13 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
 #ifndef NURBS_FITTING_CYLINDER_H
 #define NURBS_FITTING_CYLINDER_H
 
-#include <pcl/pcl_exports.h>
 #include <pcl/surface/on_nurbs/nurbs_tools.h>
 #include <pcl/surface/on_nurbs/nurbs_data.h>
 #include <pcl/surface/on_nurbs/nurbs_solve.h>
@@ -53,7 +52,7 @@ namespace pcl
      *  Based on paper: TODO
      * \author Thomas Mörwald
      * \ingroup surface     */
-    class PCL_EXPORTS FittingCylinder
+    class FittingCylinder
     {
     public:
 
@@ -121,10 +120,6 @@ namespace pcl
       /** \brief Initializing a cylindric B-Spline surface using principal-component-analysis and eigen values */
       static ON_NurbsSurface
       initNurbsPCACylinder (int order, NurbsDataSurface *data);
-
-      /** \brief Initializing a cylindric B-Spline surface using given axes. First axis provided becomes cylinder axis */
-      static ON_NurbsSurface
-        initNurbsCylinderWithAxes (int order, NurbsDataSurface *data, Eigen::Matrix3d &axes);
 
       /** \brief Get the elements of a cylindric B-Spline surface.*/
       static std::vector<double>

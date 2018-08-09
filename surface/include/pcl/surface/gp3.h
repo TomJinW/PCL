@@ -42,16 +42,20 @@
 
 // PCL includes
 #include <pcl/surface/reconstruction.h>
-#include <pcl/surface/boost.h>
 
-#include <pcl/conversions.h>
+#include <pcl/ros/conversions.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/PolygonMesh.h>
+#include <pcl/TextureMesh.h>
+#include <boost/function.hpp>
 
 #include <fstream>
 #include <iostream>
 
+// add by ktran to export update function
+#include <pcl/pcl_macros.h>
+#include <pcl/point_types.h>
 
 
 namespace pcl
@@ -60,8 +64,8 @@ namespace pcl
     * when taking into account the segment between the points S1 and S2
     * \param X 2D coordinate of the point
     * \param S1 2D coordinate of the segment's first point
-    * \param S2 2D coordinate of the segment's second point
-    * \param R 2D coordinate of the reference point (defaults to 0,0)
+    * \param S2 2D coordinate of the segment's secont point
+    * \param R 2D coorddinate of the reference point (defaults to 0,0)
     * \ingroup surface
     */
   inline bool 
@@ -138,9 +142,6 @@ namespace pcl
   class GreedyProjectionTriangulation : public MeshConstruction<PointInT>
   {
     public:
-      typedef boost::shared_ptr<GreedyProjectionTriangulation<PointInT> > Ptr;
-      typedef boost::shared_ptr<const GreedyProjectionTriangulation<PointInT> > ConstPtr;
-
       using MeshConstruction<PointInT>::tree_;
       using MeshConstruction<PointInT>::input_;
       using MeshConstruction<PointInT>::indices_;
@@ -152,7 +153,9 @@ namespace pcl
       typedef typename PointCloudIn::Ptr PointCloudInPtr;
       typedef typename PointCloudIn::ConstPtr PointCloudInConstPtr;
 
-      enum GP3Type
+      // FIXME this enum should have a type.  Not be anonymous. 
+      // Otherplaces where consts are used probably should be fixed.
+      enum 
       { 
         NONE = -1,    // not-defined
         FREE = 0,    
@@ -210,7 +213,7 @@ namespace pcl
 
       /** \brief Get the nearest neighbor distance multiplier. */
       inline double 
-      getMu () const { return (mu_); }
+      getMu () { return (mu_); }
 
       /** \brief Set the maximum number of nearest neighbors to be searched for.
         * \param[in] nnn the maximum number of nearest neighbors
@@ -220,7 +223,7 @@ namespace pcl
 
       /** \brief Get the maximum number of nearest neighbors to be searched for. */
       inline int 
-      getMaximumNearestNeighbors () const { return (nnn_); }
+      getMaximumNearestNeighbors () { return (nnn_); }
 
       /** \brief Set the sphere radius that is to be used for determining the k-nearest neighbors used for triangulating.
         * \param[in] radius the sphere radius that is to contain all k-nearest neighbors
@@ -231,7 +234,7 @@ namespace pcl
 
       /** \brief Get the sphere radius used for determining the k-nearest neighbors. */
       inline double 
-      getSearchRadius () const { return (search_radius_); }
+      getSearchRadius () { return (search_radius_); }
 
       /** \brief Set the minimum angle each triangle should have.
         * \param[in] minimum_angle the minimum angle each triangle should have
@@ -242,7 +245,7 @@ namespace pcl
 
       /** \brief Get the parameter for distance based weighting of neighbors. */
       inline double 
-      getMinimumAngle () const { return (minimum_angle_); }
+      getMinimumAngle () { return (minimum_angle_); }
 
       /** \brief Set the maximum angle each triangle can have.
         * \param[in] maximum_angle the maximum angle each triangle can have
@@ -253,7 +256,7 @@ namespace pcl
 
       /** \brief Get the parameter for distance based weighting of neighbors. */
       inline double 
-      getMaximumAngle () const { return (maximum_angle_); }
+      getMaximumAngle () { return (maximum_angle_); }
 
       /** \brief Don't consider points for triangulation if their normal deviates more than this value from the query point's normal.
         * \param[in] eps_angle maximum surface angle
@@ -265,7 +268,7 @@ namespace pcl
 
       /** \brief Get the maximum surface angle. */
       inline double 
-      getMaximumSurfaceAngle () const { return (eps_angle_); }
+      getMaximumSurfaceAngle () { return (eps_angle_); }
 
       /** \brief Set the flag if the input normals are oriented consistently.
         * \param[in] consistent set it to true if the normals are consistently oriented
@@ -275,7 +278,7 @@ namespace pcl
 
       /** \brief Get the flag for consistently oriented normals. */
       inline bool 
-      getNormalConsistency () const { return (consistent_); }
+      getNormalConsistency () { return (consistent_); }
 
       /** \brief Set the flag to order the resulting triangle vertices consistently (positive direction around normal).
         * @note Assumes consistently oriented normals (towards the viewpoint) -- see setNormalConsistency ()
@@ -286,28 +289,28 @@ namespace pcl
 
       /** \brief Get the flag signaling consistently ordered triangle vertices. */
       inline bool 
-      getConsistentVertexOrdering () const { return (consistent_ordering_); }
+      getConsistentVertexOrdering () { return (consistent_ordering_); }
 
       /** \brief Get the state of each point after reconstruction.
         * \note Options are defined as constants: FREE, FRINGE, COMPLETED, BOUNDARY and NONE
         */
       inline std::vector<int> 
-      getPointStates () const { return (state_); }
+      getPointStates () { return (state_); }
 
       /** \brief Get the ID of each point after reconstruction.
         * \note parts are numbered from 0, a -1 denotes unconnected points
         */
       inline std::vector<int> 
-      getPartIDs () const { return (part_); }
+      getPartIDs () { return (part_); }
 
 
       /** \brief Get the sfn list. */
       inline std::vector<int>
-      getSFN () const { return (sfn_); }
+      getSFN () { return (sfn_); }
 
       /** \brief Get the ffn list. */
       inline std::vector<int>
-      getFFN () const { return (ffn_); }
+      getFFN () { return (ffn_); }
 
     protected:
       /** \brief The nearest neighbor distance multiplier to obtain the final search radius. */
@@ -358,7 +361,7 @@ namespace pcl
       /** \brief Temporary variable to store a triangle (as a set of point indices) **/
       pcl::Vertices triangle_;
       /** \brief Temporary variable to store point coordinates **/
-      std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > coords_;
+      std::vector<Eigen::Vector3f> coords_;
 
       /** \brief A list of angles to neighbors **/
       std::vector<nnAngle> angles_;
@@ -416,7 +419,7 @@ namespace pcl
       /** \brief 2D coordinates of the second fringe neighbor of the next point **/
       Eigen::Vector2f uvn_next_sfn_;
 
-      /** \brief Temporary variable to store 3 coordinates **/
+      /** \brief Temporary variable to store 3 coordiantes **/
       Eigen::Vector3f tmp_;
 
       /** \brief The actual surface reconstruction method.
@@ -539,10 +542,6 @@ namespace pcl
   };
 
 } // namespace pcl
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/surface/impl/gp3.hpp>
-#endif
 
 #endif  //#ifndef PCL_GP3_H_
 

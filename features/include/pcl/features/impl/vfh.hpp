@@ -42,9 +42,8 @@
 #define PCL_FEATURES_IMPL_VFH_H_
 
 #include <pcl/features/vfh.h>
-#include <pcl/features/pfh_tools.h>
+#include <pcl/features/pfh.h>
 #include <pcl/common/common.h>
-#include <pcl/common/centroid.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointInT, typename PointNT, typename PointOutT> bool
@@ -182,7 +181,7 @@ template <typename PointInT, typename PointNT, typename PointOutT> void
 pcl::VFHEstimation<PointInT, PointNT, PointOutT>::computeFeature (PointCloudOut &output)
 {
   // ---[ Step 1a : compute the centroid in XYZ space
-  Eigen::Vector4f xyz_centroid (0, 0, 0, 0);
+  Eigen::Vector4f xyz_centroid;
 
   if (use_given_centroid_) 
     xyz_centroid = centroid_to_use_;

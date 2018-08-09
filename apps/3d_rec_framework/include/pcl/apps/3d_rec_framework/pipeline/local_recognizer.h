@@ -61,16 +61,11 @@ namespace pcl
         /** \brief Point-to-point correspondence grouping algorithm */
         typename boost::shared_ptr<CorrespondenceGrouping<PointInT, PointInT> > cg_algorithm_;
 
-        /** \brief Hypotheses verification algorithm */
+        /** \brief Point-to-point correspondence grouping algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointInT, PointInT> > hv_algorithm_;
 
         /** \brief Descriptor name */
         std::string descr_name_;
-
-        /** \brief Id of the model to be used */
-        std::string search_model_;
-
-        bool compute_table_plane_;
 
         class flann_model
         {
@@ -99,11 +94,6 @@ namespace pcl
         boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_;
 
         int kdtree_splits_;
-        float VOXEL_SIZE_ICP_;
-
-        PointInTPtr keypoints_input_;
-        PointInTPtr processed_;
-        typename pcl::PointCloud<FeatureT>::Ptr signatures_;
 
         //load features from disk and create flann structure
         void
@@ -147,18 +137,17 @@ namespace pcl
         void
         drawCorrespondences (PointInTPtr & cloud, ObjectHypothesis & oh, PointInTPtr & keypoints_pointcloud, pcl::Correspondences & correspondences)
         {
-          pcl::visualization::PCLVisualizer vis_corresp_;
-          vis_corresp_.setWindowName("correspondences...");
+          pcl::visualization::PCLVisualizer vis ("correspondences...");
           pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler (cloud, 255, 0, 0);
-          vis_corresp_.addPointCloud<PointInT> (cloud, random_handler, "points");
+          vis.addPointCloud<PointInT> (cloud, random_handler, "points");
 
           typename pcl::PointCloud<PointInT>::ConstPtr cloud_sampled;
           cloud_sampled = oh.model_.getAssembled (0.0025f);
 
           pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler_sampled (cloud_sampled, 0, 0, 255);
-          vis_corresp_.addPointCloud<PointInT> (cloud_sampled, random_handler_sampled, "sampled");
+          vis.addPointCloud<PointInT> (cloud_sampled, random_handler_sampled, "sampled");
 
-          for (size_t kk = 0; kk < correspondences.size (); kk++)
+          for (size_t kk = 0; kk < correspondences.size (); kk += 10)
           {
             pcl::PointXYZ p;
             p.getVector4fMap () = oh.correspondences_pointcloud->points[correspondences[kk].index_query].getVector4fMap ();
@@ -168,13 +157,10 @@ namespace pcl
             std::stringstream line_name;
             line_name << "line_" << kk;
 
-            vis_corresp_.addLine<pcl::PointXYZ, pcl::PointXYZ> (p_scene, p, line_name.str ());
+            vis.addLine<pcl::PointXYZ, pcl::PointXYZ> (p_scene, p, line_name.str ());
           }
 
-          vis_corresp_.spin ();
-          vis_corresp_.removeAllPointClouds();
-          vis_corresp_.removeAllShapes();
-          vis_corresp_.close();
+          vis.spin ();
         }
 
       public:
@@ -185,30 +171,9 @@ namespace pcl
           threshold_accept_model_hypothesis_ = 0.2f;
           ICP_iterations_ = 30;
           kdtree_splits_ = 512;
-          search_model_ = "";
-          VOXEL_SIZE_ICP_ = 0.0025f;
-          compute_table_plane_ = false;
         }
 
-        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, PointInTPtr & keypoints)
-        {
-          keypoints_input_ = keypoints;
-          signatures_ = signatures;
-          processed_ = p;
-        }
-
-        void setVoxelSizeICP(float s) {
-          VOXEL_SIZE_ICP_ = s;
-        }
-        void
-        setSearchModel (std::string & id)
-        {
-          search_model_ = id;
-        }
-
-        void
-        setThresholdAcceptHyp (float t)
-        {
+        void setThresholdAcceptHyp(float t) {
           threshold_accept_model_hypothesis_ = t;
         }
 
@@ -217,16 +182,8 @@ namespace pcl
 
         }
 
-        void
-        setKdtreeSplits (int n)
-        {
+        void setKdtreeSplits(int n) {
           kdtree_splits_ = n;
-        }
-
-        void
-        setIndices (std::vector<int> & indices)
-        {
-          indices_ = indices;
         }
 
         void
@@ -322,19 +279,9 @@ namespace pcl
           training_dir_ = dir;
         }
 
-        void
-        setComputeTablePlane(bool b) {
-          compute_table_plane_ = b;
-        }
-
-        void
-        getProcessed(PointInTPtr & cloud) {
-          cloud = processed_;
-        }
-
         /**
          * \brief Initializes the FLANN structure from the provided source
-         * It does training for the models that haven't been trained yet
+         * It does training for the models that havent been trained yet
          */
 
         void

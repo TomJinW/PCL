@@ -35,8 +35,10 @@
 
 #include <pcl/io/openni_grabber.h>
 #include <pcl/visualization/cloud_viewer.h>
+#include <boost/thread/thread.hpp>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/io/io.h>
+#include <boost/make_shared.hpp>
 #include <pcl/common/time.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d.h>
@@ -73,7 +75,7 @@ class OpenNIOrganizedMultiPlaneSegmentation
       viewer->addPointCloud<PointT> (cloud, single_color, "cloud");
       viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud");
       viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_OPACITY, 0.15, "cloud");
-      viewer->addCoordinateSystem (1.0, "global");
+      viewer->addCoordinateSystem (1.0);
       viewer->initCameraParameters ();
       return (viewer);
     }
@@ -95,7 +97,7 @@ class OpenNIOrganizedMultiPlaneSegmentation
       char name[1024];
       for (size_t i = 0; i < prev_models_size; i++)
       {
-        sprintf (name, "normal_%lu", i);
+        sprintf (name, "normal_%zu", i);
         viewer->removeShape (name);
 
         sprintf (name, "plane_%02zu", i);
@@ -131,7 +133,7 @@ class OpenNIOrganizedMultiPlaneSegmentation
       mps.setAngularThreshold (0.017453 * 2.0); //3 degrees
       mps.setDistanceThreshold (0.02); //2cm
 
-      std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+      std::vector<pcl::PlanarRegion<PointT> > regions;
       pcl::PointCloud<PointT>::Ptr contour (new pcl::PointCloud<PointT>);
       size_t prev_models_size = 0;
       char name[1024];
@@ -173,7 +175,7 @@ class OpenNIOrganizedMultiPlaneSegmentation
             pcl::PointXYZ pt2 = pcl::PointXYZ (centroid[0] + (0.5f * model[0]),
                                                centroid[1] + (0.5f * model[1]),
                                                centroid[2] + (0.5f * model[2]));
-            sprintf (name, "normal_%lu", i);
+            sprintf (name, "normal_%zu", i);
             viewer->addArrow (pt2, pt1, 1.0, 0, 0, false, name);
 
             contour->points = regions[i].getContour ();

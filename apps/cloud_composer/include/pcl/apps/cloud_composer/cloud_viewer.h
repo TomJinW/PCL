@@ -38,10 +38,12 @@
 #ifndef CLOUD_VIEWER_H_
 #define CLOUD_VIEWER_H_
 
+
+#include <QTabWidget>
+
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/apps/cloud_composer/project_model.h>
 #include <pcl/apps/cloud_composer/cloud_view.h>
-#include <pcl/apps/cloud_composer/qt.h>
 
 namespace pcl
 {
@@ -62,17 +64,15 @@ namespace pcl
         virtual ~CloudViewer();
         ProjectModel* getModel () const;
 
-      public Q_SLOTS:
+      public slots:
         void 
         addModel (ProjectModel* new_model);
-        
+        void 
+        setModel (ProjectModel* new_model);
         void 
         modelChanged (int index);
         
-        void
-        addNewProject (ProjectModel* new_model);
-        
-      Q_SIGNALS:
+      signals:
         void
         newModelSelected (ProjectModel *new_model);
 

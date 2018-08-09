@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -39,51 +39,55 @@
 #define PCL_FILTERS_IMPL_RANDOM_SAMPLE_H_
 
 #include <pcl/filters/random_sample.h>
-#include <pcl/common/io.h>
-#include <pcl/point_traits.h>
 
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename PointT> void
 pcl::RandomSample<PointT>::applyFilter (PointCloud &output)
 {
-  std::vector<int> indices;
-  if (keep_organized_)
+  unsigned N = static_cast<unsigned> (input_->size ());
+  float one_over_N = 1.0f / float (N);
+
+  // If sample size is 0 or if the sample size is greater then input cloud size
+  //   then return entire copy of cloud
+  if (sample_ >= N)
   {
-    bool temp = extract_removed_indices_;
-    extract_removed_indices_ = true;
-    applyFilter (indices);
-    extract_removed_indices_ = temp;
-    copyPointCloud (*input_, output);
-    // Get X, Y, Z fields
-    std::vector<pcl::PCLPointField> fields;
-    pcl::getFields (*input_, fields);
-    std::vector<size_t> offsets;
-    for (size_t i = 0; i < fields.size (); ++i)
-    {
-      if (fields[i].name == "x" ||
-          fields[i].name == "y" ||
-          fields[i].name == "z")
-        offsets.push_back (fields[i].offset);
-    }
-    // For every "removed" point, set the x,y,z fields to user_filter_value_
-    const static float user_filter_value = user_filter_value_;
-    for (size_t rii = 0; rii < removed_indices_->size (); ++rii)
-    {
-      uint8_t* pt_data = reinterpret_cast<uint8_t*> (&output[(*removed_indices_)[rii]]);
-      for (size_t i = 0; i < offsets.size (); ++i)
-      {
-        memcpy (pt_data + offsets[i], &user_filter_value, sizeof (float));
-      }
-      if (!pcl_isfinite (user_filter_value_))
-        output.is_dense = false;
-    }
+    output = *input_;
   }
   else
   {
-    output.is_dense = true;
-    applyFilter (indices);
-    copyPointCloud (*input_, indices, output);
+    // Resize output cloud to sample size
+    output.points.resize (sample_);
+    output.width = sample_;
+    output.height = 1;
+
+    // Set random seed so derived indices are the same each time the filter runs
+    std::srand (seed_);
+
+    unsigned top = N - sample_;
+    unsigned i = 0;
+    unsigned index = 0;
+
+    // Algorithm A
+    for (size_t n = sample_; n >= 2; n--)
+    {
+      unsigned int V = unifRand ();
+      unsigned S = 0;
+      float quot = float (top) * one_over_N;
+      while (quot > V)
+      {
+        S++;
+        top--;
+        N--;
+        quot = quot * float (top) * one_over_N;
+      }
+      index += S;
+      output.points[i++] = input_->points[index++];
+      N--;
+    }
+
+    index += N * static_cast<unsigned> (unifRand ());
+    output.points[i++] = input_->points[index++];
   }
 }
 
@@ -92,64 +96,47 @@ template<typename PointT>
 void
 pcl::RandomSample<PointT>::applyFilter (std::vector<int> &indices)
 {
-  size_t N = indices_->size ();  
-  size_t sample_size = negative_ ? N - sample_ : sample_;
+  unsigned N = static_cast<unsigned> (input_->size ());
+  float one_over_N = 1.0f / float (N);
+
   // If sample size is 0 or if the sample size is greater then input cloud size
   //   then return all indices
-  if (sample_size >= N)
+  if (sample_ >= N)
   {
     indices = *indices_;
-    removed_indices_->clear ();
   }
   else
   {
     // Resize output indices to sample size
-    indices.resize (sample_size);
-    if (extract_removed_indices_)
-      removed_indices_->resize (N - sample_size);
+    indices.resize (sample_);
 
     // Set random seed so derived indices are the same each time the filter runs
     std::srand (seed_);
 
-    // Algorithm S
-    size_t i = 0;
-    size_t index = 0;
-    std::vector<bool> added;
-    if (extract_removed_indices_)
-      added.resize (indices_->size (), false);
-    size_t n = sample_size;
-    while (n > 0)
+    // Algorithm A
+    unsigned top = N - sample_;
+    unsigned i = 0;
+    unsigned index = 0;
+
+    for (size_t n = sample_; n >= 2; n--)
     {
-      // Step 1: [Generate U.] Generate a random variate U that is uniformly distributed between 0 and 1.
-      const float U = unifRand ();
-      // Step 2: [Test.] If N * U > n, go to Step 4. 
-      if ((N * U) <= n)
+      unsigned int V = unifRand ();
+      unsigned S = 0;
+      float quot = float (top) * one_over_N;
+      while (quot > V)
       {
-        // Step 3: [Select.] Select the next record in the file for the sample, and set n : = n - 1.
-        if (extract_removed_indices_)
-          added[index] = true;
-        indices[i++] = (*indices_)[index];
-        --n;
+        S++;
+        top--;
+        N--;
+        quot = quot * float (top) * one_over_N;
       }
-      // Step 4: [Don't select.] Skip over the next record (do not include it in the sample).      
-      // Set N : = N - 1.
-      --N;
-      ++index;
-      // If n > 0, then return to Step 1; otherwise, the sample is complete and the algorithm terminates.
+      index += S;
+      indices[i++] = (*indices_)[index++];
+      N--;
     }
 
-    // Now populate removed_indices_ appropriately
-    if (extract_removed_indices_)
-    {
-      size_t ri = 0;
-      for (size_t i = 0; i < added.size (); i++)
-      {
-        if (!added[i])
-        {
-          (*removed_indices_)[ri++] = (*indices_)[i];
-        }
-      }
-    }
+    index += N * static_cast<unsigned> (unifRand ());
+    indices[i++] = (*indices_)[index++];
   }
 }
 

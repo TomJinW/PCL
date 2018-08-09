@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -35,7 +35,7 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/segmentation/extract_clusters.h>
@@ -44,7 +44,8 @@
 #include <pcl/console/parse.h>
 #include <pcl/console/time.h>
 #include <vector>
-#include "boost.h"
+#include <boost/lexical_cast.hpp>
+#include <boost/make_shared.hpp>
 
 using namespace pcl;
 using namespace pcl::io;
@@ -71,7 +72,7 @@ printHelp (int, char **argv)
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -86,12 +87,12 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 }
 
 void
-compute (const pcl::PCLPointCloud2::ConstPtr &input, std::vector<pcl::PCLPointCloud2::Ptr> &output,
+compute (const sensor_msgs::PointCloud2::ConstPtr &input, std::vector<sensor_msgs::PointCloud2::Ptr> &output,
          int min, int max, double tolerance)
 {
   // Convert data to PointCloud<T>
   PointCloud<pcl::PointXYZ>::Ptr xyz (new PointCloud<pcl::PointXYZ>);
-  fromPCLPointCloud2 (*input, *xyz);
+  fromROSMsg (*input, *xyz);
 
   // Estimate
   TicToc tt;
@@ -117,17 +118,17 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, std::vector<pcl::PCLPointCl
   output.reserve (cluster_indices.size ());
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
-    pcl::ExtractIndices<pcl::PCLPointCloud2> extract;
+    pcl::ExtractIndices<sensor_msgs::PointCloud2> extract;
     extract.setInputCloud (input);
     extract.setIndices (boost::make_shared<const pcl::PointIndices> (*it));
-    pcl::PCLPointCloud2::Ptr out (new pcl::PCLPointCloud2);
+    sensor_msgs::PointCloud2::Ptr out (new sensor_msgs::PointCloud2);
     extract.filter (*out);
     output.push_back (out);
   }
 }
 
 void
-saveCloud (const std::string &filename, const std::vector<pcl::PCLPointCloud2::Ptr> &output)
+saveCloud (const std::string &filename, const std::vector<sensor_msgs::PointCloud2::Ptr> &output)
 {
   TicToc tt;
   tt.tic ();
@@ -177,12 +178,12 @@ main (int argc, char** argv)
   parse_argument (argc, argv, "-tolerance", tolerance);
 
   // Load the first file
-  pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2);
   if (!loadCloud (argv[p_file_indices[0]], *cloud)) 
     return (-1);
 
   // Perform the feature estimation
-  std::vector<pcl::PCLPointCloud2::Ptr> output;
+  std::vector<sensor_msgs::PointCloud2::Ptr> output;
   compute (cloud, output, min, max, tolerance);
 
   // Save into the second file

@@ -13,8 +13,7 @@
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/apps/3d_rec_framework/utils/vtk_model_sampling.h>
-#include <boost/function.hpp>
-#include <vtkTransformPolyDataFilter.h>
+//#include <pcl/visualization/pcl_visualizer.h>
 
 namespace pcl
 {
@@ -37,36 +36,16 @@ namespace pcl
         using SourceT::createTrainingDir;
         using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
-
         int tes_level_;
         int resolution_;
         float radius_sphere_;
         float view_angle_;
-        bool gen_organized_;
-        boost::function<bool
-        (const Eigen::Vector3f &)> campos_constraints_func_;
-
       public:
-
-        using SourceT::setFilterDuplicateViews;
-
-        MeshSource () :
-        SourceT ()
-        {
-          gen_organized_ = false;
-        }
 
         void
         setTesselationLevel (int lev)
         {
           tes_level_ = lev;
-        }
-
-        void
-        setCamPosConstraints (boost::function<bool
-        (const Eigen::Vector3f &)> & bb)
-        {
-          campos_constraints_func_ = bb;
         }
 
         void
@@ -99,6 +78,11 @@ namespace pcl
           model.self_occlusions_.reset (new std::vector<float>);
           model.assembled_.reset (new pcl::PointCloud<pcl::PointXYZ>);
           uniform_sampling (model_path, 100000, *model.assembled_, model_scale_);
+
+          /*pcl::visualization::PCLVisualizer vis("results");
+           pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler (model.assembled_, 255, 0, 0);
+           vis.addPointCloud<PointInT> (model.assembled_, random_handler, "points");
+           vis.spin();*/
 
           if (bf::exists (trained_dir))
           {
@@ -177,21 +161,22 @@ namespace pcl
           }
           else
           {
+
             //load PLY model and scale it
-            vtkSmartPointer<vtkPLYReader> reader = vtkSmartPointer<vtkPLYReader>::New ();
+            vtkSmartPointer < vtkPLYReader > reader = vtkSmartPointer<vtkPLYReader>::New ();
             reader->SetFileName (model_path.c_str ());
 
-            vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New ();
+            vtkSmartPointer < vtkTransform > trans = vtkSmartPointer<vtkTransform>::New ();
             trans->Scale (model_scale_, model_scale_, model_scale_);
             trans->Modified ();
-            trans->Update ();
 
-            vtkSmartPointer<vtkTransformPolyDataFilter> filter_scale = vtkSmartPointer<vtkTransformPolyDataFilter>::New ();
+            vtkSmartPointer < vtkTransformFilter > filter_scale = vtkSmartPointer<vtkTransformFilter>::New ();
             filter_scale->SetTransform (trans);
             filter_scale->SetInputConnection (reader->GetOutputPort ());
-            filter_scale->Update ();
 
-            vtkSmartPointer<vtkPolyData> mapper = filter_scale->GetOutput ();
+            vtkSmartPointer < vtkPolyDataMapper > mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
+            mapper->SetInputConnection (filter_scale->GetOutputPort ());
+            mapper->Update ();
 
             //generate views
             pcl::apps::RenderViewsTesselatedSphere render_views;
@@ -201,33 +186,16 @@ namespace pcl
             render_views.setComputeEntropies (true);
             render_views.setTesselationLevel (tes_level_);
             render_views.setViewAngle (view_angle_);
-            render_views.addModelFromPolyData (mapper);
-            render_views.setGenOrganized (gen_organized_);
-            render_views.setCamPosConstraints (campos_constraints_func_);
+            render_views.addModelFromPolyData (mapper->GetInput ());
             render_views.generateViews ();
 
-            std::vector<typename PointCloud<PointInT>::Ptr> views_xyz_orig;
-            std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses;
-            std::vector<float> entropies;
-
-            render_views.getViews (views_xyz_orig);
-            render_views.getPoses (poses);
-            render_views.getEntropies (entropies);
-
-            model.views_.reset (new std::vector<typename PointCloud<PointInT>::Ptr> ());
-            model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > ());
-            model.self_occlusions_.reset (new std::vector<float> ());
-
-            for (size_t i = 0; i < views_xyz_orig.size (); i++)
-            {
-              model.views_->push_back (views_xyz_orig[i]);
-              model.poses_->push_back (poses[i]);
-              model.self_occlusions_->push_back (entropies[i]);
-            }
+            render_views.getViews (*(model.views_));
+            render_views.getPoses (*(model.poses_));
+            render_views.getEntropies (*(model.self_occlusions_));
 
             std::stringstream direc;
             direc << dir << "/" << model.class_ << "/" << model.id_;
-            this->createClassAndModelDirectories (dir, model.class_, model.id_);
+            createClassAndModelDirectories (dir, model.class_, model.id_);
 
             for (size_t i = 0; i < model.views_->size (); i++)
             {
@@ -246,7 +214,7 @@ namespace pcl
               pcl::rec_3d_framework::PersistenceUtils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
             }
 
-            loadOrGenerate (dir, model_path, model);
+            loadOrGenerate(dir, model_path, model);
 
           }
         }
@@ -273,18 +241,18 @@ namespace pcl
           for (size_t i = 0; i < files.size (); i++)
           {
             ModelT m;
-            this->getIdAndClassFromFilename (files[i], m.id_, m.class_);
+            getIdAndClassFromFilename (files[i], m.id_, m.class_);
 
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
-            std::cout << files[i] << std::endl;
             std::stringstream model_path;
             model_path << path_ << "/" << files[i];
             std::string path_model = model_path.str ();
             loadOrGenerate (training_dir, path_model, m);
 
             models_->push_back (m);
+            std::cout << files[i] << std::endl;
           }
         }
       };

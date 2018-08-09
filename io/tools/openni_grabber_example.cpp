@@ -39,15 +39,12 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/openni_grabber.h>
 #include <pcl/common/time.h>
-#include <pcl/console/parse.h>
 
 class SimpleOpenNIProcessor
 {
   public:
-    bool save;
-    openni_wrapper::OpenNIDevice::DepthMode mode;
 
-    SimpleOpenNIProcessor (openni_wrapper::OpenNIDevice::DepthMode depth_mode = openni_wrapper::OpenNIDevice::OpenNI_12_bit_depth) : mode (depth_mode) {}
+    bool save;
 
     void 
     cloud_cb_ (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &cloud)
@@ -65,10 +62,9 @@ class SimpleOpenNIProcessor
       if (save)
       {
         std::stringstream ss;
-        ss << std::setprecision (12) << pcl::getTime () * 100 << ".pcd";
-        pcl::PCDWriter w;
-        w.writeBinaryCompressed (ss.str (), *cloud);
-        std::cout << "wrote point clouds to file " << ss.str () << std::endl;
+        ss << std::setprecision(12) << pcl::getTime () * 100 << ".pcd";
+        pcl::io::savePCDFile (ss.str (), *cloud);
+        std::cout << "wrote point clouds to file " << ss.str() << std::endl;
       }
     }
 
@@ -87,33 +83,29 @@ class SimpleOpenNIProcessor
       }
     }
 
-    void 
-    run ()
+    void run ()
     {
       save = false;
 
       // create a new grabber for OpenNI devices
-      pcl::OpenNIGrabber interface;
-
-      // Set the depth output format
-      interface.getDevice ()->setDepthOutputFormat (mode);
+      pcl::Grabber* interface = new pcl::OpenNIGrabber();
 
       // make callback function from member function
       boost::function<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f =
         boost::bind (&SimpleOpenNIProcessor::cloud_cb_, this, _1);
 
       // connect callback function for desired signal. In this case its a point cloud with color values
-      boost::signals2::connection c = interface.registerCallback (f);
+      boost::signals2::connection c = interface->registerCallback (f);
 
       // make callback function from member function
       boost::function<void (const boost::shared_ptr<openni_wrapper::Image>&, const boost::shared_ptr<openni_wrapper::DepthImage>&, float constant)> f2 =
         boost::bind (&SimpleOpenNIProcessor::imageDepthImageCallback, this, _1, _2, _3);
 
       // connect callback function for desired signal. In this case its a point cloud with color values
-      boost::signals2::connection c2 = interface.registerCallback (f2);
+      boost::signals2::connection c2 = interface->registerCallback (f2);
 
       // start receiving point clouds
-      interface.start ();
+      interface->start ();
 
       std::cout << "<Esc>, \'q\', \'Q\': quit the program" << std::endl;
       std::cout << "\' \': pause" << std::endl;
@@ -125,27 +117,24 @@ class SimpleOpenNIProcessor
         switch (key)
         {
           case ' ':
-            if (interface.isRunning ())
-              interface.stop ();
+            if (interface->isRunning())
+              interface->stop();
             else
-              interface.start ();
+              interface->start();
           case 's':
             save = !save;
         }
       } while (key != 27 && key != 'q' && key != 'Q');
 
       // stop the grabber
-      interface.stop ();
+      interface->stop ();
     }
 };
 
 int
-main (int argc, char **argv)
+main ()
 {
-  int mode = openni_wrapper::OpenNIDevice::OpenNI_12_bit_depth;
-  pcl::console::parse_argument (argc, argv, "-mode", mode);
-
-  SimpleOpenNIProcessor v (static_cast<openni_wrapper::OpenNIDevice::DepthMode> (mode));
+  SimpleOpenNIProcessor v;
   v.run ();
-  return (0);
+  return 0;
 }

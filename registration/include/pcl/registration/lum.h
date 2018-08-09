@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,12 +40,10 @@
 #ifndef PCL_REGISTRATION_LUM_H_
 #define PCL_REGISTRATION_LUM_H_
 
-#include <pcl/pcl_base.h>
-#include <pcl/registration/eigen.h>
-#include <pcl/registration/boost.h>
+#include <pcl/common/eigen.h>
 #include <pcl/common/transforms.h>
 #include <pcl/correspondence.h>
-#include <pcl/registration/boost_graph.h>
+#include <boost/graph/adjacency_list.hpp>
 
 namespace Eigen
 {
@@ -119,29 +116,25 @@ namespace pcl
 
         struct VertexProperties
         {
-          PointCloudPtr cloud_;
-          Eigen::Vector6f pose_;
-          EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+            PointCloudPtr cloud_;
+            Eigen::Vector6f pose_;
         };
         struct EdgeProperties
         {
-          pcl::CorrespondencesPtr corrs_;
-          Eigen::Matrix6f cinv_;
-          Eigen::Vector6f cinvd_;
-          EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+            pcl::CorrespondencesPtr corrs_;
+            Eigen::Matrix6f cinv_;
+            Eigen::Vector6f cinvd_;
         };
 
-        typedef boost::adjacency_list<boost::eigen_vecS, boost::eigen_vecS, boost::bidirectionalS, VertexProperties, EdgeProperties, boost::no_property, boost::eigen_listS> SLAMGraph;
+        typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, VertexProperties, EdgeProperties> SLAMGraph;
         typedef boost::shared_ptr<SLAMGraph> SLAMGraphPtr;
         typedef typename SLAMGraph::vertex_descriptor Vertex;
         typedef typename SLAMGraph::edge_descriptor Edge;
 
         /** \brief Empty constructor.
           */
-        LUM () 
-          : slam_graph_ (new SLAMGraph)
-          , max_iterations_ (5)
-          , convergence_threshold_ (0.0)
+        LUM () :
+            slam_graph_ (new SLAMGraph), max_iterations_ (5), convergence_threshold_ (0.0)
         {
         }
 
@@ -152,7 +145,7 @@ namespace pcl
           * \param[in] slam_graph The new SLAM graph.
           */
         inline void
-        setLoopGraph (const SLAMGraphPtr &slam_graph);
+        setLoopGraph (SLAMGraphPtr slam_graph);
 
         /** \brief Get the internal SLAM graph structure.
           * \details All data used and produced by LUM is stored in this boost::adjacency_list.
@@ -161,19 +154,19 @@ namespace pcl
           * \return The current SLAM graph.
           */
         inline SLAMGraphPtr
-        getLoopGraph () const;
+        getLoopGraph ();
 
         /** \brief Get the number of vertices in the SLAM graph.
           * \return The current number of vertices in the SLAM graph.
           */
-        typename SLAMGraph::vertices_size_type
-        getNumVertices () const;
+        inline typename SLAMGraph::vertices_size_type
+        getNumVertices ();
 
         /** \brief Set the maximum number of iterations for the compute() method.
           * \details The compute() method finishes when max_iterations are met or when the convergence criteria is met.
           * \param[in] max_iterations The new maximum number of iterations (default = 5).
           */
-        void
+        inline void
         setMaxIterations (int max_iterations);
 
         /** \brief Get the maximum number of iterations for the compute() method.
@@ -181,14 +174,14 @@ namespace pcl
           * \return The current maximum number of iterations (default = 5).
           */
         inline int
-        getMaxIterations () const;
+        getMaxIterations ();
 
         /** \brief Set the convergence threshold for the compute() method.
           * \details When the compute() method computes the new poses relative to the old poses, it will determine the length of the difference vector.
           * When the average length of all difference vectors becomes less than the convergence_threshold the convergence is assumed to be met.
           * \param[in] convergence_threshold The new convergence threshold (default = 0.0).
           */
-        void
+        inline void
         setConvergenceThreshold (float convergence_threshold);
 
         /** \brief Get the convergence threshold for the compute() method.
@@ -197,7 +190,7 @@ namespace pcl
           * \return The current convergence threshold (default = 0.0).
           */
         inline float
-        getConvergenceThreshold () const;
+        getConvergenceThreshold ();
 
         /** \brief Add a new point cloud to the SLAM graph.
           * \details This method will add a new vertex to the SLAM graph and attach a point cloud to that vertex.
@@ -210,8 +203,8 @@ namespace pcl
           * \param[in] pose (optional) The pose estimate relative to the reference pose (first point cloud that was added).
           * \return The vertex descriptor of the newly created vertex.
           */
-        Vertex
-        addPointCloud (const PointCloudPtr &cloud, const Eigen::Vector6f &pose = Eigen::Vector6f::Zero ());
+        inline Vertex
+        addPointCloud (PointCloudPtr cloud, Eigen::Vector6f pose = Eigen::Vector6f::Zero ());
 
         /** \brief Change a point cloud on one of the SLAM graph's vertices.
           * \details This method will change the point cloud attached to an existing vertex and will not alter the SLAM graph structure.
@@ -221,7 +214,7 @@ namespace pcl
           * \param[in] cloud The new point cloud for that vertex.
           */
         inline void
-        setPointCloud (const Vertex &vertex, const PointCloudPtr &cloud);
+        setPointCloud (Vertex vertex, PointCloudPtr cloud);
 
         /** \brief Return a point cloud from one of the SLAM graph's vertices.
           * \note Vertex descriptors are typecastable to int.
@@ -229,7 +222,7 @@ namespace pcl
           * \return The current point cloud for that vertex.
           */
         inline PointCloudPtr
-        getPointCloud (const Vertex &vertex) const;
+        getPointCloud (Vertex vertex);
 
         /** \brief Change a pose estimate on one of the SLAM graph's vertices.
           * \details A vertex' pose is always relative to the first vertex in the SLAM graph, i.e. the first point cloud that was added.
@@ -240,7 +233,7 @@ namespace pcl
           * \param[in] pose The new pose estimate for that vertex.
           */
         inline void
-        setPose (const Vertex &vertex, const Eigen::Vector6f &pose);
+        setPose (Vertex vertex, Eigen::Vector6f pose);
 
         /** \brief Return a pose estimate from one of the SLAM graph's vertices.
           * \note Vertex descriptors are typecastable to int.
@@ -248,7 +241,7 @@ namespace pcl
           * \return The current pose estimate of that vertex.
           */
         inline Eigen::Vector6f
-        getPose (const Vertex &vertex) const;
+        getPose (Vertex vertex);
 
         /** \brief Return a pose estimate from one of the SLAM graph's vertices as an affine transformation matrix.
           * \note Vertex descriptors are typecastable to int.
@@ -256,7 +249,7 @@ namespace pcl
           * \return The current transformation matrix of that vertex.
           */
         inline Eigen::Affine3f
-        getTransformation (const Vertex &vertex) const;
+        getTransformation (Vertex vertex);
 
         /** \brief Add/change a set of correspondences for one of the SLAM graph's edges.
           * \details The edges in the SLAM graph are directional and point from source vertex to target vertex.
@@ -269,10 +262,8 @@ namespace pcl
           * \param[in] target_vertex The vertex descriptor of the correspondences' target point cloud.
           * \param[in] corrs The new set of correspondences for that edge.
           */
-        void
-        setCorrespondences (const Vertex &source_vertex, 
-                            const Vertex &target_vertex, 
-                            const pcl::CorrespondencesPtr &corrs);
+        inline void
+        setCorrespondences (Vertex source_vertex, Vertex target_vertex, pcl::CorrespondencesPtr corrs);
 
         /** \brief Return a set of correspondences from one of the SLAM graph's edges.
           * \note Vertex descriptors are typecastable to int.
@@ -281,7 +272,7 @@ namespace pcl
           * \return The current set of correspondences of that edge.
           */
         inline pcl::CorrespondencesPtr
-        getCorrespondences (const Vertex &source_vertex, const Vertex &target_vertex) const;
+        getCorrespondences (Vertex source_vertex, Vertex target_vertex);
 
         /** \brief Perform LUM's globally consistent scan matching.
           * \details Computation uses the first point cloud in the SLAM graph as a reference pose and attempts to align all other point clouds to it simultaneously.
@@ -309,22 +300,22 @@ namespace pcl
           * \return The transformed point cloud of that vertex.
           */
         PointCloudPtr
-        getTransformedCloud (const Vertex &vertex) const;
+        getTransformedCloud (Vertex vertex);
 
         /** \brief Return a concatenated point cloud of all the SLAM graph's point clouds compounded onto their current pose estimates.
           * \return The concatenated transformed point clouds of the entire SLAM graph.
           */
         PointCloudPtr
-        getConcatenatedCloud () const;
+        getConcatenatedCloud ();
 
       protected:
         /** \brief Linearized computation of C^-1 and C^-1*D (results stored in slam_graph_). */
         void
-        computeEdge (const Edge &e);
+        computeEdge (Edge e);
 
         /** \brief Returns a pose corrected 6DoF incidence matrix. */
         inline Eigen::Matrix6f
-        incidenceCorrection (const Eigen::Vector6f &pose);
+        incidenceCorrection (Eigen::Vector6f pose);
 
       private:
         /** \brief The internal SLAM graph structure. */
@@ -338,10 +329,6 @@ namespace pcl
     };
   }
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/registration/impl/lum.hpp>
-#endif
 
 #endif  // PCL_REGISTRATION_LUM_H_
 

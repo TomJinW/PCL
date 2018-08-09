@@ -65,7 +65,7 @@ namespace pcl
         */
       ColorVolume(const TsdfVolume& tsdf, int max_weight = -1);
 
-      /** \brief Destructor */
+      /** \brief Desctructor */
       ~ColorVolume();
 
       /** \brief Resets color volume to uninitialized state */
@@ -99,10 +99,6 @@ namespace pcl
 
       /** \brief color volume data */
       DeviceArray2D<int> color_volume_;
-
-public:
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     };
   }
 }

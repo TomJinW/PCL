@@ -34,7 +34,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
 #include <pcl/recognition/hv/hv_papazov.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +58,7 @@ template<typename ModelT, typename SceneT>
     explained_by_RM_.resize (scene_cloud_downsampled_->points.size ());
     points_explained_by_rm_.resize (scene_cloud_downsampled_->points.size ());
 
-    // initialize model
+    // initalize model
     for (size_t m = 0; m < complete_models_.size (); m++)
     {
       boost::shared_ptr < RecognitionModel > recog_model (new RecognitionModel);
@@ -120,7 +119,7 @@ template<typename ModelT, typename SceneT>
       }
       else
       {
-        mask_[m] = false; // the model didn't survive the sequential check...
+        mask_[m] = false; // the model didnt survive the sequential check...
       }
     }
   }
@@ -230,4 +229,3 @@ template<typename ModelT, typename SceneT>
     nonMaximaSuppresion ();
   }
 
-#define PCL_INSTANTIATE_PapazovHV(T1,T2) template class PCL_EXPORTS pcl::PapazovHV<T1,T2>;

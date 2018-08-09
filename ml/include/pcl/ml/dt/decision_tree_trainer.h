@@ -43,7 +43,6 @@
 #include <pcl/ml/dt/decision_tree.h>
 #include <pcl/ml/feature_handler.h>
 #include <pcl/ml/stats_estimator.h>
-#include <pcl/ml/dt/decision_tree_data_provider.h>
 
 #include <vector>
 
@@ -105,7 +104,7 @@ namespace pcl
       }
 
       /** \brief Sets the number of thresholds tested for finding the optimal decision threshold on the feature responses.
-        * \param[in] num_of_threshold The number of thresholds.
+        * \param[in] num_of_thresholds The number of thresholds.
         */
       inline void
       setNumOfThresholds (const size_t num_of_threshold)
@@ -138,42 +137,6 @@ namespace pcl
       setLabelData (std::vector<LabelType> & label_data)
       {
         label_data_ = label_data;
-      }
-
-      /** \brief Sets the minimum number of examples to continue growing a tree.
-        * \param[in] n Number of examples
-        */
-      inline void
-      setMinExamplesForSplit (size_t n)
-      {
-        min_examples_for_split_ = n;
-      }
-
-      /** \brief Specify the thresholds to be used when evaluating features.
-        * \param[in] thres The threshold values.
-        */
-      void
-      setThresholds (std::vector<float> & thres)
-      {
-        thresholds_ = thres;
-      }
-
-      /** \brief Specify the data provider.
-        * \param[in] dtdp The data provider that should implement getDatasetAndLabels(...) function
-        */
-      void
-      setDecisionTreeDataProvider (boost::shared_ptr<pcl::DecisionTreeTrainerDataProvider<FeatureType, DataSet, LabelType, ExampleIndex, NodeType> > & dtdp)
-      {
-        decision_tree_trainer_data_provider_ = dtdp;
-      }
-
-      /** \brief Specify if the features are randomly generated at each split node.
-        * \param[in] b Do it or not.
-        */
-      void
-      setRandomFeaturesAtSplitNode (bool b)
-      {
-        random_features_at_split_node_ = b;
       }
 
       /** \brief Trains a decision tree using the set training data and settings.
@@ -229,14 +192,6 @@ namespace pcl
       /** \brief The example data. */
       std::vector<ExampleIndex> examples_;
   
-      /** \brief Minimum number of examples to split a node. */
-      size_t min_examples_for_split_;
-      /** \brief Thresholds to be used instead of generating uniform distributed thresholds. */
-      std::vector<float> thresholds_;
-      /** \brief The data provider which is called before training a specific tree, if pointer is NULL, then data_set_ is used. */
-      boost::shared_ptr<pcl::DecisionTreeTrainerDataProvider<FeatureType, DataSet, LabelType, ExampleIndex, NodeType> > decision_tree_trainer_data_provider_;
-      /** \brief If true, random features are generated at each node, otherwise, at start of training the tree */
-      bool random_features_at_split_node_;
   };
 
 }

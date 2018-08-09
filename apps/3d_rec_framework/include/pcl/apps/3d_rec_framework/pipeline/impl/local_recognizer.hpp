@@ -3,16 +3,12 @@
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/icp.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
     boost::shared_ptr < std::vector<ModelT> > models = source_->getModels ();
-    std::cout << "Models size:" << models->size () << std::endl;
-
     for (size_t i = 0; i < models->size (); i++)
     {
       std::string path = source_->getModelDescriptorDir (models->at (i), training_dir_, descr_name_);
@@ -58,7 +54,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             poses_cache_[pair_model_view] = pose_matrix;
 
             //load keypoints and save them to cache
-            typename pcl::PointCloud<PointInT>::Ptr keypoints (new pcl::PointCloud<PointInT> ());
+            pcl::PointCloud<pcl::PointXYZ>::Ptr keypoints (new pcl::PointCloud<pcl::PointXYZ> ());
             pcl::io::loadPCDFile (dir_keypoints.str (), *keypoints);
             keypoints_cache_[pair_model_view] = keypoints;
           }
@@ -107,21 +103,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
   {
-    boost::shared_ptr < std::vector<ModelT> > models;
-
-    if(search_model_.compare("") == 0) {
-      models = source_->getModels ();
-    } else {
-      models = source_->getModels (search_model_);
-      //reset cache and flann structures
-      if(flann_index_ != 0)
-        delete flann_index_;
-
-      flann_models_.clear();
-      poses_cache_.clear();
-      keypoints_cache_.clear();
-    }
-
+    boost::shared_ptr < std::vector<ModelT> > models = source_->getModels ();
     std::cout << "Models size:" << models->size () << std::endl;
 
     if (force_retrain)
@@ -142,9 +124,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
           typename pcl::PointCloud<FeatureT>::Ptr signatures (new pcl::PointCloud<FeatureT> ());
-          PointInTPtr keypoints_pointcloud;
+          pcl::PointCloud<int> keypoints;
 
-          bool success = estimator_->estimate (models->at (i).views_->at (v), processed, keypoints_pointcloud, signatures);
+          bool success = estimator_->estimate (models->at (i).views_->at (v), processed, keypoints, signatures);
 
           if (success)
           {
@@ -171,24 +153,19 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             //save keypoints and signatures to disk
             std::stringstream keypoints_sstr;
             keypoints_sstr << path << "/keypoint_indices_" << v << ".pcd";
-
-            /*boost::shared_ptr < std::vector<int> > indices (new std::vector<int> ());
+            boost::shared_ptr < std::vector<int> > indices (new std::vector<int> ());
             indices->resize (keypoints.points.size ());
             for (size_t kk = 0; kk < indices->size (); kk++)
               (*indices)[kk] = keypoints.points[kk];
             typename pcl::PointCloud<PointInT> keypoints_pointcloud;
-            pcl::copyPointCloud (*processed, *indices, keypoints_pointcloud);*/
-            pcl::io::savePCDFileBinary (keypoints_sstr.str (), *keypoints_pointcloud);
+            pcl::copyPointCloud (*processed, *indices, keypoints_pointcloud);
+            pcl::io::savePCDFileBinary (keypoints_sstr.str (), keypoints_pointcloud);
 
             std::stringstream path_descriptor;
             path_descriptor << path << "/descriptor_" << v << ".pcd";
             pcl::io::savePCDFileBinary (path_descriptor.str (), *signatures);
           }
         }
-      } else {
-        std::cout << "Model already trained..." << std::endl;
-        //there is no need to keep the views in memory once the model has been trained
-        models->at (i).views_->clear();
       }
     }
 
@@ -203,37 +180,25 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     models_.reset (new std::vector<ModelT>);
     transforms_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
 
-    PointInTPtr processed;
+    //std::cout << models_->size () << std::endl;
+
+    PointInTPtr processed (new pcl::PointCloud<PointInT>);
     typename pcl::PointCloud<FeatureT>::Ptr signatures (new pcl::PointCloud<FeatureT> ());
-    //pcl::PointCloud<int> keypoints_input;
-    PointInTPtr keypoints_pointcloud;
+    pcl::PointCloud<int> keypoints_input;
 
-    if (signatures_ != 0 && processed_ != 0 && (signatures_->size () == keypoints_pointcloud->points.size ()))
+    estimator_->estimate (input_, processed, keypoints_input, signatures);
+
+    std::cout << "Number of keypoints:" << keypoints_input.points.size () << std::endl;
+
+    boost::shared_ptr < std::vector<int> > indices (new std::vector<int> ());
+    indices->resize (keypoints_input.points.size ());
+    for (size_t i = 0; i < indices->size (); i++)
     {
-      keypoints_pointcloud = keypoints_input_;
-      signatures = signatures_;
-      processed = processed_;
-      std::cout << "Using the ISPK ..." << std::endl;
-    }
-    else
-    {
-      processed.reset( (new pcl::PointCloud<PointInT>));
-      if (indices_.size () > 0)
-      {
-        PointInTPtr sub_input (new pcl::PointCloud<PointInT>);
-        pcl::copyPointCloud (*input_, indices_, *sub_input);
-        estimator_->estimate (sub_input, processed, keypoints_pointcloud, signatures);
-      }
-      else
-      {
-        estimator_->estimate (input_, processed, keypoints_pointcloud, signatures);
-      }
-
-      processed_ = processed;
-
+      (*indices)[i] = keypoints_input.points[i];
     }
 
-    std::cout << "Number of keypoints:" << keypoints_pointcloud->points.size () << std::endl;
+    typename pcl::PointCloud<PointInT>::Ptr keypoints_pointcloud (new pcl::PointCloud<PointInT> ());
+    pcl::copyPointCloud (*processed, *indices, *keypoints_pointcloud);
 
     int size_feat = sizeof(signatures->points[0].histogram) / sizeof(float);
 
@@ -257,8 +222,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         typename pcl::PointCloud<PointInT>::Ptr keypoints (new pcl::PointCloud<PointInT> ());
         getKeypoints (flann_models_.at (indices[0][0]).model, flann_models_.at (indices[0][0]).view_id, keypoints);
 
-        PointInT view_keypoint = keypoints->points[flann_models_.at (indices[0][0]).keypoint_id];
-        PointInT model_keypoint;
+        pcl::PointXYZ view_keypoint = keypoints->points[flann_models_.at (indices[0][0]).keypoint_id];
+        pcl::PointXYZ model_keypoint;
         model_keypoint.getVector4fMap () = homMatrixPose.inverse () * view_keypoint.getVector4fMap ();
 
         typename std::map<std::string, ObjectHypothesis>::iterator it_map;
@@ -278,7 +243,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           //create object hypothesis
           ObjectHypothesis oh;
 
-          typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud (new pcl::PointCloud<PointInT> ());
+          pcl::PointCloud<pcl::PointXYZ>::Ptr correspondences_pointcloud (new pcl::PointCloud<pcl::PointXYZ> ());
           correspondences_pointcloud->points.push_back (model_keypoint);
 
           oh.model_ = flann_models_.at (indices[0][0]).model;
@@ -312,7 +277,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+        //std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << std::endl;
         std::vector<bool> good_indices_for_hypothesis (corresp_clusters.size (), true);
 
         if (threshold_accept_model_hypothesis_ < 1.f)
@@ -343,10 +308,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           if (!good_indices_for_hypothesis[i])
             continue;
 
-          //drawCorrespondences (processed, it_map->second, keypoints_pointcloud, corresp_clusters[i]);
-
           Eigen::Matrix4f best_trans;
-          typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
+          pcl::registration::TransformationEstimationSVD < pcl::PointXYZ, pcl::PointXYZ > t_est;
           t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_pointcloud, corresp_clusters[i], best_trans);
 
           models_->push_back ((*it_map).second.model_);
@@ -356,17 +319,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
     }
 
-    std::cout << "Number of hypotheses:" << models_->size() << std::endl;
-
     /**
      * POSE REFINEMENT
      **/
 
     if (ICP_iterations_ > 0)
     {
-      pcl::ScopeTime ticp ("ICP ");
-
       //Prepare scene and model clouds for the pose refinement step
+      float VOXEL_SIZE_ICP_ = 0.0025f;
       PointInTPtr cloud_voxelized_icp (new pcl::PointCloud<PointInT> ());
       pcl::VoxelGrid<PointInT> voxel_grid_icp;
       voxel_grid_icp.setInputCloud (processed);
@@ -374,29 +334,20 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       voxel_grid_icp.filter (*cloud_voxelized_icp);
       source_->voxelizeAllModels (VOXEL_SIZE_ICP_);
 
-#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
+#pragma omp parallel for num_threads(omp_get_num_procs())
       for (int i = 0; i < static_cast<int>(models_->size ()); i++)
       {
 
-        ConstPointInTPtr model_cloud;
+        ConstPointInTPtr model_cloud = models_->at (i).getAssembled (VOXEL_SIZE_ICP_);
         PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
-        model_cloud = models_->at (i).getAssembled (VOXEL_SIZE_ICP_);
         pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
 
-        typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT>::Ptr rej (
-            new pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT> ());
-
-        rej->setInputTarget (cloud_voxelized_icp);
-        rej->setMaximumIterations (1000);
-        rej->setInlierThreshold (0.005f);
-        rej->setInputSource (model_aligned);
-
         pcl::IterativeClosestPoint<PointInT, PointInT> reg;
-        reg.addCorrespondenceRejector (rej);
+        reg.setInputCloud (model_aligned); //model
         reg.setInputTarget (cloud_voxelized_icp); //scene
-        reg.setInputSource (model_aligned); //model
         reg.setMaximumIterations (ICP_iterations_);
-        reg.setMaxCorrespondenceDistance (VOXEL_SIZE_ICP_ * 4.f);
+        reg.setMaxCorrespondenceDistance (VOXEL_SIZE_ICP_ * 3.f);
+        reg.setTransformationEpsilon (1e-5);
 
         typename pcl::PointCloud<PointInT>::Ptr output_ (new pcl::PointCloud<PointInT> ());
         reg.align (*output_);
@@ -412,15 +363,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     if (hv_algorithm_)
     {
-
-      pcl::ScopeTime thv ("HV verification");
-
       std::vector<typename pcl::PointCloud<PointInT>::ConstPtr> aligned_models;
       aligned_models.resize (models_->size ());
       for (size_t i = 0; i < models_->size (); i++)
       {
-        ConstPointInTPtr model_cloud = models_->at (i).getAssembled (0.0025f);
-        //ConstPointInTPtr model_cloud = models_->at (i).getAssembled (VOXEL_SIZE_ICP_);
+        ConstPointInTPtr model_cloud = models_->at (i).getAssembled (0.001f);
         PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
         pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
         aligned_models[i] = model_aligned;
@@ -492,7 +439,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     if (use_cache_)
     {
       std::pair<std::string, int> pair_model_view = std::make_pair (model.id_, view_id);
-      typename std::map<std::pair<std::string, int>, PointInTPtr>::iterator it = keypoints_cache_.find (pair_model_view);
+      std::map<std::pair<std::string, int>, pcl::PointCloud<pcl::PointXYZ>::Ptr>::iterator it = keypoints_cache_.find (pair_model_view);
 
       if (it != keypoints_cache_.end ())
       {

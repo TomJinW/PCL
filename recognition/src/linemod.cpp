@@ -146,10 +146,10 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
       //memset (energy_maps[bin_index], 0, width*height);
 
       const unsigned char base_bit = static_cast<unsigned char> (0x1);
-      unsigned char val0 = static_cast<unsigned char> (base_bit << bin_index); // e.g. 00100000
-      unsigned char val1 = static_cast<unsigned char> (val0 | (base_bit << (bin_index+1)&7) | (base_bit << (bin_index+7)&7)); // e.g. 01110000
-      unsigned char val2 = static_cast<unsigned char> (val1 | (base_bit << (bin_index+2)&7) | (base_bit << (bin_index+6)&7)); // e.g. 11111000
-      unsigned char val3 = static_cast<unsigned char> (val2 | (base_bit << (bin_index+3)&7) | (base_bit << (bin_index+5)&7)); // e.g. 11111101
+      unsigned char val0 = base_bit << bin_index; // e.g. 00100000
+      unsigned char val1 = val0 | (base_bit << (bin_index+1)&7) | (base_bit << (bin_index+7)&7); // e.g. 01110000
+      unsigned char val2 = val1 | (base_bit << (bin_index+2)&7) | (base_bit << (bin_index+6)&7); // e.g. 11111000
+      unsigned char val3 = val2 | (base_bit << (bin_index+3)&7) | (base_bit << (bin_index+5)&7); // e.g. 11111101
       for (size_t index = 0; index < width*height; ++index)
       {
         if ((val0 & quantized_data[index]) != 0)
@@ -255,7 +255,7 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
           }
           for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
           {
-            tmp_score_sums[mem_index] = static_cast<unsigned char> (tmp_score_sums[mem_index] + data[mem_index]);
+            tmp_score_sums[mem_index] += data[mem_index];
           }
         }
       }
@@ -268,28 +268,28 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
       {
         copy_back_counter = 0;
 
-        for (size_t mem_index = 0; mem_index < mem_size_mod_16_base; mem_index += 16)
+        for (size_t mem_index = 0; mem_index < mem_size; mem_index += 16)
         {
-          score_sums[mem_index+0]  = static_cast<unsigned short> (score_sums[mem_index+0]  + tmp_score_sums[mem_index+0]);
-          score_sums[mem_index+1]  = static_cast<unsigned short> (score_sums[mem_index+1]  + tmp_score_sums[mem_index+1]);
-          score_sums[mem_index+2]  = static_cast<unsigned short> (score_sums[mem_index+2]  + tmp_score_sums[mem_index+2]);
-          score_sums[mem_index+3]  = static_cast<unsigned short> (score_sums[mem_index+3]  + tmp_score_sums[mem_index+3]);
-          score_sums[mem_index+4]  = static_cast<unsigned short> (score_sums[mem_index+4]  + tmp_score_sums[mem_index+4]);
-          score_sums[mem_index+5]  = static_cast<unsigned short> (score_sums[mem_index+5]  + tmp_score_sums[mem_index+5]);
-          score_sums[mem_index+6]  = static_cast<unsigned short> (score_sums[mem_index+6]  + tmp_score_sums[mem_index+6]);
-          score_sums[mem_index+7]  = static_cast<unsigned short> (score_sums[mem_index+7]  + tmp_score_sums[mem_index+7]);
-          score_sums[mem_index+8]  = static_cast<unsigned short> (score_sums[mem_index+8]  + tmp_score_sums[mem_index+8]);
-          score_sums[mem_index+9]  = static_cast<unsigned short> (score_sums[mem_index+9]  + tmp_score_sums[mem_index+9]);
-          score_sums[mem_index+10] = static_cast<unsigned short> (score_sums[mem_index+10] + tmp_score_sums[mem_index+10]);
-          score_sums[mem_index+11] = static_cast<unsigned short> (score_sums[mem_index+11] + tmp_score_sums[mem_index+11]);
-          score_sums[mem_index+12] = static_cast<unsigned short> (score_sums[mem_index+12] + tmp_score_sums[mem_index+12]);
-          score_sums[mem_index+13] = static_cast<unsigned short> (score_sums[mem_index+13] + tmp_score_sums[mem_index+13]);
-          score_sums[mem_index+14] = static_cast<unsigned short> (score_sums[mem_index+14] + tmp_score_sums[mem_index+14]);
-          score_sums[mem_index+15] = static_cast<unsigned short> (score_sums[mem_index+15] + tmp_score_sums[mem_index+15]);
+          score_sums[mem_index+0] += tmp_score_sums[mem_index+0];
+          score_sums[mem_index+1] += tmp_score_sums[mem_index+1];
+          score_sums[mem_index+2] += tmp_score_sums[mem_index+2];
+          score_sums[mem_index+3] += tmp_score_sums[mem_index+3];
+          score_sums[mem_index+4] += tmp_score_sums[mem_index+4];
+          score_sums[mem_index+5] += tmp_score_sums[mem_index+5];
+          score_sums[mem_index+6] += tmp_score_sums[mem_index+6];
+          score_sums[mem_index+7] += tmp_score_sums[mem_index+7];
+          score_sums[mem_index+8] += tmp_score_sums[mem_index+8];
+          score_sums[mem_index+9] += tmp_score_sums[mem_index+9];
+          score_sums[mem_index+10] += tmp_score_sums[mem_index+10];
+          score_sums[mem_index+11] += tmp_score_sums[mem_index+11];
+          score_sums[mem_index+12] += tmp_score_sums[mem_index+12];
+          score_sums[mem_index+13] += tmp_score_sums[mem_index+13];
+          score_sums[mem_index+14] += tmp_score_sums[mem_index+14];
+          score_sums[mem_index+15] += tmp_score_sums[mem_index+15];
         }
         for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
         {
-          score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+          score_sums[mem_index] += tmp_score_sums[mem_index];
         }
 
         memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -298,7 +298,7 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
     {
       for (size_t mem_index = 0; mem_index < mem_size; ++mem_index)
       {
-        score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+        score_sums[mem_index] += tmp_score_sums[mem_index];
       }
         
       memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -330,7 +330,7 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
     }
 #endif
 
-    const float inv_max_score = 1.0f / float (max_score);
+    const float inv_max_score = 1.0f / max_score;
     
     size_t max_value = 0;
     size_t max_index = 0;
@@ -354,12 +354,7 @@ pcl::LINEMOD::matchTemplates (const std::vector<QuantizableModality*> & modaliti
 
     detections.push_back (detection);
 
-#ifdef __SSE2__
-    aligned_free (score_sums);
-    aligned_free (tmp_score_sums);
-#else
     delete[] score_sums;
-#endif
   }
 
   // release data
@@ -410,10 +405,10 @@ pcl::LINEMOD::detectTemplates (const std::vector<QuantizableModality*> & modalit
       //memset (energy_maps[bin_index], 0, width*height);
 
       const unsigned char base_bit = static_cast<unsigned char> (0x1);
-      unsigned char val0 = static_cast<unsigned char> (base_bit << bin_index); // e.g. 00100000
-      unsigned char val1 = static_cast<unsigned char> (val0 | (base_bit << ((bin_index+1)%8)) | (base_bit << ((bin_index+7)%8))); // e.g. 01110000
-      unsigned char val2 = static_cast<unsigned char> (val1 | (base_bit << ((bin_index+2)%8)) | (base_bit << ((bin_index+6)%8))); // e.g. 11111000
-      unsigned char val3 = static_cast<unsigned char> (val2 | (base_bit << ((bin_index+3)%8)) | (base_bit << ((bin_index+5)%8))); // e.g. 11111101
+      unsigned char val0 = base_bit << bin_index; // e.g. 00100000
+      unsigned char val1 = val0 | (base_bit << ((bin_index+1)%8)) | (base_bit << ((bin_index+7)%8)); // e.g. 01110000
+      unsigned char val2 = val1 | (base_bit << ((bin_index+2)%8)) | (base_bit << ((bin_index+6)%8)); // e.g. 11111000
+      unsigned char val3 = val2 | (base_bit << ((bin_index+3)%8)) | (base_bit << ((bin_index+5)%8)); // e.g. 11111101
       for (size_t index = 0; index < width*height; ++index)
       {
         if ((val0 & quantized_data[index]) != 0)
@@ -576,7 +571,7 @@ pcl::LINEMOD::detectTemplates (const std::vector<QuantizableModality*> & modalit
           }
           for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
           {
-            tmp_score_sums[mem_index] = static_cast<unsigned char> (tmp_score_sums[mem_index] + data[mem_index]);
+            tmp_score_sums[mem_index] += data[mem_index];
           }
         }
       }
@@ -589,28 +584,28 @@ pcl::LINEMOD::detectTemplates (const std::vector<QuantizableModality*> & modalit
       {
         copy_back_counter = 0;
 
-        for (size_t mem_index = 0; mem_index < mem_size_mod_16_base; mem_index += 16)
+        for (size_t mem_index = 0; mem_index < mem_size; mem_index += 16)
         {
-          score_sums[mem_index+0]  = static_cast<unsigned short> (score_sums[mem_index+0]  + tmp_score_sums[mem_index+0]);
-          score_sums[mem_index+1]  = static_cast<unsigned short> (score_sums[mem_index+1]  + tmp_score_sums[mem_index+1]);
-          score_sums[mem_index+2]  = static_cast<unsigned short> (score_sums[mem_index+2]  + tmp_score_sums[mem_index+2]);
-          score_sums[mem_index+3]  = static_cast<unsigned short> (score_sums[mem_index+3]  + tmp_score_sums[mem_index+3]);
-          score_sums[mem_index+4]  = static_cast<unsigned short> (score_sums[mem_index+4]  + tmp_score_sums[mem_index+4]);
-          score_sums[mem_index+5]  = static_cast<unsigned short> (score_sums[mem_index+5]  + tmp_score_sums[mem_index+5]);
-          score_sums[mem_index+6]  = static_cast<unsigned short> (score_sums[mem_index+6]  + tmp_score_sums[mem_index+6]);
-          score_sums[mem_index+7]  = static_cast<unsigned short> (score_sums[mem_index+7]  + tmp_score_sums[mem_index+7]);
-          score_sums[mem_index+8]  = static_cast<unsigned short> (score_sums[mem_index+8]  + tmp_score_sums[mem_index+8]);
-          score_sums[mem_index+9]  = static_cast<unsigned short> (score_sums[mem_index+9]  + tmp_score_sums[mem_index+9]);
-          score_sums[mem_index+10] = static_cast<unsigned short> (score_sums[mem_index+10] + tmp_score_sums[mem_index+10]);
-          score_sums[mem_index+11] = static_cast<unsigned short> (score_sums[mem_index+11] + tmp_score_sums[mem_index+11]);
-          score_sums[mem_index+12] = static_cast<unsigned short> (score_sums[mem_index+12] + tmp_score_sums[mem_index+12]);
-          score_sums[mem_index+13] = static_cast<unsigned short> (score_sums[mem_index+13] + tmp_score_sums[mem_index+13]);
-          score_sums[mem_index+14] = static_cast<unsigned short> (score_sums[mem_index+14] + tmp_score_sums[mem_index+14]);
-          score_sums[mem_index+15] = static_cast<unsigned short> (score_sums[mem_index+15] + tmp_score_sums[mem_index+15]);
+          score_sums[mem_index+0] += tmp_score_sums[mem_index+0];
+          score_sums[mem_index+1] += tmp_score_sums[mem_index+1];
+          score_sums[mem_index+2] += tmp_score_sums[mem_index+2];
+          score_sums[mem_index+3] += tmp_score_sums[mem_index+3];
+          score_sums[mem_index+4] += tmp_score_sums[mem_index+4];
+          score_sums[mem_index+5] += tmp_score_sums[mem_index+5];
+          score_sums[mem_index+6] += tmp_score_sums[mem_index+6];
+          score_sums[mem_index+7] += tmp_score_sums[mem_index+7];
+          score_sums[mem_index+8] += tmp_score_sums[mem_index+8];
+          score_sums[mem_index+9] += tmp_score_sums[mem_index+9];
+          score_sums[mem_index+10] += tmp_score_sums[mem_index+10];
+          score_sums[mem_index+11] += tmp_score_sums[mem_index+11];
+          score_sums[mem_index+12] += tmp_score_sums[mem_index+12];
+          score_sums[mem_index+13] += tmp_score_sums[mem_index+13];
+          score_sums[mem_index+14] += tmp_score_sums[mem_index+14];
+          score_sums[mem_index+15] += tmp_score_sums[mem_index+15];
         }
         for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
         {
-          score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+          score_sums[mem_index] += tmp_score_sums[mem_index];
         }
 
         memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -619,7 +614,7 @@ pcl::LINEMOD::detectTemplates (const std::vector<QuantizableModality*> & modalit
     {
       for (size_t mem_index = 0; mem_index < mem_size; ++mem_index)
       {
-        score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+        score_sums[mem_index] += tmp_score_sums[mem_index];
       }
         
       memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -676,14 +671,16 @@ pcl::LINEMOD::detectTemplates (const std::vector<QuantizableModality*> & modalit
     }
 #endif
 
-    const float inv_max_score = 1.0f / float (max_score);
+    const float inv_max_score = 1.0f / max_score;
+
+    //std::cerr << max_score << " ";
 
     // we compute a new threshold based on the threshold supplied by the user;
     // this is due to the use of the cosine approx. in the response computation;
 #ifdef LINEMOD_USE_SEPARATE_ENERGY_MAPS
-    const float raw_threshold = (4.0f * float (max_score) / 2.0f + template_threshold_ * (4.0f * float (max_score) / 2.0f));
+    const float raw_threshold = (4.0f*max_score/2.0f + template_threshold_*(4.0f*max_score/2.0f));
 #else
-    const float raw_threshold = (float (max_score) / 2.0f + template_threshold_ * (float (max_score) / 2.0f));
+    const float raw_threshold = (max_score/2.0f + template_threshold_*(max_score/2.0f));
 #endif
 
     //int max_value = 0;
@@ -881,10 +878,10 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
       //memset (energy_maps[bin_index], 0, width*height);
 
       const unsigned char base_bit = static_cast<unsigned char> (0x1);
-      unsigned char val0 = static_cast<unsigned char> (base_bit << bin_index); // e.g. 00100000
-      unsigned char val1 = static_cast<unsigned char> (val0 | (base_bit << ((bin_index+1)%8)) | (base_bit << ((bin_index+7)%8))); // e.g. 01110000
-      unsigned char val2 = static_cast<unsigned char> (val1 | (base_bit << ((bin_index+2)%8)) | (base_bit << ((bin_index+6)%8))); // e.g. 11111000
-      unsigned char val3 = static_cast<unsigned char> (val2 | (base_bit << ((bin_index+3)%8)) | (base_bit << ((bin_index+5)%8))); // e.g. 11111101
+      unsigned char val0 = base_bit << bin_index; // e.g. 00100000
+      unsigned char val1 = val0 | (base_bit << ((bin_index+1)%8)) | (base_bit << ((bin_index+7)%8)); // e.g. 01110000
+      unsigned char val2 = val1 | (base_bit << ((bin_index+2)%8)) | (base_bit << ((bin_index+6)%8)); // e.g. 11111000
+      unsigned char val3 = val2 | (base_bit << ((bin_index+3)%8)) | (base_bit << ((bin_index+5)%8)); // e.g. 11111101
       for (size_t index = 0; index < width*height; ++index)
       {
         if ((val0 & quantized_data[index]) != 0)
@@ -1038,8 +1035,7 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
           {
             max_score += 4;
 
-            unsigned char *data = modality_linearized_maps[feature.modality_index][bin_index].getOffsetMap (
-                size_t (float (feature.x) * scale), size_t (float (feature.y) * scale));
+            unsigned char * data = modality_linearized_maps[feature.modality_index][bin_index].getOffsetMap (static_cast<size_t> (feature.x*scale), static_cast<size_t> (feature.y*scale));
             __m128i * data_m128i = reinterpret_cast<__m128i*> (data);
 
             for (size_t mem_index = 0; mem_index < mem_size_16; ++mem_index)
@@ -1050,7 +1046,7 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
             }
             for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
             {
-              tmp_score_sums[mem_index] = static_cast<unsigned char> (tmp_score_sums[mem_index] + data[mem_index]);
+              tmp_score_sums[mem_index] += data[mem_index];
             }
           }
         }
@@ -1063,28 +1059,28 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
         {
           copy_back_counter = 0;
 
-          for (size_t mem_index = 0; mem_index < mem_size_mod_16_base; mem_index += 16)
+          for (size_t mem_index = 0; mem_index < mem_size; mem_index += 16)
           {
-            score_sums[mem_index+0]  = static_cast<unsigned short> (score_sums[mem_index+0]  + tmp_score_sums[mem_index+0]);
-            score_sums[mem_index+1]  = static_cast<unsigned short> (score_sums[mem_index+1]  + tmp_score_sums[mem_index+1]);
-            score_sums[mem_index+2]  = static_cast<unsigned short> (score_sums[mem_index+2]  + tmp_score_sums[mem_index+2]);
-            score_sums[mem_index+3]  = static_cast<unsigned short> (score_sums[mem_index+3]  + tmp_score_sums[mem_index+3]);
-            score_sums[mem_index+4]  = static_cast<unsigned short> (score_sums[mem_index+4]  + tmp_score_sums[mem_index+4]);
-            score_sums[mem_index+5]  = static_cast<unsigned short> (score_sums[mem_index+5]  + tmp_score_sums[mem_index+5]);
-            score_sums[mem_index+6]  = static_cast<unsigned short> (score_sums[mem_index+6]  + tmp_score_sums[mem_index+6]);
-            score_sums[mem_index+7]  = static_cast<unsigned short> (score_sums[mem_index+7]  + tmp_score_sums[mem_index+7]);
-            score_sums[mem_index+8]  = static_cast<unsigned short> (score_sums[mem_index+8]  + tmp_score_sums[mem_index+8]);
-            score_sums[mem_index+9]  = static_cast<unsigned short> (score_sums[mem_index+9]  + tmp_score_sums[mem_index+9]);
-            score_sums[mem_index+10] = static_cast<unsigned short> (score_sums[mem_index+10] + tmp_score_sums[mem_index+10]);
-            score_sums[mem_index+11] = static_cast<unsigned short> (score_sums[mem_index+11] + tmp_score_sums[mem_index+11]);
-            score_sums[mem_index+12] = static_cast<unsigned short> (score_sums[mem_index+12] + tmp_score_sums[mem_index+12]);
-            score_sums[mem_index+13] = static_cast<unsigned short> (score_sums[mem_index+13] + tmp_score_sums[mem_index+13]);
-            score_sums[mem_index+14] = static_cast<unsigned short> (score_sums[mem_index+14] + tmp_score_sums[mem_index+14]);
-            score_sums[mem_index+15] = static_cast<unsigned short> (score_sums[mem_index+15] + tmp_score_sums[mem_index+15]);
+            score_sums[mem_index+0] += tmp_score_sums[mem_index+0];
+            score_sums[mem_index+1] += tmp_score_sums[mem_index+1];
+            score_sums[mem_index+2] += tmp_score_sums[mem_index+2];
+            score_sums[mem_index+3] += tmp_score_sums[mem_index+3];
+            score_sums[mem_index+4] += tmp_score_sums[mem_index+4];
+            score_sums[mem_index+5] += tmp_score_sums[mem_index+5];
+            score_sums[mem_index+6] += tmp_score_sums[mem_index+6];
+            score_sums[mem_index+7] += tmp_score_sums[mem_index+7];
+            score_sums[mem_index+8] += tmp_score_sums[mem_index+8];
+            score_sums[mem_index+9] += tmp_score_sums[mem_index+9];
+            score_sums[mem_index+10] += tmp_score_sums[mem_index+10];
+            score_sums[mem_index+11] += tmp_score_sums[mem_index+11];
+            score_sums[mem_index+12] += tmp_score_sums[mem_index+12];
+            score_sums[mem_index+13] += tmp_score_sums[mem_index+13];
+            score_sums[mem_index+14] += tmp_score_sums[mem_index+14];
+            score_sums[mem_index+15] += tmp_score_sums[mem_index+15];
           }
           for (size_t mem_index = mem_size_mod_16_base; mem_index < mem_size; ++mem_index)
           {
-            score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+            score_sums[mem_index] += tmp_score_sums[mem_index];
           }
 
           memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -1093,7 +1089,7 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
       {
         for (size_t mem_index = 0; mem_index < mem_size; ++mem_index)
         {
-          score_sums[mem_index] = static_cast<unsigned short> (score_sums[mem_index] + tmp_score_sums[mem_index]);
+          score_sums[mem_index] += tmp_score_sums[mem_index];
         }
         
         memset (tmp_score_sums, 0, mem_size*sizeof (tmp_score_sums[0]));
@@ -1150,14 +1146,16 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
       }
 #endif
 
-      const float inv_max_score = 1.0f / float (max_score);
+      const float inv_max_score = 1.0f / max_score;
+
+      //std::cerr << max_score << " ";
 
       // we compute a new threshold based on the threshold supplied by the user;
       // this is due to the use of the cosine approx. in the response computation;
 #ifdef LINEMOD_USE_SEPARATE_ENERGY_MAPS
-      const float raw_threshold = (4.0f * float (max_score) / 2.0f + template_threshold_ * (4.0f * float (max_score) / 2.0f));
+      const float raw_threshold = (4.0f*max_score/2.0f + template_threshold_*(4.0f*max_score/2.0f));
 #else
-      const float raw_threshold = (float (max_score) / 2.0f + template_threshold_ * (float (max_score) / 2.0f));
+      const float raw_threshold = (max_score/2.0f + template_threshold_*(max_score/2.0f));
 #endif
 
       //int max_value = 0;
@@ -1277,13 +1275,7 @@ pcl::LINEMOD::detectTemplatesSemiScaleInvariant (
         }
       }
 
-#ifdef __SSE2__
-      aligned_free (score_sums);
-      aligned_free (tmp_score_sums);
-#else
       delete[] score_sums;
-#endif
-
 #ifdef LINEMOD_USE_SEPARATE_ENERGY_MAPS
       delete[] score_sums_1;
       delete[] score_sums_2;
@@ -1335,30 +1327,6 @@ pcl::LINEMOD::loadTemplates (const char * file_name)
   deserialize (file_stream);
 
   file_stream.close ();
-}
-
-void
-pcl::LINEMOD::loadTemplates (std::vector<std::string> & file_names)
-{
-  templates_.clear ();
-
-  for(size_t i=0; i < file_names.size (); i++)
-  {
-    std::ifstream file_stream;
-    file_stream.open (file_names[i].c_str (), std::ofstream::in | std::ofstream::binary);
-
-    int nr_templates;
-    read (file_stream, nr_templates);
-    SparseQuantizedMultiModTemplate sqmm_template;
-
-    for (int template_index = 0; template_index < nr_templates; ++template_index)
-    {
-      sqmm_template.deserialize (file_stream);
-      templates_.push_back (sqmm_template);
-    }
-
-    file_stream.close ();
-  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

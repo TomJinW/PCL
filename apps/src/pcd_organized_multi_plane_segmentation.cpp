@@ -35,6 +35,7 @@
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <boost/make_shared.hpp>
 #include <pcl/common/time.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d.h>
@@ -68,7 +69,7 @@ class PCDOrganizedMultiPlaneSegmentation
       viewer.setBackgroundColor (0, 0, 0);
       //viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud");
       //viewer.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_OPACITY, 0.15, "cloud");
-      viewer.addCoordinateSystem (1.0, "global");
+      viewer.addCoordinateSystem (1.0);
       viewer.initCameraParameters ();
       viewer.registerKeyboardCallback(&PCDOrganizedMultiPlaneSegmentation::keyboard_callback, *this, 0);
     }
@@ -84,27 +85,25 @@ class PCDOrganizedMultiPlaneSegmentation
           case 'B':
             if (threshold_ < 0.1f)
               threshold_ += 0.001f;
-            process ();
             break;
           case 'v':
           case 'V':
             if (threshold_ > 0.001f)
               threshold_ -= 0.001f;
-            process ();
             break;
             
           case 'n':
           case 'N':
             depth_dependent_ = !depth_dependent_;
-            process ();
             break;
             
           case 'm':
           case 'M':
             polygon_refinement_ = !polygon_refinement_;
-            process ();
             break;
         }
+        
+        process ();
       }
     }
     
@@ -131,7 +130,7 @@ class PCDOrganizedMultiPlaneSegmentation
       mps.setDistanceThreshold (0.03); //2cm
       mps.setRefinementComparator (refinement_compare);
       
-      std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+      std::vector<pcl::PlanarRegion<PointT> > regions;
       typename pcl::PointCloud<PointT>::Ptr contour (new pcl::PointCloud<PointT>);
       typename pcl::PointCloud<PointT>::Ptr approx_contour (new pcl::PointCloud<PointT>);
       char name[1024];
@@ -172,7 +171,7 @@ class PCDOrganizedMultiPlaneSegmentation
                                            centroid[1] + (0.5f * model[1]),
                                            centroid[2] + (0.5f * model[2]));
         sprintf (name, "normal_%d", unsigned (i));
-        viewer.addArrow (pt2, pt1, 1.0, 0, 0, std::string (name));
+        viewer.addArrow (pt2, pt1, 1.0, 0, 0, name);
 
         contour->points = regions[i].getContour ();        
         sprintf (name, "plane_%02d", int (i));

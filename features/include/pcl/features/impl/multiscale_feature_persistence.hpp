@@ -1,10 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2011, Alexandru-Eugen Ichim
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
+ *                      Willow Garage, Inc
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -170,7 +168,7 @@ pcl::MultiscaleFeaturePersistence<PointSource, PointFeature>::extractUniqueFeatu
       standard_dev += diff * diff;
       diff_vector[point_i] = diff;
     }
-    standard_dev = std::sqrt (standard_dev / static_cast<float> (features_at_scale_vectorized_[scale_i].size ()));
+    standard_dev = sqrtf (standard_dev / static_cast<float> (features_at_scale_vectorized_[scale_i].size ()));
     PCL_DEBUG ("[pcl::MultiscaleFeaturePersistence::extractUniqueFeatures] Standard deviation for scale %f is %f\n", scale_values_[scale_i], standard_dev);
 
     // Select only points outside (mean +/- alpha * standard_dev)

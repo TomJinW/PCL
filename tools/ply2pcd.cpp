@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -50,11 +50,11 @@ using namespace pcl::console;
 void
 printHelp (int, char **argv)
 {
-  print_error ("Syntax is: %s [-format 0|1] input.ply output.pcd\n", argv[0]);
+  print_error ("Syntax is: %s input.ply output.pcd\n", argv[0]);
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -70,7 +70,7 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &cloud, bool format)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &cloud, bool format)
 {
   TicToc tt;
   tt.tic ();
@@ -105,18 +105,16 @@ main (int argc, char** argv)
   }
 
   // Command line parsing
-  bool format = 1;
+  bool format = 0;
   parse_argument (argc, argv, "-format", format);
-  print_info ("PCD output format: "); print_value ("%s\n", (format ? "binary" : "ascii"));
+  print_info ("PCD output format: "); print_value ("%s\n", (format ? "binary" : "asci"));
 
   // Load the first file
-  pcl::PCLPointCloud2 cloud;
+  sensor_msgs::PointCloud2 cloud;
   if (!loadCloud (argv[ply_file_indices[0]], cloud)) 
     return (-1);
 
   // Convert to PLY and save
   saveCloud (argv[pcd_file_indices[0]], cloud, format);
-
-  return (0);
 }
 

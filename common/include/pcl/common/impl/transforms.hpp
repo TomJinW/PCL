@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -37,207 +34,29 @@
  *
  */
 
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
-
-#if defined(__AVX__)
-#include <immintrin.h>
-#endif
-
-namespace pcl
-{
-
-  namespace detail
-  {
-
-    /** A helper struct to apply an SO3 or SE3 transform to a 3D point.
-      * Supports single and double precision transform matrices. */
-    template<typename Scalar>
-    struct Transformer
-    {
-      const Eigen::Matrix<Scalar, 4, 4>& tf;
-
-      /** Construct a transformer object.
-        * The transform matrix is captured by const reference. Make sure that it does not go out of scope before this
-        * object does. */
-      Transformer (const Eigen::Matrix<Scalar, 4, 4>& transform) : tf (transform) { };
-
-      /** Apply SO3 transform (top-left corner of the transform matrix).
-        * \param[in] src input 3D point (pointer to 3 floats)
-        * \param[out] tgt output 3D point (pointer to 4 floats), can be the same as input. The fourth element is set to 0. */
-      void so3 (const float* src, float* tgt) const
-      {
-        const Scalar p[3] = { src[0], src[1], src[2] };  // need this when src == tgt
-        tgt[0] = static_cast<float> (tf (0, 0) * p[0] + tf (0, 1) * p[1] + tf (0, 2) * p[2]);
-        tgt[1] = static_cast<float> (tf (1, 0) * p[0] + tf (1, 1) * p[1] + tf (1, 2) * p[2]);
-        tgt[2] = static_cast<float> (tf (2, 0) * p[0] + tf (2, 1) * p[1] + tf (2, 2) * p[2]);
-        tgt[3] = 0;
-      }
-
-      /** Apply SE3 transform.
-        * \param[in] src input 3D point (pointer to 3 floats)
-        * \param[out] tgt output 3D point (pointer to 4 floats), can be the same as input. The fourth element is set to 1. */
-      void se3 (const float* src, float* tgt) const
-      {
-        const Scalar p[3] = { src[0], src[1], src[2] };  // need this when src == tgt
-        tgt[0] = static_cast<float> (tf (0, 0) * p[0] + tf (0, 1) * p[1] + tf (0, 2) * p[2] + tf (0, 3));
-        tgt[1] = static_cast<float> (tf (1, 0) * p[0] + tf (1, 1) * p[1] + tf (1, 2) * p[2] + tf (1, 3));
-        tgt[2] = static_cast<float> (tf (2, 0) * p[0] + tf (2, 1) * p[1] + tf (2, 2) * p[2] + tf (2, 3));
-        tgt[3] = 1;
-      }
-    };
-
-#if defined(__SSE2__)
-
-    /** Optimized version for single-precision transforms using SSE2 intrinsics. */
-    template<>
-    struct Transformer<float>
-    {
-      /// Columns of the transform matrix stored in XMM registers.
-      __m128 c[4];
-
-      Transformer(const Eigen::Matrix4f& tf)
-      {
-        for (size_t i = 0; i < 4; ++i)
-          c[i] = _mm_load_ps (tf.col (i).data ());
-      }
-
-      void so3 (const float* src, float* tgt) const
-      {
-        __m128 p0 = _mm_mul_ps (_mm_load_ps1 (&src[0]), c[0]);
-        __m128 p1 = _mm_mul_ps (_mm_load_ps1 (&src[1]), c[1]);
-        __m128 p2 = _mm_mul_ps (_mm_load_ps1 (&src[2]), c[2]);
-        _mm_store_ps (tgt, _mm_add_ps(p0, _mm_add_ps(p1, p2)));
-      }
-
-      void se3 (const float* src, float* tgt) const
-      {
-        __m128 p0 = _mm_mul_ps (_mm_load_ps1 (&src[0]), c[0]);
-        __m128 p1 = _mm_mul_ps (_mm_load_ps1 (&src[1]), c[1]);
-        __m128 p2 = _mm_mul_ps (_mm_load_ps1 (&src[2]), c[2]);
-        _mm_store_ps (tgt, _mm_add_ps(p0, _mm_add_ps(p1, _mm_add_ps(p2, c[3]))));
-      }
-    };
-
-#if not defined(__AVX__)
-
-    /** Optimized version for double-precision transform using SSE2 intrinsics. */
-    template<>
-    struct Transformer<double>
-    {
-      /// Columns of the transform matrix stored in XMM registers.
-      __m128d c[4][2];
-
-      Transformer(const Eigen::Matrix4d& tf)
-      {
-        for (size_t i = 0; i < 4; ++i)
-        {
-          c[i][0] = _mm_load_pd (tf.col (i).data () + 0);
-          c[i][1] = _mm_load_pd (tf.col (i).data () + 2);
-        }
-      }
-
-      void so3 (const float* src, float* tgt) const
-      {
-        __m128d xx = _mm_cvtps_pd (_mm_load_ps1 (&src[0]));
-        __m128d p0 = _mm_mul_pd (xx, c[0][0]);
-        __m128d p1 = _mm_mul_pd (xx, c[0][1]);
-
-        for (size_t i = 1; i < 3; ++i)
-        {
-          __m128d vv = _mm_cvtps_pd (_mm_load_ps1 (&src[i]));
-          p0 = _mm_add_pd (_mm_mul_pd (vv, c[i][0]), p0);
-          p1 = _mm_add_pd (_mm_mul_pd (vv, c[i][1]), p1);
-        }
-
-        _mm_store_ps (tgt, _mm_movelh_ps (_mm_cvtpd_ps (p0), _mm_cvtpd_ps (p1)));
-      }
-
-      void se3 (const float* src, float* tgt) const
-      {
-        __m128d p0 = c[3][0];
-        __m128d p1 = c[3][1];
-
-        for (size_t i = 0; i < 3; ++i)
-        {
-          __m128d vv = _mm_cvtps_pd (_mm_load_ps1 (&src[i]));
-          p0 = _mm_add_pd (_mm_mul_pd (vv, c[i][0]), p0);
-          p1 = _mm_add_pd (_mm_mul_pd (vv, c[i][1]), p1);
-        }
-
-        _mm_store_ps (tgt, _mm_movelh_ps (_mm_cvtpd_ps (p0), _mm_cvtpd_ps (p1)));
-      }
-
-    };
-
-#else
-
-  /** Optimized version for double-precision transform using AVX intrinsics. */
-  template<>
-  struct Transformer<double>
-  {
-    __m256d c[4];
-
-    Transformer(const Eigen::Matrix4d& tf)
-    {
-      for (size_t i = 0; i < 4; ++i)
-        c[i] = _mm256_load_pd (tf.col (i).data ());
-    }
-
-    void so3 (const float* src, float* tgt) const
-    {
-      __m256d p0 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[0])), c[0]);
-      __m256d p1 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[1])), c[1]);
-      __m256d p2 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[2])), c[2]);
-      _mm_store_ps (tgt, _mm256_cvtpd_ps (_mm256_add_pd(p0, _mm256_add_pd(p1, p2))));
-    }
-
-    void se3 (const float* src, float* tgt) const
-    {
-      __m256d p0 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[0])), c[0]);
-      __m256d p1 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[1])), c[1]);
-      __m256d p2 = _mm256_mul_pd (_mm256_cvtps_pd (_mm_load_ps1 (&src[2])), c[2]);
-      _mm_store_ps (tgt, _mm256_cvtpd_ps (_mm256_add_pd(p0, _mm256_add_pd(p1, _mm256_add_pd(p2, c[3])))));
-    }
-
-  };
-
-#endif
-#endif
-
-  }
-
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> void
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
 pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in, 
                           pcl::PointCloud<PointT> &cloud_out,
-                          const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform,
-                          bool copy_all_fields)
+                          const Eigen::Affine3f &transform)
 {
   if (&cloud_in != &cloud_out)
   {
+    // Note: could be replaced by cloud_out = cloud_in
     cloud_out.header   = cloud_in.header;
     cloud_out.is_dense = cloud_in.is_dense;
     cloud_out.width    = cloud_in.width;
     cloud_out.height   = cloud_in.height;
-    cloud_out.points.reserve (cloud_in.points.size ());
-    if (copy_all_fields)
-      cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
-    else
-      cloud_out.points.resize (cloud_in.points.size ());
-    cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
-    cloud_out.sensor_origin_      = cloud_in.sensor_origin_;
+    cloud_out.points.reserve (cloud_out.points.size ());
+    cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
   }
 
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
   if (cloud_in.is_dense)
   {
     // If the dataset is dense, simply transform it!
     for (size_t i = 0; i < cloud_out.points.size (); ++i)
-      tf.se3 (cloud_in[i].data, cloud_out[i].data);
+      cloud_out.points[i].getVector3fMap () = transform * 
+                                              cloud_in.points[i].getVector3fMap ();
   }
   else
   {
@@ -249,39 +68,35 @@ pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in,
           !pcl_isfinite (cloud_in.points[i].y) || 
           !pcl_isfinite (cloud_in.points[i].z))
         continue;
-      tf.se3 (cloud_in[i].data, cloud_out[i].data);
+      cloud_out.points[i].getVector3fMap () = transform * 
+                                              cloud_in.points[i].getVector3fMap ();
     }
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> void
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
 pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in, 
                           const std::vector<int> &indices, 
                           pcl::PointCloud<PointT> &cloud_out,
-                          const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform,
-                          bool copy_all_fields)
+                          const Eigen::Affine3f &transform)
 {
   size_t npts = indices.size ();
   // In order to transform the data, we need to remove NaNs
   cloud_out.is_dense = cloud_in.is_dense;
   cloud_out.header   = cloud_in.header;
-  cloud_out.width    = static_cast<int> (npts);
+  cloud_out.width    = npts;
   cloud_out.height   = 1;
   cloud_out.points.resize (npts);
-  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
-  cloud_out.sensor_origin_      = cloud_in.sensor_origin_;
 
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
   if (cloud_in.is_dense)
   {
     // If the dataset is dense, simply transform it!
     for (size_t i = 0; i < npts; ++i)
     {
       // Copy fields first, then transform xyz data
-      if (copy_all_fields)
-        cloud_out.points[i] = cloud_in.points[indices[i]];
-      tf.se3 (cloud_in[indices[i]].data, cloud_out[i].data);
+      cloud_out.points[i] = cloud_in.points[indices[i]]; 
+      cloud_out.points[i].getVector3fMap () = transform*cloud_out.points[i].getVector3fMap ();
     }
   }
   else
@@ -290,23 +105,21 @@ pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in,
     // otherwise we get errors during the multiplication (?)
     for (size_t i = 0; i < npts; ++i)
     {
-      if (copy_all_fields)
-        cloud_out.points[i] = cloud_in.points[indices[i]];
       if (!pcl_isfinite (cloud_in.points[indices[i]].x) || 
           !pcl_isfinite (cloud_in.points[indices[i]].y) || 
           !pcl_isfinite (cloud_in.points[indices[i]].z))
         continue;
-      tf.se3 (cloud_in[indices[i]].data, cloud_out[i].data);
+      cloud_out.points[i] = cloud_in.points[indices[i]]; 
+      cloud_out.points[i].getVector3fMap () = transform*cloud_out.points[i].getVector3fMap ();
     }
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> void
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
 pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in, 
                                      pcl::PointCloud<PointT> &cloud_out,
-                                     const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform,
-                                     bool copy_all_fields)
+                                     const Eigen::Affine3f &transform)
 {
   if (&cloud_in != &cloud_out)
   {
@@ -316,22 +129,20 @@ pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in,
     cloud_out.height   = cloud_in.height;
     cloud_out.is_dense = cloud_in.is_dense;
     cloud_out.points.reserve (cloud_out.points.size ());
-    if (copy_all_fields)
-      cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
-    else
-      cloud_out.points.resize (cloud_in.points.size ());
-    cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
-    cloud_out.sensor_origin_      = cloud_in.sensor_origin_;
+    cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
   }
 
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
   // If the data is dense, we don't need to check for NaN
   if (cloud_in.is_dense)
   {
     for (size_t i = 0; i < cloud_out.points.size (); ++i)
     {
-      tf.se3 (cloud_in[i].data, cloud_out[i].data);
-      tf.so3 (cloud_in[i].data_n, cloud_out[i].data_n);
+      cloud_out.points[i].getVector3fMap() = transform * 
+                                             cloud_in.points[i].getVector3fMap ();
+
+      // Rotate normals
+      cloud_out.points[i].getNormalVector3fMap() = transform.rotation () * 
+                                                   cloud_in.points[i].getNormalVector3fMap ();
     }
   }
   // Dataset might contain NaNs and Infs, so check for them first.
@@ -343,41 +154,88 @@ pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in,
           !pcl_isfinite (cloud_in.points[i].y) || 
           !pcl_isfinite (cloud_in.points[i].z))
         continue;
-      tf.se3 (cloud_in[i].data, cloud_out[i].data);
-      tf.so3 (cloud_in[i].data_n, cloud_out[i].data_n);
+      cloud_out.points[i].getVector3fMap() = transform * 
+                                             cloud_in.points[i].getVector3fMap ();
+
+      // Rotate normals
+      cloud_out.points[i].getNormalVector3fMap() = transform.rotation () * 
+                                                   cloud_in.points[i].getNormalVector3fMap ();
     }
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> void
-pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in, 
-                                     const std::vector<int> &indices, 
-                                     pcl::PointCloud<PointT> &cloud_out,
-                                     const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform,
-                                     bool copy_all_fields)
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in, 
+                          pcl::PointCloud<PointT> &cloud_out,
+                          const Eigen::Matrix4f &transform)
 {
-  size_t npts = indices.size ();
-  // In order to transform the data, we need to remove NaNs
-  cloud_out.is_dense = cloud_in.is_dense;
-  cloud_out.header   = cloud_in.header;
-  cloud_out.width    = static_cast<int> (npts);
-  cloud_out.height   = 1;
-  cloud_out.points.resize (npts);
-  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
-  cloud_out.sensor_origin_      = cloud_in.sensor_origin_;
+  if (&cloud_in != &cloud_out)
+  {
+    // Note: could be replaced by cloud_out = cloud_in
+    cloud_out.header   = cloud_in.header;
+    cloud_out.width    = cloud_in.width;
+    cloud_out.height   = cloud_in.height;
+    cloud_out.is_dense = cloud_in.is_dense;
+    cloud_out.points.reserve (cloud_out.points.size ());
+    cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
+  }
 
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
+  Eigen::Matrix3f rot   = transform.block<3, 3> (0, 0);
+  Eigen::Vector3f trans = transform.block<3, 1> (0, 3);
+  // If the data is dense, we don't need to check for NaN
+  if (cloud_in.is_dense)
+  {
+    for (size_t i = 0; i < cloud_out.points.size (); ++i)
+      cloud_out.points[i].getVector3fMap () = rot * 
+                                              cloud_in.points[i].getVector3fMap () + trans;
+  }
+  // Dataset might contain NaNs and Infs, so check for them first.
+  else
+  {
+    for (size_t i = 0; i < cloud_out.points.size (); ++i)
+    {
+      if (!pcl_isfinite (cloud_in.points[i].x) || 
+          !pcl_isfinite (cloud_in.points[i].y) || 
+          !pcl_isfinite (cloud_in.points[i].z))
+        continue;
+      cloud_out.points[i].getVector3fMap () = rot * 
+                                              cloud_in.points[i].getVector3fMap () + trans;
+    }
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in, 
+                                     pcl::PointCloud<PointT> &cloud_out,
+                                     const Eigen::Matrix4f &transform)
+{
+  if (&cloud_in != &cloud_out)
+  {
+    // Note: could be replaced by cloud_out = cloud_in
+    cloud_out.header   = cloud_in.header;
+    cloud_out.width    = cloud_in.width;
+    cloud_out.height   = cloud_in.height;
+    cloud_out.is_dense = cloud_in.is_dense;
+    cloud_out.points.reserve (cloud_out.points.size ());
+    cloud_out.points.assign (cloud_in.points.begin (), cloud_in.points.end ());
+  }
+
+  Eigen::Matrix3f rot   = transform.block<3, 3> (0, 0);
+  Eigen::Vector3f trans = transform.block<3, 1> (0, 3);
+
   // If the data is dense, we don't need to check for NaN
   if (cloud_in.is_dense)
   {
     for (size_t i = 0; i < cloud_out.points.size (); ++i)
     {
-      // Copy fields first, then transform
-      if (copy_all_fields)
-        cloud_out.points[i] = cloud_in.points[indices[i]];
-      tf.se3 (cloud_in[indices[i]].data, cloud_out[i].data);
-      tf.so3 (cloud_in[indices[i]].data_n, cloud_out[i].data_n);
+      cloud_out.points[i].getVector3fMap () = rot * 
+                                              cloud_in.points[i].getVector3fMap () + trans;
+
+      // Rotate normals
+      cloud_out.points[i].getNormalVector3fMap() = rot * 
+                                                   cloud_in.points[i].getNormalVector3fMap ();
     }
   }
   // Dataset might contain NaNs and Infs, so check for them first.
@@ -385,92 +243,53 @@ pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in,
   {
     for (size_t i = 0; i < cloud_out.points.size (); ++i)
     {
-      // Copy fields first, then transform
-      if (copy_all_fields)
-        cloud_out.points[i] = cloud_in.points[indices[i]];
-
-      if (!pcl_isfinite (cloud_in.points[indices[i]].x) || 
-          !pcl_isfinite (cloud_in.points[indices[i]].y) || 
-          !pcl_isfinite (cloud_in.points[indices[i]].z))
+      if (!pcl_isfinite (cloud_in.points[i].x) || 
+          !pcl_isfinite (cloud_in.points[i].y) || 
+          !pcl_isfinite (cloud_in.points[i].z))
         continue;
+      cloud_out.points[i].getVector3fMap () = rot * 
+                                              cloud_in.points[i].getVector3fMap () + trans;
 
-      tf.se3 (cloud_in[indices[i]].data, cloud_out[i].data);
-      tf.so3 (cloud_in[indices[i]].data_n, cloud_out[i].data_n);
+      // Rotate normals
+      cloud_out.points[i].getNormalVector3fMap() = rot * 
+                                                   cloud_in.points[i].getNormalVector3fMap ();
     }
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> inline void
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> inline void
 pcl::transformPointCloud (const pcl::PointCloud<PointT> &cloud_in, 
                           pcl::PointCloud<PointT> &cloud_out,
-                          const Eigen::Matrix<Scalar, 3, 1> &offset, 
-                          const Eigen::Quaternion<Scalar> &rotation,
-                          bool copy_all_fields)
+                          const Eigen::Vector3f &offset, 
+                          const Eigen::Quaternionf &rotation)
 {
-  Eigen::Translation<Scalar, 3> translation (offset);
+  Eigen::Translation3f translation (offset);
   // Assemble an Eigen Transform
-  Eigen::Transform<Scalar, 3, Eigen::Affine> t (translation * rotation);
-  transformPointCloud (cloud_in, cloud_out, t, copy_all_fields);
+  Eigen::Affine3f t;
+  t = translation * rotation;
+  transformPointCloud (cloud_in, cloud_out, t);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> inline void
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> inline void
 pcl::transformPointCloudWithNormals (const pcl::PointCloud<PointT> &cloud_in, 
                                      pcl::PointCloud<PointT> &cloud_out,
-                                     const Eigen::Matrix<Scalar, 3, 1> &offset, 
-                                     const Eigen::Quaternion<Scalar> &rotation,
-                                     bool copy_all_fields)
+                                     const Eigen::Vector3f &offset, 
+                                     const Eigen::Quaternionf &rotation)
 {
-  Eigen::Translation<Scalar, 3> translation (offset);
+  Eigen::Translation3f translation (offset);
   // Assemble an Eigen Transform
-  Eigen::Transform<Scalar, 3, Eigen::Affine> t (translation * rotation);
-  transformPointCloudWithNormals (cloud_in, cloud_out, t, copy_all_fields);
+  Eigen::Affine3f t;
+  t = translation * rotation;
+  transformPointCloudWithNormals (cloud_in, cloud_out, t);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> inline PointT
-pcl::transformPoint (const PointT &point, 
-                     const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform)
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> inline PointT
+pcl::transformPoint (const PointT &point, const Eigen::Affine3f &transform)
 {
   PointT ret = point;
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
-  tf.se3 (point.data, ret.data);
-  return (ret);
+  ret.getVector3fMap () = transform * point.getVector3fMap ();
+  return ret;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> inline PointT
-pcl::transformPointWithNormal (const PointT &point, 
-                     const Eigen::Transform<Scalar, 3, Eigen::Affine> &transform)
-{
-  PointT ret = point;
-  pcl::detail::Transformer<Scalar> tf (transform.matrix ());
-  tf.se3 (point.data, ret.data);
-  tf.so3 (point.data_n, ret.data_n);
-  return (ret);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT, typename Scalar> double
-pcl::getPrincipalTransformation (const pcl::PointCloud<PointT> &cloud, 
-                                 Eigen::Transform<Scalar, 3, Eigen::Affine> &transform)
-{
-  EIGEN_ALIGN16 Eigen::Matrix<Scalar, 3, 3> covariance_matrix;
-  Eigen::Matrix<Scalar, 4, 1> centroid;
-  
-  pcl::computeMeanAndCovarianceMatrix (cloud, covariance_matrix, centroid);
-
-  EIGEN_ALIGN16 Eigen::Matrix<Scalar, 3, 3> eigen_vects;
-  Eigen::Matrix<Scalar, 3, 1> eigen_vals;
-  pcl::eigen33 (covariance_matrix, eigen_vects, eigen_vals);
-
-  double rel1 = eigen_vals.coeff (0) / eigen_vals.coeff (1);
-  double rel2 = eigen_vals.coeff (1) / eigen_vals.coeff (2);
-  
-  transform.translation () = centroid.head (3);
-  transform.linear () = eigen_vects;
-  
-  return (std::min (rel1, rel2));
-}
-

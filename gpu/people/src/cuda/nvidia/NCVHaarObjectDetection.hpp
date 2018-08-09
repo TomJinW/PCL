@@ -54,8 +54,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef PCL_GPU_PEOPLE_NCVHAAROBJECTDETECTION_HPP_
-#define PCL_GPU_PEOPLE_NCVHAAROBJECTDETECTION_HPP_
+#ifndef _ncvhaarobjectdetection_hpp_
+#define _ncvhaarobjectdetection_hpp_
 
 #include <string>
 #include "NCV.hpp"
@@ -171,38 +171,30 @@ struct HaarClassifierNodeDescriptor32
     __host__ NCVStatus create(Ncv32f leafValue)
     {
       *(Ncv32f *)&this->_ui1 = leafValue;
-      return (NCV_SUCCESS);
+      return NCV_SUCCESS;
     }
 
     __host__ NCVStatus create(Ncv32u offsetHaarClassifierNode)
     {
       this->_ui1.x = offsetHaarClassifierNode;
-      return (NCV_SUCCESS);
+      return NCV_SUCCESS;
     }
 
     __host__ Ncv32f getLeafValueHost(void)
     {
-      return (*(Ncv32f *)&this->_ui1.x);
-    }
-
-    __host__ bool isLeaf()                                  // TODO: check this hack don't know if is correct
-    {
-      if( _ui1.x == 0)
-        return (false);
-      else
-        return (true);
+      return *(Ncv32f *)&this->_ui1.x;
     }
 
 #ifdef __CUDACC__
     __device__ Ncv32f getLeafValue(void)
     {
-      return (__int_as_float(this->_ui1.x));
+      return __int_as_float(this->_ui1.x);
     }
 #endif
 
     __device__ __host__ Ncv32u getNextNodeOffset(void)
     {
-      return (this->_ui1.x);
+      return this->_ui1.x;
     }
 };
 
@@ -311,9 +303,12 @@ NCV_CT_ASSERT(sizeof(HaarClassifierNodeDescriptor32) == 4);
 NCV_CT_ASSERT(sizeof(HaarClassifierNode128) == 16);
 NCV_CT_ASSERT(sizeof(HaarStage64) == 8);
 
-/**
- * \brief Classifier cascade descriptor
- */
+//=============================================================================
+//
+// Classifier cascade descriptor
+//
+//==============================================================================
+
 struct HaarClassifierCascadeDescriptor
 {
     Ncv32u NumStages;
@@ -431,4 +426,4 @@ NCV_EXPORTS NCVStatus ncvHaarStoreNVBIN_host(const std::string &filename,
                                              NCVVector<HaarClassifierNode128> &h_HaarNodes,
                                              NCVVector<HaarFeature64> &h_HaarFeatures);
 
-#endif // PCL_GPU_PEOPLE_NCVHAAROBJECTDETECTION_HPP_
+#endif // _ncvhaarobjectdetection_hpp_

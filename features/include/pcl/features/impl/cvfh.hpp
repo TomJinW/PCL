@@ -42,9 +42,7 @@
 #define PCL_FEATURES_IMPL_CVFH_H_
 
 #include <pcl/features/cvfh.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/features/pfh_tools.h>
-#include <pcl/common/centroid.h>
+#include <pcl/features/pfh.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointInT, typename PointNT, typename PointOutT> void
@@ -83,12 +81,12 @@ pcl::CVFHEstimation<PointInT, PointNT, PointOutT>::extractEuclideanClustersSmoot
 {
   if (tree->getInputCloud ()->points.size () != cloud.points.size ())
   {
-    PCL_ERROR ("[pcl::extractEuclideanClusters] Tree built for a different point cloud dataset (%lu) than the input cloud (%lu)!\n", tree->getInputCloud ()->points.size (), cloud.points.size ());
+    PCL_ERROR ("[pcl::extractEuclideanClusters] Tree built for a different point cloud dataset (%zu) than the input cloud (%zu)!\n", tree->getInputCloud ()->points.size (), cloud.points.size ());
     return;
   }
   if (cloud.points.size () != normals.points.size ())
   {
-    PCL_ERROR ("[pcl::extractEuclideanClusters] Number of points in the input point cloud (%lu) different than normals (%lu)!\n", cloud.points.size (), normals.points.size ());
+    PCL_ERROR ("[pcl::extractEuclideanClusters] Number of points in the input point cloud (%zu) different than normals (%zu)!\n", cloud.points.size (), normals.points.size ());
     return;
   }
 
@@ -237,8 +235,7 @@ pcl::CVFHEstimation<PointInT, PointNT, PointOutT>::computeFeature (PointCloudOut
     KdTreePtr normals_tree_filtered (new pcl::search::KdTree<pcl::PointNormal> (false));
     normals_tree_filtered->setInputCloud (normals_filtered_cloud);
 
-
-    pcl::NormalEstimation<PointNormal, PointNormal> n3d;
+    NormalEstimator n3d;
     n3d.setRadiusSearch (radius_normals_);
     n3d.setSearchMethod (normals_tree_filtered);
     n3d.setInputCloud (normals_filtered_cloud);

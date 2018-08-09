@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -46,16 +46,32 @@
 #include <pcl/exceptions.h>
 
 /////////////////////////////////////////////////////////////////////////////////////////
+/** \brief Constructor with direct computation
+  * \param[in] X input m*n matrix (ie n vectors of R(m))
+  * \param[in] basis_only flag to compute only the PCA basis
+  */
+template<typename PointT>
+pcl::PCA<PointT>::PCA (const pcl::PointCloud<PointT>& X, bool basis_only)
+{
+  Base ();
+  basis_only_ = basis_only;
+  setInputCloud (X.makeShared ());
+  compute_done_ = initCompute ();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT> bool
 pcl::PCA<PointT>::initCompute () 
 {
   if(!Base::initCompute ())
   {
     PCL_THROW_EXCEPTION (InitFailedException, "[pcl::PCA::initCompute] failed");
+    return (false);
   }
   if(indices_->size () < 3)
   {
     PCL_THROW_EXCEPTION (InitFailedException, "[pcl::PCA::initCompute] number of points < 3");
+    return (false);
   }
   
   // Compute mean
@@ -66,8 +82,7 @@ pcl::PCA<PointT>::initCompute ()
   demeanPointCloud (*input_, *indices_, mean_, cloud_demean);
   assert (cloud_demean.cols () == int (indices_->size ()));
   // Compute the product cloud_demean * cloud_demean^T
-  const Eigen::Matrix3f alpha = (1.f / (float (indices_->size ()) - 1.f))
-                                  * cloud_demean.topRows<3> () * cloud_demean.topRows<3> ().transpose ();
+  Eigen::Matrix3f alpha = static_cast<Eigen::Matrix3f> (cloud_demean.topRows<3> () * cloud_demean.topRows<3> ().transpose ());
   
   // Compute eigen vectors and values
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> evd (alpha);
@@ -78,6 +93,7 @@ pcl::PCA<PointT>::initCompute ()
     eigenvectors_.col (i) = evd.eigenvectors ().col (2-i);
   }
   // If not basis only then compute the coefficients
+
   if (!basis_only_)
     coefficients_ = eigenvectors_.transpose() * cloud_demean.topRows<3> ();
   compute_done_ = true;

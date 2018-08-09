@@ -6,15 +6,13 @@
 #include <iosfwd>
 #include <boost/shared_ptr.hpp>
 
-#include <pcl/pcl_exports.h>
-
 namespace pcl
 {
   namespace gpu
   {
     namespace people
     {
-      class PCL_EXPORTS PersonAttribs
+      class PersonAttribs
       {
         public:
           typedef boost::shared_ptr<PersonAttribs> Ptr;
@@ -25,7 +23,7 @@ namespace pcl
           /**
            * \brief Read XML configuration file for a specific person
            * \param[in] is input stream of file
-           * \return 0 when successful, -1 when an error occurred, datastructure might become corrupted in the process
+           * \return 0 when succesfull, -1 when an error occured, datastructure might become corrupted in the process
            **/
           int
           readPersonXMLConfig (std::istream& is);

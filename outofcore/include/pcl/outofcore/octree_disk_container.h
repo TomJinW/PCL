@@ -34,9 +34,13 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  $Id: octree_disk_container.h 6927M 2012-08-24 13:26:40Z (local) $
  */
 
+/*
+  This code defines the octree used for point storage at Urban Robotics. Please
+  contact Jacob Schloss <jacob.schloss@urbanrobotics.net> with any questions.
+  http://www.urbanrobotics.net/
+*/
 #ifndef PCL_OUTOFCORE_OCTREE_DISK_CONTAINER_H_
 #define PCL_OUTOFCORE_OCTREE_DISK_CONTAINER_H_
 
@@ -44,79 +48,133 @@
 #include <vector>
 #include <string>
 
-#include <pcl/outofcore/boost.h>
+// Boost
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/bernoulli_distribution.hpp>
+
 #include <pcl/outofcore/octree_abstract_node_container.h>
+
+#include <sensor_msgs/PointCloud2.h>
+
 #include <pcl/io/pcd_io.h>
-#include <pcl/PCLPointCloud2.h>
 
 //allows operation on POSIX
-#if !defined WIN32
+#ifndef WIN32
 #define _fseeki64 fseeko
-#elif defined __MINGW32__
-#define _fseeki64 fseeko64
 #endif
+
+/* todo (from original UR code): consider using per-node RNG (it is
+ *  currently a shared static rng, which is mutexed. I did i this way
+ *  to be sure that none of the nodes had RNGs seeded to the same
+ *  value). the mutex could effect performance though 
+ *
+ */
 
 namespace pcl
 {
   namespace outofcore
   {
-  /** \class OutofcoreOctreeDiskContainer
-   *  \note Code was adapted from the Urban Robotics out of core octree implementation. 
-   *  Contact Jacob Schloss <jacob.schloss@urbanrobotics.net> with any questions. 
-   *  http://www.urbanrobotics.net/
-   *
-   *  \brief Class responsible for serialization and deserialization of out of core point data
-   *  \ingroup outofcore
-   *  \author Jacob Schloss (jacob.schloss@urbanrobotics.net)
-   */
-    template<typename PointT = pcl::PointXYZ>
-    class OutofcoreOctreeDiskContainer : public OutofcoreAbstractNodeContainer<PointT>
+/** \class octree_disk_container
+ *  \brief Class responsible for serialization and deserialization of out of core point data
+ */
+    template<typename PointT>
+    class octree_disk_container : public OutofcoreAbstractNodeContainer<PointT>
     {
   
       public:
         typedef typename OutofcoreAbstractNodeContainer<PointT>::AlignedPointTVector AlignedPointTVector;
         
         /** \brief Empty constructor creates disk container and sets filename from random uuid string*/
-        OutofcoreOctreeDiskContainer ();
+        octree_disk_container ();
 
         /** \brief Creates uuid named file or loads existing file
          * 
-         * If \b dir is a directory, this constructor will create a new
-         * uuid named file; if \b dir is an existing file, it will load the
-         * file metadata for accessing the tree.
-         *
-         * \param[in] dir Path to the tree. If it is a directory, it
-         * will create the metadata. If it is a file, it will load the metadata into memory.
+         * If dir is a directory, constructor will create new
+         * uuid named file; if dir is an existing file, it will load the
+         * file
          */
-        OutofcoreOctreeDiskContainer (const boost::filesystem::path &dir);
+        octree_disk_container (const boost::filesystem::path& dir);
 
         /** \brief flushes write buffer, then frees memory */
-        ~OutofcoreOctreeDiskContainer ();
+        ~octree_disk_container ();
 
         /** \brief provides random access to points based on a linear index
+         *  \todo benchmark this; compare to Julius' octree
          */
         inline PointT
         operator[] (uint64_t idx) const;
 
-        /** \brief Adds a single point to the buffer to be written to disk when the buffer grows sufficiently large, the object is destroyed, or the write buffer is manually flushed */
         inline void
         push_back (const PointT& p);
 
-        /** \brief Inserts a vector of points into the disk data structure */
         void
         insertRange (const AlignedPointTVector& src);
 
-        /** \brief Inserts a PCLPointCloud2 object directly into the disk container */
         void
-        insertRange (const pcl::PCLPointCloud2::Ptr &input_cloud);
+        insertRange (const sensor_msgs::PointCloud2::Ptr input_cloud)
+        {
+          //this needs to be stress tested; also does no delayed-write caching (for now)
+          sensor_msgs::PointCloud2::Ptr tmp_cloud (new sensor_msgs::PointCloud2 ());
+          
+          //if there's a pcd file with data, read the data, concatenate, and resave
+          if ( boost::filesystem::exists ( *fileback_name_ ) )
+          {
+            //open the existing file
+            pcl::PCDReader reader;
+            assert ( reader.read ( *fileback_name_, *tmp_cloud) == 0 );
+            pcl::PCDWriter writer;
+            PCL_INFO ("[pcl::outofcore::octree_disk_container::%s] Concatenating point cloud from %s to new cloud\n", __FUNCTION__, fileback_name_->c_str () );
+            pcl::concatenatePointCloud ( *tmp_cloud, *input_cloud, *tmp_cloud );
+            writer.writeBinaryCompressed ( *fileback_name_, *input_cloud );
+            
+          }
+          else //otherwise create the point cloud which will be saved to the pcd file for the first time
+          {
+            pcl::PCDWriter writer;
+            assert (writer.writeBinaryCompressed ( *fileback_name_, *input_cloud ) == 0 );
+          }            
 
+        }
+        
+
+        /** \todo standardize the interface for writing binary data to the files .oct_dat files */
         void
-        insertRange (const PointT* const * start, const uint64_t count);
+        insertRange (const PointT* const * start, const uint64_t count)
+        {
+          //copy the handles to a continuous block
+          PointT* arr = new PointT[count];
+
+          //copy from start of array, element by element
+          for (size_t i = 0; i < count; i++)
+          {
+            arr[i] = *(start[i]);
+          }
+
+          insertRange (arr, count);
+          delete[] arr;
+        }
     
         /** \brief This is the primary method for serialization of
          * blocks of point data. This is called by the outofcore
          * octree interface, opens the binary file for appending data,
          * and writes it to disk.
+         *
+         * \todo With the current implementation of \b insertRange,
+         * frequently the file is open and sometimes 1-3 points are
+         * written to disk. This might be normal if the resolution is
+         * low enough, but performance could be improved if points are
+         * first sorted into buckets by locational code, then sent to
+         * their appropriate container for being written to
+         * disk. Furthermore, for OUTOFCORE_VERSION_ >= 3, this will
+         * use PCD files (and possibly Julius's octree compression)
+         * rather than an unorganized linear dump of the binary PointT
+         * data.
          *
          * \param[in] start address of the first point to insert
          * \param[in] count offset from start of the last point to insert
@@ -127,36 +185,54 @@ namespace pcl
         /** \brief Reads \b count points into memory from the disk container
          *
          * Reads \b count points into memory from the disk container, reading at most 2 million elements at a time
+         * \todo Investigate most efficient ways to read in points v. block size
          *
          * \param[in] start index of first point to read from disk
          * \param[in] count offset of last point to read from disk
-         * \param[out] dst std::vector as destination for points read from disk into memory
+         * \param[out] v std::vector as destination for points read from disk into memory
          */
         void
-        readRange (const uint64_t start, const uint64_t count, AlignedPointTVector &dst);
+        readRange (const uint64_t start, const uint64_t count, AlignedPointTVector& dst);
 
         void
-        readRange (const uint64_t, const uint64_t, pcl::PCLPointCloud2::Ptr &dst);
+        readRange (const uint64_t start, const uint64_t count, sensor_msgs::PointCloud2::Ptr& dst)
+        {
+          pcl::PCDReader reader;
 
-        /** \brief Reads the entire point contents from disk into \c output_cloud
-         *  \param[out] output_cloud
-         */
-        int
-        read (pcl::PCLPointCloud2::Ptr &output_cloud);
+          Eigen::Vector4f  origin;
+          Eigen::Quaternionf  orientation;
+          int  pcd_version;
+          
+          if( boost::filesystem::exists ( *fileback_name_ ) )
+          {
+//            PCL_INFO ( "[pcl::outofcore::octree_disk_container::%s] Reading points from disk from %s.\n", __FUNCTION__ , fileback_name_->c_str () );
+          
+            assert ( reader.read ( *fileback_name_, *dst, origin, orientation, pcd_version) != -1 );
+//            PCL_INFO ( "[pcl::outofcore::octree_disk_container::%s] Read %d points from disk\n", __FUNCTION__ , dst->width*dst->height );
+            
+          }
+          else
+          {
+            PCL_ERROR ("[pcl::outofcore::octree_disk_container::%s] File %s does not exist in node.\n", __FUNCTION__, fileback_name_->c_str () );
+          }
+        }
+
 
         /** \brief  grab percent*count random points. points are \b not guaranteed to be
          * unique (could have multiple identical points!)
          *
+         * \todo improve the random sampling of octree points from the disk container
+         *
          * \param[in] start The starting index of points to select
-         * \param[in] count The length of the range of points from which to randomly sample 
+         * \param count[in] The length of the range of points from which to randomly sample 
          *  (i.e. from start to start+count)
-         * \param[in] percent The percentage of count that is enough points to make up this random sample
-         * \param[out] dst std::vector as destination for randomly sampled points; size will 
+         * \param percent[in] The percentage of count that is enough points to make up this random sample
+         * \param dst[out] std::vector as destination for randomly sampled points; size will 
          * be percentage*count
          */
         void
         readRangeSubSample (const uint64_t start, const uint64_t count, const double percent,
-                            AlignedPointTVector &dst);
+                            AlignedPointTVector& dst);
 
         /** \brief Use bernoulli trials to select points. All points selected will be unique.
          *
@@ -171,34 +247,32 @@ namespace pcl
         readRangeSubSample_bernoulli (const uint64_t start, const uint64_t count, 
                                       const double percent, AlignedPointTVector& dst);
 
-        /** \brief Returns the total number of points for which this container is responsible, \c filelen_ + points in \c writebuff_ that have not yet been flushed to the disk
+        /** \brief Returns the total number of points for which this container is responsible, \ref filelen_ + points in \ref writebuff_ that have not yet been flushed to the disk
          */
         uint64_t
         size () const
         {
-          return (filelen_ + writebuff_.size ());
+          return filelen_ + writebuff_.size ();
         }
 
         /** \brief STL-like empty test
-         * \return true if container has no data on disk or waiting to be written in \c writebuff_ */
+         * \return true if container has no data on disk or waiting to be written in \ref writebuff_ */
         inline bool
         empty () const
         {
           return ((filelen_ == 0) && writebuff_.empty ());
         }
 
-        /** \brief Exposed functionality for manually flushing the write buffer during tree creation */
         void
         flush (const bool force_cache_dealloc)
         {
           flushWritebuff (force_cache_dealloc);
         }
 
-        /** \brief Returns this objects path name */
         inline std::string&
         path ()
         {
-          return (*disk_storage_filename_);
+          return *fileback_name_;
         }
 
         inline void
@@ -207,8 +281,8 @@ namespace pcl
           //clear elements that have not yet been written to disk
           writebuff_.clear ();
           //remove the binary data in the directory
-          PCL_DEBUG ("[Octree Disk Container] Removing the point data from disk, in file %s\n",disk_storage_filename_->c_str ());
-          boost::filesystem::remove (boost::filesystem::path (disk_storage_filename_->c_str ()));
+          PCL_DEBUG ("[Octree Disk Container] Removing the point data from disk, in file %s\n",fileback_name_->c_str ());
+          boost::filesystem::remove (boost::filesystem::path (fileback_name_->c_str ()));
           //reset the size-of-file counter
           filelen_ = 0;
         }
@@ -218,13 +292,13 @@ namespace pcl
          * \param[in] path
          */
         void
-        convertToXYZ (const boost::filesystem::path &path)
+        convertToXYZ (const boost::filesystem::path& path)
         {
-          if (boost::filesystem::exists (*disk_storage_filename_))
+          if (boost::filesystem::exists (*fileback_name_))
           {
             FILE* fxyz = fopen (path.string ().c_str (), "w");
 
-            FILE* f = fopen (disk_storage_filename_->c_str (), "rb");
+            FILE* f = fopen (fileback_name_->c_str (), "rb");
             assert (f != NULL);
 
             uint64_t num = size ();
@@ -233,11 +307,9 @@ namespace pcl
 
             for (uint64_t i = 0; i < num; i++)
             {
-              int seekret = _fseeki64 (f, i * sizeof (PointT), SEEK_SET);
-              (void)seekret;
+              int seekret = _fseeki64 (f, i * sizeof(PointT), SEEK_SET);
               assert (seekret == 0);
-              size_t readlen = fread (loc, sizeof (PointT), 1, f);
-              (void)readlen;
+              size_t readlen = fread (loc, sizeof(PointT), 1, f);
               assert (readlen == 1);
 
               //of << p.x << "\t" << p.y << "\t" << p.z << "\n";
@@ -248,11 +320,8 @@ namespace pcl
 
               fwrite (ss.str ().c_str (), 1, ss.str ().size (), fxyz);
             }
-            int res = fclose (f);
-            (void)res;
-            assert (res == 0);
-            res = fclose (fxyz);
-            assert (res == 0);
+            assert ( fclose (f) == 0 );
+            assert ( fclose (fxyz) == 0);
           }
         }
 
@@ -260,44 +329,52 @@ namespace pcl
          *
          * A mutex lock happens to ensure uniquness
          *
+         * \todo Does this need to be on a templated class?  Seems like this could
+         * be a general utility function.
+         * \todo Does this need to be random?
+         *
          */
         static void
-        getRandomUUIDString (std::string &s);
+        getRandomUUIDString (std::string& s);
 
-        /** \brief Returns the number of points in the PCD file by reading the PCD header. */
-        boost::uint64_t
-        getDataSize () const;
-        
       private:
         //no copy construction
-        OutofcoreOctreeDiskContainer (const OutofcoreOctreeDiskContainer& /*rval*/) { }
+        octree_disk_container (const octree_disk_container& rval) { }
 
 
-        OutofcoreOctreeDiskContainer&
-        operator= (const OutofcoreOctreeDiskContainer& /*rval*/) { }
+        octree_disk_container&
+        operator= (const octree_disk_container& rval) { }
 
         void
         flushWritebuff (const bool force_cache_dealloc);
     
-        /** \brief Name of the storage file on disk (i.e., the PCD file) */
-        boost::shared_ptr<std::string> disk_storage_filename_;
-
-        //--- possibly deprecated parameter variables --//
-
-        //number of elements in file
-        uint64_t filelen_;
-
         /** \brief elements [0,...,size()-1] map to [filelen, ..., filelen + size()-1] */
         AlignedPointTVector writebuff_;
 
+        //std::fstream fileback;//elements [0,...,filelen-1]
+        std::string *fileback_name_;
+
+        //number of elements in file
+        /// \todo This value was originally computed by the number of bytes in the binary dump to disk. Now, since we are using binary compressed, it needs to be computed in a different way (!). This is causing Unit Tests: PCL.Outofcore_Point_Query, OutofcoreTest.PointCloud2_Query and OutofcoreTest.PointCloud2_Insert( on post-insert query test) to fail as of 4 July 2012. SDF
+        uint64_t filelen_;
+
         const static uint64_t READ_BLOCK_SIZE_;
 
-        static const uint64_t WRITE_BUFF_MAX_;
+        /** \todo Consult with the literature about optimizing out of core read/write */
+        /** \todo this will be handled by the write method in pcl::FileWriter */
+        /** \todo WRITE_BUFF_MAX_ is something of a misnomer; this is
+         *  used in two different ways in the class which accounts for
+         *  a bug. It should be the maximum number of points written
+         *  to disk. However, in some places it is also used as the
+         *  maximum number of points allowed to exist in \b writebuff_
+         *  at any given time.
+         */
+        static const uint64_t
+        WRITE_BUFF_MAX_;
 
         static boost::mutex rng_mutex_;
         static boost::mt19937 rand_gen_;
-        static boost::uuids::basic_random_generator<boost::mt19937> uuid_gen_;
-
+        static boost::uuids::random_generator uuid_gen_;
     };
   } //namespace outofcore
 } //namespace pcl

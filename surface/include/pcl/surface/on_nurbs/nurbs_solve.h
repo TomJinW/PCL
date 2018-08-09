@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -85,7 +85,7 @@ namespace pcl
 
       /** \brief Resize target vector f (force vector) */
       void
-      resize (unsigned rows);
+      resizeF (unsigned rows);
 
       /** \brief Print system matrix K (stiffness matrix, basis functions) */
       void
@@ -113,15 +113,6 @@ namespace pcl
         m_quiet = val;
       }
 
-      /** \brief get size of system */
-      inline void
-      getSize (unsigned &rows, unsigned &cols, unsigned &dims)
-      {
-        rows = static_cast<unsigned>(m_feig.rows());
-        cols = static_cast<unsigned>(m_xeig.rows());
-        dims = static_cast<unsigned>(m_feig.cols());
-      }
-
     private:
       bool m_quiet;
       SparseMat m_Ksparse;
@@ -129,8 +120,6 @@ namespace pcl
       Eigen::MatrixXd m_xeig;
       Eigen::MatrixXd m_feig;
 
-    public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 
   }

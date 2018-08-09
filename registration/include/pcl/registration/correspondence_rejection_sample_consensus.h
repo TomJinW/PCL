@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,7 +33,6 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
  *
  */
 #ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_SAMPLE_CONSENSUS_H_
@@ -44,7 +42,6 @@
 
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_registration.h>
-#include <pcl/common/transforms.h>
 
 namespace pcl
 {
@@ -58,30 +55,23 @@ namespace pcl
     template <typename PointT>
     class CorrespondenceRejectorSampleConsensus: public CorrespondenceRejector
     {
+      using CorrespondenceRejector::input_correspondences_;
+      using CorrespondenceRejector::rejection_name_;
+      using CorrespondenceRejector::getClassName;
+
       typedef pcl::PointCloud<PointT> PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
       public:
-        using CorrespondenceRejector::input_correspondences_;
-        using CorrespondenceRejector::rejection_name_;
-        using CorrespondenceRejector::getClassName;
 
-        typedef boost::shared_ptr<CorrespondenceRejectorSampleConsensus> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorSampleConsensus> ConstPtr;
-
-        /** \brief Empty constructor. Sets the inlier threshold to 5cm (0.05m), 
-          * and the maximum number of iterations to 1000. 
-          */
-        CorrespondenceRejectorSampleConsensus () 
-          : inlier_threshold_ (0.05)
-          , max_iterations_ (1000) // std::numeric_limits<int>::max ()
-          , input_ ()
-          , input_transformed_ ()
-          , target_ ()
-          , best_transformation_ ()
-          , refine_ (false)
-          , save_inliers_ (false)
+        /** \brief Empty constructor. */
+        CorrespondenceRejectorSampleConsensus () :
+          inlier_threshold_ (0.05),
+          max_iterations_ (0),
+          input_ (),
+          target_ (),
+          best_transformation_ ()
         {
           rejection_name_ = "CorrespondenceRejectorSampleConsensus";
         }
@@ -101,53 +91,13 @@ namespace pcl
           * \param[in] cloud a cloud containing XYZ data
           */
         virtual inline void 
-        setInputSource (const PointCloudConstPtr &cloud) 
-        { 
-          input_ = cloud; 
-        }
-
-        /** \brief Get a pointer to the input point cloud dataset target. */
-        inline PointCloudConstPtr const 
-        getInputSource () { return (input_); }
+        setInputCloud (const PointCloudConstPtr &cloud) { input_ = cloud; }
 
         /** \brief Provide a target point cloud dataset (must contain XYZ data!)
           * \param[in] cloud a cloud containing XYZ data
           */
         virtual inline void 
-        setInputTarget (const PointCloudConstPtr &cloud) { target_ = cloud; }
-
-        /** \brief Get a pointer to the input point cloud dataset target. */
-        inline PointCloudConstPtr const 
-        getInputTarget () { return (target_ ); }
-
-
-        /** \brief See if this rejector requires source points */
-        bool
-        requiresSourcePoints () const
-        { return (true); }
-
-        /** \brief Blob method for setting the source cloud */
-        void
-        setSourcePoints (pcl::PCLPointCloud2::ConstPtr cloud2)
-        { 
-          PointCloudPtr cloud (new PointCloud);
-          fromPCLPointCloud2 (*cloud2, *cloud);
-          setInputSource (cloud);
-        }
-        
-        /** \brief See if this rejector requires a target cloud */
-        bool
-        requiresTargetPoints () const
-        { return (true); }
-
-        /** \brief Method for setting the target cloud */
-        void
-        setTargetPoints (pcl::PCLPointCloud2::ConstPtr cloud2)
-        { 
-          PointCloudPtr cloud (new PointCloud);
-          fromPCLPointCloud2 (*cloud2, *cloud);
-          setInputTarget (cloud);
-        }
+        setTargetCloud (const PointCloudConstPtr &cloud) { target_ = cloud; }
 
         /** \brief Set the maximum distance between corresponding points.
           * Correspondences with distances below the threshold are considered as inliers.
@@ -160,58 +110,25 @@ namespace pcl
           * \return Distance threshold in the same dimension as source and target data sets.
           */
         inline double 
-        getInlierThreshold () { return inlier_threshold_; };
+        getInlierThreshold() { return inlier_threshold_; };
 
         /** \brief Set the maximum number of iterations.
           * \param[in] max_iterations Maximum number if iterations to run
           */
         inline void 
-        setMaximumIterations (int max_iterations) { max_iterations_ = std::max (max_iterations, 0); }
+        setMaxIterations (int max_iterations) {max_iterations_ = std::max(max_iterations, 0); };
 
         /** \brief Get the maximum number of iterations.
           * \return max_iterations Maximum number if iterations to run
           */
         inline int 
-        getMaximumIterations () { return (max_iterations_); }
+        getMaxIterations () { return max_iterations_; };
 
         /** \brief Get the best transformation after RANSAC rejection.
           * \return The homogeneous 4x4 transformation yielding the largest number of inliers.
           */
         inline Eigen::Matrix4f 
         getBestTransformation () { return best_transformation_; };
-
-        /** \brief Specify whether the model should be refined internally using the variance of the inliers
-          * \param[in] refine true if the model should be refined, false otherwise
-          */
-        inline void
-        setRefineModel (const bool refine)
-        {
-          refine_ = refine;
-        }
-
-        /** \brief Get the internal refine parameter value as set by the user using setRefineModel */
-        inline bool
-        getRefineModel () const
-        {
-          return (refine_);
-        }
-
-        /** \brief Get the inlier indices found by the correspondence rejector. This information is only saved if setSaveInliers(true) was called in advance.
-          * \param[out] inlier_indices Indices for the inliers
-          */
-        inline void
-        getInliersIndices (std::vector<int> &inlier_indices) { inlier_indices = inlier_indices_; }
-
-        /** \brief Set whether to save inliers or not
-          * \param[in] s True to save inliers / False otherwise
-          */
-        inline void
-        setSaveInliers (bool s) { save_inliers_ = s; }
-
-        /** \brief Get whether the rejector is configured to save inliers */
-        inline bool
-        getSaveInliers () { return save_inliers_; }
-
 
       protected:
 
@@ -229,15 +146,9 @@ namespace pcl
         int max_iterations_;
 
         PointCloudConstPtr input_;
-        PointCloudPtr input_transformed_;
         PointCloudConstPtr target_;
 
         Eigen::Matrix4f best_transformation_;
-
-        bool refine_;
-        std::vector<int> inlier_indices_;
-        bool save_inliers_;
-
       public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
@@ -246,4 +157,4 @@ namespace pcl
 
 #include <pcl/registration/impl/correspondence_rejection_sample_consensus.hpp>
 
-#endif    // PCL_REGISTRATION_CORRESPONDENCE_REJECTION_SAMPLE_CONSENSUS_H_
+#endif /* PCL_REGISTRATION_CORRESPONDENCE_REJECTION_SAMPLE_CONSENSUS_H_ */

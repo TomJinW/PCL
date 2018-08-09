@@ -41,7 +41,7 @@
 //#include <pcl/recognition/linemod/line_rgbd.h>
 #include <pcl/io/pcd_io.h>
 #include <fcntl.h>
-#include <pcl/point_cloud.h>
+#include <Eigen/Dense>
 #include <limits>
 #ifdef _WIN32
 # include <io.h>
@@ -67,7 +67,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::readLTMHeader (int fd, pcl::io::TARHeader &
     return (false);
 
   // We only support regular files for now. 
-  // Additional file types in TAR include: hard links, symbolic links, device/special files, block devices, 
+  // Addional file types in TAR include: hard links, symbolic links, device/special files, block devices, 
   // directories, and named pipes.
   if (header.file_type[0] != '0' && header.file_type[0] != '\0')
     return (false);
@@ -106,7 +106,6 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::loadTemplates (const std::string &file_name
 
     // Search for extension
     std::string chunk_name (ltm_header.file_name);
-
     std::transform (chunk_name.begin (), chunk_name.end (), chunk_name.begin (), ::tolower);
     std::string::size_type it;
 
@@ -162,185 +161,6 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::loadTemplates (const std::string &file_name
   bounding_boxes_.resize (template_point_clouds_.size ());
   for (size_t i = 0; i < template_point_clouds_.size (); ++i)
   {
-    PointCloud<PointXYZRGBA> & template_point_cloud = template_point_clouds_[i];
-    BoundingBoxXYZ & bb = bounding_boxes_[i];
-    bb.x = bb.y = bb.z = std::numeric_limits<float>::max ();
-    bb.width = bb.height = bb.depth = 0.0f;
-
-    float center_x = 0.0f;
-    float center_y = 0.0f;
-    float center_z = 0.0f;
-    float min_x = std::numeric_limits<float>::max ();
-    float min_y = std::numeric_limits<float>::max ();
-    float min_z = std::numeric_limits<float>::max ();
-    float max_x = -std::numeric_limits<float>::max ();
-    float max_y = -std::numeric_limits<float>::max ();
-    float max_z = -std::numeric_limits<float>::max ();
-    size_t counter = 0;
-    for (size_t j = 0; j < template_point_cloud.size (); ++j)
-    {
-      const PointXYZRGBA & p = template_point_cloud.points[j];
-
-      if (!pcl_isfinite (p.x) || !pcl_isfinite (p.y) || !pcl_isfinite (p.z))
-        continue;
-
-      min_x = std::min (min_x, p.x);
-      min_y = std::min (min_y, p.y);
-      min_z = std::min (min_z, p.z);
-      max_x = std::max (max_x, p.x);
-      max_y = std::max (max_y, p.y);
-      max_z = std::max (max_z, p.z);
-
-      center_x += p.x;
-      center_y += p.y;
-      center_z += p.z;
-
-      ++counter;
-    }
-
-    center_x /= static_cast<float> (counter);
-    center_y /= static_cast<float> (counter);
-    center_z /= static_cast<float> (counter);
-
-    bb.width  = max_x - min_x;
-    bb.height = max_y - min_y;
-    bb.depth  = max_z - min_z;
-
-    bb.x = (min_x + bb.width / 2.0f) - center_x - bb.width / 2.0f;
-    bb.y = (min_y + bb.height / 2.0f) - center_y - bb.height / 2.0f;
-    bb.z = (min_z + bb.depth / 2.0f) - center_z - bb.depth / 2.0f;
-
-    for (size_t j = 0; j < template_point_cloud.size (); ++j)
-    {
-      PointXYZRGBA p = template_point_cloud.points[j];
-
-      if (!pcl_isfinite (p.x) || !pcl_isfinite (p.y) || !pcl_isfinite (p.z))
-        continue;
-
-      p.x -= center_x;
-      p.y -= center_y;
-      p.z -= center_z;
-
-      template_point_cloud.points[j] = p;
-    }
-  }
-
-  return (true);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointXYZT, typename PointRGBT> int
-pcl::LineRGBD<PointXYZT, PointRGBT>::createAndAddTemplate (
-  pcl::PointCloud<pcl::PointXYZRGBA> & cloud,
-  const size_t object_id,
-  const MaskMap & mask_xyz,
-  const MaskMap & mask_rgb,
-  const RegionXY & region)
-{
-  // add point cloud
-  template_point_clouds_.resize (template_point_clouds_.size () + 1);
-  pcl::copyPointCloud (cloud, template_point_clouds_[template_point_clouds_.size () - 1]);
-
-  // add template
-  object_ids_.push_back (object_id);
-
-  // Compute 3D bounding boxes from the template point clouds
-  bounding_boxes_.resize (template_point_clouds_.size ());
-  {
-    const size_t i = template_point_clouds_.size () - 1;
-
-    PointCloud<PointXYZRGBA> & template_point_cloud = template_point_clouds_[i];
-    BoundingBoxXYZ & bb = bounding_boxes_[i];
-    bb.x = bb.y = bb.z = std::numeric_limits<float>::max ();
-    bb.width = bb.height = bb.depth = 0.0f;
-
-    float center_x = 0.0f;
-    float center_y = 0.0f;
-    float center_z = 0.0f;
-    float min_x = std::numeric_limits<float>::max ();
-    float min_y = std::numeric_limits<float>::max ();
-    float min_z = std::numeric_limits<float>::max ();
-    float max_x = -std::numeric_limits<float>::max ();
-    float max_y = -std::numeric_limits<float>::max ();
-    float max_z = -std::numeric_limits<float>::max ();
-    size_t counter = 0;
-    for (size_t j = 0; j < template_point_cloud.size (); ++j)
-    {
-      const PointXYZRGBA & p = template_point_cloud.points[j];
-
-      if (!pcl_isfinite (p.x) || !pcl_isfinite (p.y) || !pcl_isfinite (p.z))
-        continue;
-
-      min_x = std::min (min_x, p.x);
-      min_y = std::min (min_y, p.y);
-      min_z = std::min (min_z, p.z);
-      max_x = std::max (max_x, p.x);
-      max_y = std::max (max_y, p.y);
-      max_z = std::max (max_z, p.z);
-
-      center_x += p.x;
-      center_y += p.y;
-      center_z += p.z;
-
-      ++counter;
-    }
-
-    center_x /= static_cast<float> (counter);
-    center_y /= static_cast<float> (counter);
-    center_z /= static_cast<float> (counter);
-
-    bb.width  = max_x - min_x;
-    bb.height = max_y - min_y;
-    bb.depth  = max_z - min_z;
-
-    bb.x = (min_x + bb.width / 2.0f) - center_x - bb.width / 2.0f;
-    bb.y = (min_y + bb.height / 2.0f) - center_y - bb.height / 2.0f;
-    bb.z = (min_z + bb.depth / 2.0f) - center_z - bb.depth / 2.0f;
-
-    for (size_t j = 0; j < template_point_cloud.size (); ++j)
-    {
-      PointXYZRGBA p = template_point_cloud.points[j];
-
-      if (!pcl_isfinite (p.x) || !pcl_isfinite (p.y) || !pcl_isfinite (p.z))
-        continue;
-
-      p.x -= center_x;
-      p.y -= center_y;
-      p.z -= center_z;
-
-      template_point_cloud.points[j] = p;
-    }
-  }
-
-  std::vector<pcl::QuantizableModality*> modalities;
-  modalities.push_back (&color_gradient_mod_);
-  modalities.push_back (&surface_normal_mod_);
-
-  std::vector<MaskMap*> masks;
-  masks.push_back (const_cast<MaskMap*> (&mask_rgb));
-  masks.push_back (const_cast<MaskMap*> (&mask_xyz));
-
-  return (linemod_.createAndAddTemplate (modalities, masks, region));
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointXYZT, typename PointRGBT> bool
-pcl::LineRGBD<PointXYZT, PointRGBT>::addTemplate (const SparseQuantizedMultiModTemplate & sqmmt, pcl::PointCloud<pcl::PointXYZRGBA> & cloud, size_t object_id)
-{
-  // add point cloud
-  template_point_clouds_.resize (template_point_clouds_.size () + 1);
-  pcl::copyPointCloud (cloud, template_point_clouds_[template_point_clouds_.size () - 1]);
-
-  // add template
-  linemod_.addTemplate (sqmmt);
-  object_ids_.push_back (object_id);
-
-  // Compute 3D bounding boxes from the template point clouds
-  bounding_boxes_.resize (template_point_clouds_.size ());
-  {
-    const size_t i = template_point_clouds_.size () - 1;
-
     PointCloud<PointXYZRGBA> & template_point_cloud = template_point_clouds_[i];
     BoundingBoxXYZ & bb = bounding_boxes_[i];
     bb.x = bb.y = bb.z = std::numeric_limits<float>::max ();
@@ -493,8 +313,8 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::detect (
   }
 
   // refine detections along depth
-  refineDetectionsAlongDepth ();
-  //applyprojectivedepthicpondetections();
+  //refineDetectionsAlongDepth ();
+  applyProjectiveDepthICPOnDetections();
 
   // remove overlaps
   removeOverlappingDetections ();
@@ -595,7 +415,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::detectSemiScaleInvariant (
 
   // refine detections along depth
   //refineDetectionsAlongDepth ();
-  //applyProjectiveDepthICPOnDetections();
+  applyProjectiveDepthICPOnDetections();
 
   // remove overlaps
   removeOverlappingDetections ();
@@ -663,12 +483,10 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::refineDetectionsAlongDepth ()
     typename LineRGBD<PointXYZT, PointRGBT>::Detection & detection = detections_[detection_index];
 
     // find depth with most valid points
-    const size_t start_x = std::max (detection.region.x, 0);
-    const size_t start_y = std::max (detection.region.y, 0);
-    const size_t end_x = std::min (static_cast<size_t> (detection.region.x + detection.region.width),
-                                   static_cast<size_t> (cloud_xyz_->width));
-    const size_t end_y = std::min (static_cast<size_t> (detection.region.y + detection.region.height),
-                                   static_cast<size_t> (cloud_xyz_->height));
+    const size_t start_x = detection.region.x;
+    const size_t start_y = detection.region.y;
+    const size_t end_x = start_x + detection.region.width;
+    const size_t end_y = start_y + detection.region.height;
 
 
     float min_depth = std::numeric_limits<float>::max ();
@@ -698,7 +516,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::refineDetectionsAlongDepth ()
 
         if (/*pcl_isfinite (point.x) && pcl_isfinite (point.y) && */pcl_isfinite (point.z))
         {
-          const size_t bin_index = static_cast<size_t> ((point.z - min_depth) / step_size);
+          const size_t bin_index = (point.z - min_depth) / step_size;
           ++depth_bins[bin_index];
         }
       }
@@ -712,7 +530,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::refineDetectionsAlongDepth ()
       integral_depth_bins[bin_index] = depth_bins[bin_index] + integral_depth_bins[bin_index-1];
     }
 
-    const size_t bb_depth_range = static_cast<size_t> (detection.bounding_box.depth / step_size);
+    const size_t bb_depth_range = detection.bounding_box.depth / step_size;
 
     size_t max_nr_points = 0;
     size_t max_index = 0;
@@ -780,7 +598,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::applyProjectiveDepthICPOnDetections ()
       size_t nr_inliers = 0;
       for (size_t match_index = 0; match_index < nr_matches; ++match_index)
       {
-        const float error = fabsf (depth_matches[match_index].first + z_translation - depth_matches[match_index].second);
+        const float error = abs (depth_matches[match_index].first + z_translation - depth_matches[match_index].second);
 
         if (error <= inlier_threshold)
         {
@@ -799,7 +617,7 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::applyProjectiveDepthICPOnDetections ()
     size_t average_counter = 0;
     for (size_t match_index = 0; match_index < nr_matches; ++match_index)
     {
-      const float error = fabsf (depth_matches[match_index].first + best_z_translation - depth_matches[match_index].second);
+      const float error = abs (depth_matches[match_index].first + best_z_translation - depth_matches[match_index].second);
 
       if (error <= inlier_threshold)
       {
@@ -915,8 +733,8 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::removeOverlappingDetections ()
       average_center_z += p_center_z * weight;
       weight_sum += weight;
 
-      average_region_x += float (detections_[detection_id].region.x) * weight;
-      average_region_y += float (detections_[detection_id].region.y) * weight;
+      average_region_x += detections_[detection_id].region.x * weight;
+      average_region_y += detections_[detection_id].region.y * weight;
     }
 
     typename LineRGBD<PointXYZT, PointRGBT>::Detection detection;
@@ -937,8 +755,8 @@ pcl::LineRGBD<PointXYZT, PointRGBT>::removeOverlappingDetections ()
     detection.bounding_box.height = best_detection_bb_height;
     detection.bounding_box.depth  = best_detection_bb_depth;
 
-    detection.region.x = int (average_region_x * inv_weight_sum);
-    detection.region.y = int (average_region_y * inv_weight_sum);
+    detection.region.x = average_region_x * inv_weight_sum;
+    detection.region.y = average_region_y * inv_weight_sum;
     detection.region.width = detections_[best_detection_id].region.width;
     detection.region.height = detections_[best_detection_id].region.height;
 

@@ -59,8 +59,7 @@ namespace pcl
     struct ParticleXYR;
 
     /* \brief return the value of normal distribution */
-    PCL_EXPORTS double
-    sampleNormal (double mean, double sigma);
+    double sampleNormal (double mean, double sigma);
   }
 }
 
@@ -126,10 +125,6 @@ POINT_CLOUD_REGISTER_POINT_WRAPPER(pcl::tracking::ParticleXYZR, pcl::tracking::_
 #  if defined _MSC_VER
 #    pragma warning(pop)
 #  endif
-#endif
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/tracking/impl/tracking.hpp>
 #endif
 
 #endif

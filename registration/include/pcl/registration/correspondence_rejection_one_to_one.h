@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,7 +33,6 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
  *
  */
 #ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_ONE_TO_ONE_H_
@@ -55,15 +53,13 @@ namespace pcl
       * \author Dirk Holz
       * \ingroup registration
       */
-    class PCL_EXPORTS CorrespondenceRejectorOneToOne: public CorrespondenceRejector
+    class CorrespondenceRejectorOneToOne: public CorrespondenceRejector
     {
       using CorrespondenceRejector::input_correspondences_;
       using CorrespondenceRejector::rejection_name_;
       using CorrespondenceRejector::getClassName;
 
       public:
-        typedef boost::shared_ptr<CorrespondenceRejectorOneToOne> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorOneToOne> ConstPtr;
 
         /** \brief Empty constructor. */
         CorrespondenceRejectorOneToOne ()
@@ -75,7 +71,7 @@ namespace pcl
           * \param[in] original_correspondences the set of initial correspondences given
           * \param[out] remaining_correspondences the resultant filtered set of remaining correspondences
           */
-        void 
+        inline void 
         getRemainingCorrespondences (const pcl::Correspondences& original_correspondences, 
                                      pcl::Correspondences& remaining_correspondences);
 
@@ -95,4 +91,4 @@ namespace pcl
 
 #include <pcl/registration/impl/correspondence_rejection_one_to_one.hpp>
 
-#endif    // PCL_REGISTRATION_CORRESPONDENCE_REJECTION_ONE_TO_ONE_H_
+#endif /* PCL_REGISTRATION_CORRESPONDENCE_REJECTION_ONE_TO_ONE_H_ */

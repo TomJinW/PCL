@@ -69,7 +69,7 @@ namespace pcl
         */
       TsdfVolume(const Eigen::Vector3i& resolution);           
             
-      /** \brief Sets Tsdf volume size for each dimension
+      /** \brief Sets Tsdf volume size for each dimention
         * \param[in] size size of tsdf volume in meters
         */
       void
@@ -81,7 +81,7 @@ namespace pcl
       void
       setTsdfTruncDist (float distance);
 
-      /** \brief Returns tsdf volume container that point to data in GPU memory */
+      /** \brief Returns tsdf volume container that point to data in GPU memroy */
       DeviceArray2D<int> 
       data() const;
 
@@ -158,10 +158,6 @@ namespace pcl
 
       /** \brief tsdf truncation distance */
       float tranc_dist_;
-
-public:
-EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     };
   }
 }

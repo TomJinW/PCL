@@ -38,8 +38,8 @@
 #ifndef TOOL_FACTORY_H_
 #define TOOL_FACTORY_H_
 
-#include <pcl/apps/cloud_composer/qt.h>
-#include <pcl/apps/cloud_composer/items/cloud_composer_item.h>
+#include <QtPlugin>
+#include <QStandardItemModel>
 
 class QAction;
 
@@ -51,15 +51,14 @@ namespace pcl
     
     class AbstractTool;
     class AbstractCommand;
-    class PropertiesModel;
     
     class ToolFactory
     {
       public:
         virtual AbstractTool*
-        createTool (PropertiesModel* parameter_model = 0, QObject* parent = 0) = 0;
+        createTool (QStandardItemModel* parameter_model = 0, QObject* parent = 0) = 0;
             
-        virtual PropertiesModel*
+        virtual QStandardItemModel*
         createToolParameterModel (QObject* parent) = 0;
         
         virtual QString
@@ -70,28 +69,11 @@ namespace pcl
         
         virtual QString 
         getIconName () const = 0;
-        
-        /** \brief Reimpliment this function to return the proper number if tool requires more than one input item */
-        inline virtual int
-        getNumInputItems () const 
-        { 
-          return 1;
-        }
-        
-        /** \brief Returns a list of allowed input item types. Implement in tools so GUI can prevent impossible actions */
-        virtual CloudComposerItem::ItemType
-        getInputItemType () const = 0;
-        
-        /** \brief Returns a list of required input children. Implement in tools so GUI can prevent impossible actions */
-        virtual QList <CloudComposerItem::ItemType>
-        getRequiredInputChildrenTypes () const = 0;
 
     };
 
   }
 }
-
-Q_DECLARE_METATYPE (pcl::cloud_composer::ToolFactory*);
 
 Q_DECLARE_INTERFACE(pcl::cloud_composer::ToolFactory,
                     "cloud_composer.ToolFactory/1.0")

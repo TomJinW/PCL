@@ -1,4 +1,7 @@
-#include <pcl/apps/cloud_composer/qt.h>
+#include <QtGui>
+#include <QFileInfo>
+
+
 #include <pcl/apps/cloud_composer/cloud_composer.h>
 #include <pcl/apps/cloud_composer/project_model.h>
 #include <pcl/apps/cloud_composer/cloud_viewer.h>
@@ -8,8 +11,6 @@
 #include <pcl/apps/cloud_composer/tool_interface/tool_factory.h>
 #include <pcl/apps/cloud_composer/tool_interface/abstract_tool.h>
 #include <pcl/apps/cloud_composer/toolbox_model.h>
-#include <pcl/apps/cloud_composer/signal_multiplexer.h>
-#include <pcl/apps/cloud_composer/point_selectors/interactor_style_switch.h>
 
 /////////////////////////////////////////////////////////////
 pcl::cloud_composer::ComposerMainWindow::ComposerMainWindow (QWidget *parent)
@@ -20,8 +21,8 @@ pcl::cloud_composer::ComposerMainWindow::ComposerMainWindow (QWidget *parent)
   this->setCorner (Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
   this->setCorner (Qt::BottomRightCorner, Qt::RightDockWidgetArea);
 
-   //Register types in Qt
-  qRegisterMetaType<pcl::PCLPointCloud2::Ptr> ("PCLPointCloud2Ptr");
+  //Register types in Qt
+  qRegisterMetaType<sensor_msgs::PointCloud2::Ptr> ("PointCloud2Ptr");
   qRegisterMetaType<GeometryHandler::ConstPtr> ("GeometryHandlerConstPtr");
   qRegisterMetaType<ColorHandler::ConstPtr> ("ColorHandlerConstPtr");
   qRegisterMetaType<Eigen::Vector4f> ("EigenVector4f");
@@ -30,9 +31,9 @@ pcl::cloud_composer::ComposerMainWindow::ComposerMainWindow (QWidget *parent)
   qRegisterMetaType<CloudView> ("CloudView");
   qRegisterMetaType<ConstItemList> ("ConstComposerItemList");
   
+
+  last_directory_ = QDir (".");
   current_model_ = 0;
-  
-  multiplexer_ = new SignalMultiplexer (this);
   
   initializeCloudBrowser ();
   initializeCloudViewer ();
@@ -45,10 +46,8 @@ pcl::cloud_composer::ComposerMainWindow::ComposerMainWindow (QWidget *parent)
   
   //Auto connect signals and slots
   // QMetaObject::connectSlotsByName(this);
-  connectFileActions ();
-  connectEditActions ();
-  connectViewActions ();
-  
+  this->connectFileActionsToSlots ();
+  this->connectEditActionsToSlots ();
 }
 
 pcl::cloud_composer::ComposerMainWindow::~ComposerMainWindow ()
@@ -58,14 +57,14 @@ pcl::cloud_composer::ComposerMainWindow::~ComposerMainWindow ()
 }
 
 void
-pcl::cloud_composer::ComposerMainWindow::connectFileActions ()
+pcl::cloud_composer::ComposerMainWindow::connectFileActionsToSlots ()
 {
 
   
 }
 
 void
-pcl::cloud_composer::ComposerMainWindow::connectEditActions ()
+pcl::cloud_composer::ComposerMainWindow::connectEditActionsToSlots ()
 {
   //Replace the actions in the menu with undo actions created using the undo group
   QAction* action_temp = undo_group_->createUndoAction (this);
@@ -80,79 +79,12 @@ pcl::cloud_composer::ComposerMainWindow::connectEditActions ()
   menuEdit->removeAction (action_redo_);
   action_redo_ = action_temp;
   
-  multiplexer_->connect (action_clear_selection_, SIGNAL (triggered ()), SLOT (clearSelection ()));
-  
-  multiplexer_->connect (action_delete_, SIGNAL (triggered ()), SLOT (deleteSelectedItems ()));
-  multiplexer_->connect (SIGNAL (deleteAvailable (bool)), action_delete_, SLOT (setEnabled (bool)));
-  
-  multiplexer_->connect (this, SIGNAL (insertNewCloudFromFile()), SLOT (insertNewCloudFromFile()));
-  multiplexer_->connect (this, SIGNAL (insertNewCloudFromRGBandDepth()), SLOT (insertNewCloudFromRGBandDepth()));
-  multiplexer_->connect (this, SIGNAL (saveSelectedCloudToFile()), SLOT (saveSelectedCloudToFile()));
-  
-  
-  mouse_style_group_ = new QActionGroup (this);
-  mouse_style_group_->addAction (action_trackball_camera_style_);
-  mouse_style_group_->addAction (action_manipulate_clicked_);
-  mouse_style_group_->addAction (action_manipulate_selected_);
-  mouse_style_group_->addAction (action_rectangular_frustum_select_);
-  mouse_style_group_->setExclusive (true);
-  multiplexer_->connect (mouse_style_group_, SIGNAL (triggered (QAction*)), SLOT (mouseStyleChanged (QAction*)));
-  multiplexer_->connect(SIGNAL (mouseStyleState (interactor_styles::INTERACTOR_STYLES)), this, SLOT(setMouseStyleAction(interactor_styles::INTERACTOR_STYLES)));
-  action_trackball_camera_style_->setData (QVariant::fromValue (interactor_styles::PCL_VISUALIZER));
-  action_rectangular_frustum_select_->setData (QVariant::fromValue (interactor_styles::RECTANGULAR_FRUSTUM));
-  action_manipulate_selected_->setData (QVariant::fromValue (interactor_styles::SELECTED_TRACKBALL));
-  action_manipulate_clicked_->setData (QVariant::fromValue (interactor_styles::CLICK_TRACKBALL));
-  //multiplexer_->connect (action_manipulate_selected_, SIGNAL (triggered ()), SLOT (selectedTrackballInteractorStyle ()));
 
-  
-  multiplexer_->connect (action_new_cloud_from_selection_, SIGNAL (triggered ()), SLOT (createNewCloudFromSelection ()));
-  multiplexer_->connect (SIGNAL (newCloudFromSelectionAvailable (bool)), action_new_cloud_from_selection_, SLOT (setEnabled (bool)));
-  
-  multiplexer_->connect (action_select_all_, SIGNAL (triggered ()), SLOT (selectAllItems ()));
-}
-
-void
-pcl::cloud_composer::ComposerMainWindow::setMouseStyleAction (interactor_styles::INTERACTOR_STYLES selected_style)
-{
-  action_trackball_camera_style_->setChecked (false);
-  action_rectangular_frustum_select_->setChecked (false);
-  action_manipulate_selected_->setChecked (false);
-  action_manipulate_clicked_->setChecked (false);
- 
-  switch (selected_style)
-  {
-    case interactor_styles::PCL_VISUALIZER :
-      action_trackball_camera_style_->setChecked (true);
-      break;
-    case interactor_styles::CLICK_TRACKBALL :
-      action_manipulate_clicked_->setChecked (true);
-      break;
-    case interactor_styles::RECTANGULAR_FRUSTUM :
-      action_rectangular_frustum_select_->setChecked (true);
-      break;
-    case interactor_styles::SELECTED_TRACKBALL :
-      action_manipulate_selected_->setChecked (true);
-      break;
-    default :
-      action_trackball_camera_style_->setChecked (true);
-    
-  }
-}
-
-void
-pcl::cloud_composer::ComposerMainWindow::connectViewActions ()
-{
-  multiplexer_->connect (action_show_axes_, SIGNAL (toggled (bool)), SLOT (setAxisVisibility (bool)));
-  multiplexer_->connect (SIGNAL (axisVisible (bool)), action_show_axes_, SLOT (setChecked (bool)));
-  
 }
 
 void
 pcl::cloud_composer::ComposerMainWindow::initializeCloudBrowser ()
 {
-  cloud_browser_->setSelectionMode (QAbstractItemView::ExtendedSelection);
-  
-  cloud_browser_->setStyleSheet("selection-background-color: red;");
   
 }
 
@@ -162,7 +94,6 @@ pcl::cloud_composer::ComposerMainWindow::initializeCloudViewer ()
   //Signal emitted when user selects new tab (ie different project) in the viewer
   connect (cloud_viewer_, SIGNAL (newModelSelected (ProjectModel*)),
            this, SLOT (setCurrentModel (ProjectModel*)));
-  
 }
 
 void
@@ -189,9 +120,6 @@ pcl::cloud_composer::ComposerMainWindow::initializeToolBox ()
   connect ( tool_box_model_, SIGNAL (enqueueToolAction (AbstractTool*)),
             this, SLOT (enqueueToolAction (AbstractTool*)));
   
-  connect (this, SIGNAL (activeProjectChanged (ProjectModel*,ProjectModel*)),
-           tool_box_model_, SLOT (activeProjectChanged (ProjectModel*,ProjectModel*)));
-  
   //TODO : Remove this, tools should have a better way of being run
   connect ( action_run_tool_, SIGNAL (clicked ()),
             tool_box_model_, SLOT (toolAction ()));
@@ -207,27 +135,12 @@ pcl::cloud_composer::ComposerMainWindow::initializePlugins ()
 {
   QDir plugin_dir = QCoreApplication::applicationDirPath ();
   qDebug() << plugin_dir.path ()<< "   "<<QDir::cleanPath ("../lib/cloud_composer_plugins");
-#if _WIN32
-  if (!plugin_dir.cd (QDir::cleanPath ("cloud_composer_plugins")))
-#else
   if (!plugin_dir.cd (QDir::cleanPath ("../lib/cloud_composer_plugins")))
-#endif
   {
-    #if _WIN32
-      if (!plugin_dir.cd (QDir::cleanPath ("cloud_composer_plugins")))
-    #else
-      if (!plugin_dir.cd (QDir::cleanPath ("../lib")))
-    #endif
-      {
-        qCritical () << "Could not find plugin tool directory!!!";
-      }
+    qCritical () << "Could not find plugin tool directory!!!";
   }
   QStringList plugin_filter;
-#if _WIN32
-  plugin_filter << "pcl_cc_tool_*.dll";
-#else
   plugin_filter << "libpcl_cc_tool_*.so";
-#endif
   plugin_dir.setNameFilters (plugin_filter);
   foreach (QString filename, plugin_dir.entryList (QDir::Files))
   {
@@ -255,18 +168,17 @@ pcl::cloud_composer::ComposerMainWindow::initializePlugins ()
 void 
 pcl::cloud_composer::ComposerMainWindow::setCurrentModel (ProjectModel* model)
 {
-  emit activeProjectChanged (model, current_model_);
   current_model_ = model;
   //qDebug () << "Setting cloud browser model";
   cloud_browser_->setModel (current_model_);
   //qDebug () << "Setting cloud browser selection model";
   cloud_browser_->setSelectionModel (current_model_->getSelectionModel ());
-  //qDebug () << "Item inspector setting model";
-  item_inspector_->setModel (current_model_);
+  //qDebug () << "Setting cloud viewer model";
+  cloud_viewer_->setModel (current_model_);
+  //qDebug () << "Item inspector setting project and selection models";
+  item_inspector_->setProjectAndSelectionModels (current_model_, current_model_->getSelectionModel ());
   //qDebug () << "Setting active stack in undo group";
   undo_group_->setActiveStack (current_model_->getUndoStack ());
-  
-  multiplexer_->setCurrentObject (current_model_);
 }
 
 void
@@ -279,10 +191,8 @@ pcl::cloud_composer::ComposerMainWindow::enqueueToolAction (AbstractTool* tool)
 }
 ///////// FILE MENU SLOTS ///////////
 void
-pcl::cloud_composer::ComposerMainWindow::on_action_new_project__triggered (/*QString name*/)
+pcl::cloud_composer::ComposerMainWindow::on_action_new_project__triggered (QString name)
 {
-  QString name("unsaved project");
-
   qDebug () << "Creating New Project";
   ProjectModel* new_project_model = new ProjectModel (this);
   // Check if we have a project with this name already, append int if so
@@ -300,8 +210,6 @@ pcl::cloud_composer::ComposerMainWindow::on_action_new_project__triggered (/*QSt
   //qDebug () << "Adding to undo group";
   undo_group_->addStack (new_project_model->getUndoStack ());
   //qDebug () << "Setting current model";
-  cloud_viewer_->addNewProject (new_project_model);
-  
   setCurrentModel (new_project_model);
   //qDebug () << "Project " <<name<<" created!";
   
@@ -333,16 +241,6 @@ pcl::cloud_composer::ComposerMainWindow::on_action_save_project_as__triggered ()
 }
 
 void
-pcl::cloud_composer::ComposerMainWindow::on_action_save_selected_cloud__triggered ()
-{
-  if (current_model_)
-    emit saveSelectedCloudToFile();
-  else
-    QMessageBox::warning (this, "No Project Open!", "Cannot save cloud, no project is open!");
-
-}
-
-void
 pcl::cloud_composer::ComposerMainWindow::on_action_exit__triggered ()
 {
   qDebug () << "Exiting...";
@@ -352,27 +250,30 @@ pcl::cloud_composer::ComposerMainWindow::on_action_exit__triggered ()
 void
 pcl::cloud_composer::ComposerMainWindow::on_action_insert_from_file__triggered ()
 {
-  if (!current_model_)
-    action_new_project_->trigger ();
+  qDebug () << "Inserting cloud from file...";
+  QString filename = QFileDialog::getOpenFileName (0,tr ("Select cloud to open"), last_directory_.absolutePath (), tr ("PointCloud(*.pcd)"));
+  if ( !filename.isNull ())
+  {
+    QFileInfo file_info (filename);
+    last_directory_ = file_info.absoluteDir ();
+
     
-  emit insertNewCloudFromFile ();   
+    if (!current_model_)
+      action_new_project_->trigger ();
+    
+    current_model_->insertNewCloudFromFile (filename);
+    
+  }
+      
 }
-
-void
-pcl::cloud_composer::ComposerMainWindow::on_action_insert_from_rgb_depth__triggered ()
-{
-  if (!current_model_)
-    action_new_project_->trigger ();
-  
-  emit insertNewCloudFromRGBandDepth ();   
-}
-
 
 void
 pcl::cloud_composer::ComposerMainWindow::on_action_insert_from_openNi_source__triggered ()
 {
   qDebug () << "Inserting cloud from OpenNi Source...";
 }
+
+
 
 
 

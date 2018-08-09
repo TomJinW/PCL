@@ -3,6 +3,10 @@
 #include <pcl/io/openni_grabber.h>
 #include <pcl/common/time.h>
 
+#ifdef _WIN32
+# define sleep(x) Sleep((x)*1000) 
+#endif
+
 class SimpleOpenNIProcessor
 {
 public:
@@ -36,7 +40,7 @@ public:
 
     // wait until user quits program with Ctrl-C, but no busy-waiting -> sleep (1);
     while (true)
-      boost::this_thread::sleep (boost::posix_time::seconds (1));
+      sleep(1);
 
     // stop the grabber
     interface->stop ();

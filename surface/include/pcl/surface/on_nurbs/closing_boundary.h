@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -98,21 +98,21 @@ namespace pcl
        * 'start' point on both of the NURBS.   */
       static Eigen::Vector3d
       commonBoundaryPoint1 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
-                            Eigen::Vector2d &params2, const Eigen::Vector3d &start, unsigned nsteps, double &error,
+                            Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
                             double accuracy);
 
       /** \brief calculate common boundary by iteratively calculating the intersections of the tangent of the closest points
        *  to the 'start' point.   */
       static Eigen::Vector3d
       commonBoundaryPoint2 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
-                            Eigen::Vector2d &params2, const Eigen::Vector3d &start, unsigned nsteps, double &error,
+                            Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
                             double accuracy);
 
       /** \brief calculate common boundary by iteratively calculating the intersection of the tangent planes at the closest points
        *  and the plane defined by the 'start' and the 2 closest points.  */
       static Eigen::Vector3d
       commonBoundaryPoint3 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
-                            Eigen::Vector2d &params2, const Eigen::Vector3d &start, unsigned nsteps, double &error,
+                            Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
                             double accuracy);
 
       /** \brief sample points from nurbs surface patch, uniform distributed */

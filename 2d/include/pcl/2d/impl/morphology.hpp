@@ -2,7 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2010-2012, Willow Garage, Inc.
  *
  *  All rights reserved.
  *
@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -33,348 +33,302 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ *  morphology.hpp
+ *
+ *  Created on: May 28, 2012
+ *      Author: somani
  */
 
-#ifndef PCL_2D_MORPHOLOGY_HPP_
-#define PCL_2D_MORPHOLOGY_HPP_
+#ifndef MORPHOLOGY_HPP_
+#define MORPHOLOGY_HPP_
 
-//////////////////////////////////////////////////////////////////////////////
-// Assumes input, kernel and output images have 0's and 1's only
-template<typename PointT> void
-pcl::Morphology<PointT>::erosionBinary (pcl::PointCloud<PointT> &output)
-{
-  const int height = input_->height;
-  const int width = input_->width;
-  const int kernel_height = structuring_element_->height;
-  const int kernel_width = structuring_element_->width;
+/*assumes input, kernel and output images have 0's and 1's only*/
+void
+pcl::pcl_2d::morphology::erosionBinary  (ImageType &output, ImageType &kernel, ImageType &input){
+  const size_t height = input.size ();
+  const size_t width = input[0].size ();
+  const size_t kernel_height = kernel.size ();
+  const size_t kernel_width = kernel[0].size ();
   bool mismatch_flag;
 
-  output.width = width;
-  output.height = height;
-  output.resize (width * height);
-
-  for (int i = 0; i < height; i++)
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    for (int j = 0; j < width; j++)
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
     {
-      // Operation done only at 1's
-      if ((*input_)(j, i).intensity == 0)
+      /*operation done only at 1's*/
+      if (input[i][j] == 0)
       {
-        output (j, i).intensity = 0;
+        output[i][j] = 0;
         continue;
       }
       mismatch_flag = false;
-      for (int k = 0; k < kernel_height; k++)
+      for (size_t k = 0; k < kernel_height; k++)
       {
         if (mismatch_flag)
           break;
-        for (int l = 0; l < kernel_width; l++)
+        for (size_t l = 0; l < kernel_width; l++)
         {
-          // We only check for 1's in the kernel
-          if ((*structuring_element_)(l, k).intensity == 0)
+          /*we only check for 1's in the kernel*/
+          if (kernel[k][l] == 0)
             continue;
           if ((i + k - kernel_height / 2) < 0 || (i + k - kernel_height / 2) >= height || (j + l - kernel_width / 2) < 0 || (j + l - kernel_width / 2) >= width)
           {
             continue;
           }
-          // If one of the elements of the kernel and image don't match, 
-          // the output image is 0. So, move to the next point.
-          if ((*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity != 1)
+          /* if one of the elements of the kernel and image dont match, the output image is 0.
+           * So, move to the next point.*/
+          if (input[i + k - kernel_height / 2][j + l - kernel_width / 2] != 1)
           {
-            output (j, i).intensity = 0;
+            output[i][j] = 0;
             mismatch_flag = true;
             break;
           }
         }
       }
-      // Assign value according to mismatch flag
-      output (j, i).intensity = (mismatch_flag) ? 0 : 1;
+      /*assign value according to mismatch flag*/
+      output[i][j] = (mismatch_flag) ? 0 : 1;
     }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Assumes input, kernel and output images have 0's and 1's only
-template <typename PointT> void
-pcl::Morphology<PointT>::dilationBinary (pcl::PointCloud<PointT> &output)
-{
-  const int height = input_->height;
-  const int width = input_->width;
-  const int kernel_height = structuring_element_->height;
-  const int kernel_width = structuring_element_->width;
+/*assumes input, kernel and output images have 0's and 1's only*/
+void
+pcl::pcl_2d::morphology::dilationBinary  (ImageType &output, ImageType &kernel, ImageType &input){
+  const size_t height = input.size ();
+  const size_t width = input[0].size ();
+  const size_t kernel_height = kernel.size ();
+  const size_t kernel_width = kernel[0].size ();
   bool match_flag;
 
-  output.width = width;
-  output.height = height;
-  output.resize (width * height);
-
-  for (int i = 0; i < height; i++)
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    for (int j = 0; j < width; j++)
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
     {
       match_flag = false;
-      for (int k = 0; k < kernel_height; k++)
+      for (size_t k = 0; k < kernel_height; k++)
       {
         if (match_flag)
           break;
-        for (int l = 0; l < kernel_width; l++)
+        for (size_t l = 0; l < kernel_width; l++)
         {
-          // We only check for 1's in the kernel
-          if ((*structuring_element_)(l, k).intensity == 0)
+          /*we only check for 1's in the kernel*/
+          if (kernel[k][l] == 0)
             continue;
           if ((i + k - kernel_height / 2) < 0 || (i + k - kernel_height / 2) >= height || (j + l - kernel_width / 2) < 0 || (j + l - kernel_width / 2) >= height)
           {
             continue;
           }
-          // If any position where kernel is 1 and image is also one is detected, 
-          // matching occurs
-          if ((*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity == 1)
+          /*if any position where kernel is 1 and image is also one is detected, matching occurs*/
+          if (input[i + k - kernel_height / 2][j + l - kernel_width / 2] == 1)
           {
             match_flag = true;
             break;
           }
         }
       }
-      // Assign value according to match flag
-      output (j, i).intensity = (match_flag) ? 1 : 0;
+      /*assign value according to match flag*/
+      output[i][j] = (match_flag) ? 1 : 0;
     }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Assumes input, kernel and output images have 0's and 1's only
-template <typename PointT> void
-pcl::Morphology<PointT>::openingBinary (pcl::PointCloud<PointT> &output)
-{
-  PointCloudInPtr intermediate_output (new PointCloudIn);
-  erosionBinary (*intermediate_output);
-  this->setInputCloud (intermediate_output);
-  dilationBinary (output);
+/*assumes input, kernel and output images have 0's and 1's only*/
+void
+pcl::pcl_2d::morphology::openingBinary  (ImageType &output, ImageType &kernel, ImageType &input){
+  ImageType intermediate_output;
+  openingBinary  (intermediate_output, kernel, input);
+  closingBinary  (output, kernel, intermediate_output);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Assumes input, kernel and output images have 0's and 1's only
-template <typename PointT> void
-pcl::Morphology<PointT>::closingBinary (pcl::PointCloud<PointT> &output)
-{
-  PointCloudInPtr intermediate_output (new PointCloudIn);
-  dilationBinary (*intermediate_output);
-  this->setInputCloud (intermediate_output);
-  erosionBinary (output);
+/*assumes input, kernel and output images have 0's and 1's only*/
+void
+pcl::pcl_2d::morphology::closingBinary  (ImageType &output, ImageType &kernel, ImageType &input){
+  ImageType intermediate_output;
+  closingBinary  (intermediate_output, kernel, input);
+  openingBinary  (output, kernel, intermediate_output);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::erosionGray (pcl::PointCloud<PointT> &output)
-{
-  const int height = input_->height;
-  const int width = input_->width;
-  const int kernel_height = structuring_element_->height;
-  const int kernel_width = structuring_element_->width;
+void
+pcl::pcl_2d::morphology::erosionGray  (ImageType &output, ImageType &kernel, ImageType &input){
+  const size_t height = input.size ();
+  const size_t width = input[0].size ();
+  const size_t kernel_height = kernel.size ();
+  const size_t kernel_width = kernel[0].size ();
   float min;
-  output.resize (width * height);
-  output.width = width;
-  output.height = height;
 
-  for (int i = 0; i < height; i++)
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    for (int j = 0; j < width; j++)
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
     {
       min = -1;
-      for (int k = 0; k < kernel_height; k++)
+      for (size_t k = 0; k < kernel_height; k++)
       {
-        for (int l = 0; l < kernel_width; l++)
+        for (size_t l = 0; l < kernel_width; l++)
         {
-          // We only check for 1's in the kernel
-          if ((*structuring_element_)(l, k).intensity == 0)
+          /*we only check for 1's in the kernel*/
+          if (kernel[k][l] == 0)
             continue;
           if ((i + k - kernel_height / 2) < 0 || (i + k - kernel_height / 2) >= height || (j + l - kernel_width / 2) < 0 || (j + l - kernel_width / 2) >= width)
           {
             continue;
           }
-          // If one of the elements of the kernel and image don't match, 
-          // the output image is 0. So, move to the next point.
-          if ((*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity < min || min == -1)
+          /* if one of the elements of the kernel and image dont match, the output image is 0.
+           * So, move to the next point.*/
+          if (input[i + k - kernel_height / 2][j + l - kernel_width / 2] < min || min == -1)
           {
-            min = (*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity;
+            min = input[i + k - kernel_height / 2][j + l - kernel_width / 2];
           }
         }
       }
-      // Assign value according to mismatch flag
-      output (j, i).intensity = min;
+      /*assign value according to mismatch flag*/
+      output[i][j] = min;
     }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::dilationGray (pcl::PointCloud<PointT> &output)
-{
-  const int height = input_->height;
-  const int width = input_->width;
-  const int kernel_height = structuring_element_->height;
-  const int kernel_width = structuring_element_->width;
+void
+pcl::pcl_2d::morphology::dilationGray  (ImageType &output, ImageType &kernel, ImageType &input){
+  const size_t height = input.size ();
+  const size_t width = input[0].size ();
+  const size_t kernel_height = kernel.size ();
+  const size_t kernel_width = kernel[0].size ();
   float max;
 
-  output.resize (width * height);
-  output.width = width;
-  output.height = height;
-
-  for (int i = 0; i < height; i++)
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    for (int j = 0; j < width; j++)
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
     {
       max = -1;
-      for (int k = 0; k < kernel_height; k++)
+      for (size_t k = 0; k < kernel_height; k++)
       {
-        for (int l = 0; l < kernel_width; l++)
+        for (size_t l = 0; l < kernel_width; l++)
         {
-          // We only check for 1's in the kernel
-          if ((*structuring_element_)(l, k).intensity == 0)
+          /*we only check for 1's in the kernel*/
+          if (kernel[k][l] == 0)
             continue;
           if ((i + k - kernel_height / 2) < 0 || (i + k - kernel_height / 2) >= height || (j + l - kernel_width / 2) < 0 || (j + l - kernel_width / 2) >= width)
           {
             continue;
           }
-          // If one of the elements of the kernel and image don't match, 
-          // the output image is 0. So, move to the next point.
-          if ((*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity > max || max == -1)
+          /* if one of the elements of the kernel and image dont match, the output image is 0.
+           * So, move to the next point.*/
+          if (input[i + k - kernel_height / 2][j + l - kernel_width / 2] > max || max == -1)
           {
-            max = (*input_)(j + l - kernel_width / 2, i + k - kernel_height / 2).intensity;
+            max = input[i + k - kernel_height / 2][j + l - kernel_width / 2];
           }
         }
       }
-      // Assign value according to mismatch flag
-      output (j, i).intensity = max;
+      /*assign value according to mismatch flag*/
+      output[i][j] = max;
     }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::openingGray (pcl::PointCloud<PointT> &output)
-{
-  PointCloudInPtr intermediate_output (new PointCloudIn);
-  erosionGray (*intermediate_output);
-  this->setInputCloud (intermediate_output);
-  dilationGray (output);
+void
+pcl::pcl_2d::morphology::openingGray  (ImageType &output, ImageType &kernel, ImageType &input){
+  ImageType intermediate_output;
+  erosionGray  (intermediate_output, kernel, input);
+  dilationGray  (output, kernel, intermediate_output);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::closingGray (pcl::PointCloud<PointT> &output)
-{
-  PointCloudInPtr intermediate_output (new PointCloudIn);
-  dilationGray (*intermediate_output);
-  this->setInputCloud (intermediate_output);
-  erosionGray (output);
+
+void
+pcl::pcl_2d::morphology::closingGray  (ImageType &output, ImageType &kernel, ImageType &input){
+  ImageType intermediate_output;
+  dilationGray  (intermediate_output, kernel, input);
+  erosionGray  (output, kernel, intermediate_output);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::subtractionBinary (
-    pcl::PointCloud<PointT> &output, 
-    const pcl::PointCloud<PointT> &input1, 
-    const pcl::PointCloud<PointT> &input2)
-{
-  const int height = (input1.height < input2.height) ? input1.height : input2.height;
-  const int width = (input1.width < input2.width) ? input1.width : input2.width;
-  output.width = width;
-  output.height = height;
-  output.resize (height * width);
-
-  for (size_t i = 0; i < output.size (); ++i)
+void
+pcl::pcl_2d::morphology::subtractionBinary  (ImageType &output, ImageType &input1, ImageType &input2){
+  const size_t height = (input1.size () < input2.size ()) ? input1.size () : input2.size ();
+  const size_t width = (input1[0].size () < input2[0].size ()) ? input1[0].size () : input2[0].size ();
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    if (input1[i].intensity == 1 && input2[i].intensity == 0)
-      output[i].intensity = 1;
-    else
-      output[i].intensity = 0;
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
+    {
+      if (input1[i][j] == 1 && input2[i][j] == 0)
+        output[i][j] = 1;
+      else
+        output[i][j] = 0;
+    }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::unionBinary (
-    pcl::PointCloud<PointT> &output, 
-    const pcl::PointCloud<PointT> &input1, 
-    const pcl::PointCloud<PointT> &input2)
-{
-  const int height = (input1.height < input2.height) ? input1.height : input2.height;
-  const int width = (input1.width < input2.width) ? input1.width : input2.width;
-  output.width = width;
-  output.height = height;
-  output.resize (height * width);
-
-  for (size_t i = 0; i < output.size (); ++i)
+void
+pcl::pcl_2d::morphology::unionBinary  (ImageType &output, ImageType &input1, ImageType &input2){
+  const size_t height = (input1.size () < input2.size ()) ? input1.size () : input2.size ();
+  const size_t width = (input1[0].size () < input2[0].size ()) ? input1[0].size () : input2[0].size ();
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    if (input1[i].intensity == 1 || input2[i].intensity == 1)
-      output[i].intensity = 1;
-    else
-      output[i].intensity = 0;
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
+    {
+      if (input1[i][j] == 1 || input2[i][j] == 1)
+        output[i][j] = 1;
+      else
+        output[i][j] = 0;
+    }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::intersectionBinary (
-    pcl::PointCloud<PointT> &output, 
-    const pcl::PointCloud<PointT> &input1, 
-    const pcl::PointCloud<PointT> &input2)
-{
-  const int height = (input1.height < input2.height) ? input1.height : input2.height;
-  const int width = (input1.width < input2.width) ? input1.width : input2.width;
-  output.width = width;
-  output.height = height;
-  output.resize (height * width);
-
-  for (size_t i = 0; i < output.size (); ++i)
+void
+pcl::pcl_2d::morphology::intersectionBinary  (ImageType &output, ImageType &input1, ImageType &input2){
+  const size_t height = (input1.size () < input2.size ()) ? input1.size () : input2.size ();
+  const size_t width = (input1[0].size () < input2[0].size ()) ? input1[0].size () : input2[0].size ();
+  output.resize (height);
+  for (size_t i = 0; i < height; i++)
   {
-    if (input1[i].intensity == 1 && input2[i].intensity == 1)
-      output[i].intensity = 1;
-    else
-      output[i].intensity = 0;
+    output[i].resize (width);
+    for (size_t j = 0; j < width; j++)
+    {
+      if (input1[i][j] == 1 && input2[i][j] == 1)
+        output[i][j] = 1;
+      else
+        output[i][j] = 0;
+    }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::structuringElementCircular (
-    pcl::PointCloud<PointT> &kernel, const int radius)
-{
+void
+pcl::pcl_2d::morphology::structuringElementCircular  (ImageType &kernel, const int radius){
   const int dim = 2 * radius;
-  kernel.height = dim;
-  kernel.width = dim;
-  kernel.resize (dim * dim);
-
+  kernel.resize (dim);
   for (int i = 0; i < dim; i++)
   {
+    kernel[i].resize (dim);
     for (int j = 0; j < dim; j++)
     {
       if (((i - radius) * (i - radius) + (j - radius) * (j - radius)) < radius * radius)
-        kernel (j, i).intensity = 1;
+        kernel[i][j] = 1;
       else
-        kernel (j, i).intensity = 0;
+        kernel[i][j] = 0;
     }
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::structuringElementRectangle (
-    pcl::PointCloud<PointT> &kernel, const int height, const int width)
-{
-  kernel.height = height;
-  kernel.width = width;
-  kernel.resize (height * width);
-  for (size_t i = 0; i < kernel.size (); ++i)
-    kernel[i].intensity = 1;
+void
+pcl::pcl_2d::morphology::structuringElementRectangle  (ImageType &kernel, const int height, const int width){
+  kernel.resize (height);
+  for (int i = 0; i < height; i++)
+  {
+    kernel[i].resize (width);
+    for (int j = 0; j < width; j++)
+    {
+      kernel[i][j] = 1;
+    }
+  }
 }
 
-//////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl::Morphology<PointT>::setStructuringElement (const PointCloudInPtr &structuring_element)
-{
-  structuring_element_ = structuring_element;
-}
-
-#endif    // PCL_2D_MORPHOLOGY_HPP_
+#endif /* MORPHOLOGY_HPP_ */

@@ -424,13 +424,6 @@ namespace pcl
         return (templates_[template_id]);
       }
 
-      /** \brief Returns the number of stored/trained templates. */
-      inline size_t
-      getNumOfTemplates () const
-      {
-        return (templates_.size ());
-      }
-
       /** \brief Saves the stored templates to the specified file.
         * \param[in] file_name the name of the file to save the templates to.
         */
@@ -442,13 +435,6 @@ namespace pcl
         */
       void
       loadTemplates (const char * file_name);
-
-      /** \brief Loads templates from the specified files.
-        * \param[in] file_names vector of files to load the templates from.
-        */
-
-      void
-      loadTemplates (std::vector<std::string> & file_names);
 
       /** \brief Serializes the stored templates to the specified stream.
         * \param[in] stream the stream the templates will be written to.

@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,14 +31,13 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
 #ifndef NURBS_FITTING_PATCH_H
 #define NURBS_FITTING_PATCH_H
 
-#include <pcl/pcl_exports.h>
 #include <pcl/surface/on_nurbs/nurbs_tools.h>
 #include <pcl/surface/on_nurbs/nurbs_data.h>
 #include <pcl/surface/on_nurbs/nurbs_solve.h>
@@ -47,12 +46,12 @@ namespace pcl
 {
   namespace on_nurbs
   {
+
     /** \brief Fitting a B-Spline surface to 3D point-clouds using point-distance-minimization
      *  Based on paper: TODO
      * \author Thomas Mörwald
-     * \ingroup surface
-     */
-    class PCL_EXPORTS FittingSurface
+     * \ingroup surface     */
+    class FittingSurface
     {
     public:
       ON_NurbsSurface m_nurbs;
@@ -63,7 +62,6 @@ namespace pcl
       public:
         int side;
         double hint;
-
         myvec (int side, double hint)
         {
           this->side = side;
@@ -91,54 +89,46 @@ namespace pcl
               boundary_smoothness (bndS), boundary_regularisation (bndR), regularisation_resU (regU),
               regularisation_resV (regV)
         {
+
         }
+
       };
 
       /** \brief Constructor initializing with the B-Spline surface given in argument 2.
        * \param[in] data pointer to the 3D point-cloud data to be fit.
-       * \param[in] ns B-Spline surface used for fitting.
-       */
+       * \param[in] ns B-Spline surface used for fitting.        */
       FittingSurface (NurbsDataSurface *data, const ON_NurbsSurface &ns);
 
       /** \brief Constructor initializing B-Spline surface using initNurbsPCA(...).
        * \param[in] order the polynomial order of the B-Spline surface.
        * \param[in] data pointer to the 2D point-cloud data to be fit.
-       * \param[in] z vector defining front face of surface.
-       */
+       * \param[in] z vector defining front face of surface.        */
       FittingSurface (int order, NurbsDataSurface *data, Eigen::Vector3d z = Eigen::Vector3d (0.0, 0.0, 1.0));
 
       /** \brief Refines surface by inserting a knot in the middle of each element.
-       * \param[in] dim dimension of refinement (0,1)
-       */
+       *  \param[in] dim dimension of refinement (0,1)  */
       void
       refine (int dim);
 
-      static void
-      refine (ON_NurbsSurface &nurbs, int dim);
-
       /** \brief Assemble the system of equations for fitting
        * - for large point-clouds this is time consuming.
-       * - should be done once before refinement to initialize the starting points for point inversion.
-       */
+       * - should be done once before refinement to initialize the starting points for point inversion. */
       virtual void
       assemble (Parameter param = Parameter ());
 
       /** \brief Solve system of equations using Eigen or UmfPack (can be defined in on_nurbs.cmake),
-       * and updates B-Spline surface if a solution can be obtained.
-       */
+       *  and updates B-Spline surface if a solution can be obtained. */
       virtual void
       solve (double damp = 1.0);
 
       /** \brief Update surface according to the current system of equations.
-       * \param[in] damp damping factor from one iteration to the other.
-       */
+       *  \param[in] damp damping factor from one iteration to the other. */
       virtual void
       updateSurf (double damp);
 
       /** \brief Set parameters for inverse mapping
-       * \param[in] in_max_steps maximum number of iterations.
-       * \param[in] in_accuracy stops iteration if specified accuracy is reached.
-       */
+       *  \param[in] in_max_steps maximum number of iterations.
+       *  \param[in] in_accuracy stops iteration if specified accuracy is reached. */
       void
       setInvMapParams (unsigned in_max_steps, double in_accuracy);
 
@@ -148,46 +138,39 @@ namespace pcl
 
       /** \brief Inverse mapping / point inversion: Given a point pt, this function finds the closest
        * point on the B-Spline surface using Newtons method and point-distance (L2-, Euclidean norm).
-       * \param[in] nurbs the B-Spline surface.
-       * \param[in] pt the point to which the closest point on the surface will be computed.
-       * \param[in] hint the starting point in parametric domain (warning: may lead to convergence at local minima).
-       * \param[in] error the distance between the point pt and p after convergence.
-       * \param[in] p closest point on surface.
-       * \param[in] tu the tangent vector at point p in u-direction.
-       * \param[in] tv the tangent vector at point p in v-direction.
-       * \param[in] maxSteps maximum number of iterations.
-       * \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
-       * \return closest point on surface in parametric domain.
-       */
+       *  \param[in] nurbs the B-Spline surface.
+       *  \param[in] pt the point to which the closest point on the surface will be computed.
+       *  \param[in] hint the starting point in parametric domain (warning: may lead to convergence at local minima).
+       *  \param[in] error the distance between the point pt and p after convergence.
+       *  \param[in] p closest point on surface.
+       *  \param[in] tu the tangent vector at point p in u-direction.
+       *  \param[in] tv the tangent vector at point p in v-direction.
+       *  \param[in] maxSteps maximum number of iterations.
+       *  \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
+       *  \return closest point on surface in parametric domain.*/
       static Eigen::Vector2d
       inverseMapping (const ON_NurbsSurface &nurbs, const Eigen::Vector3d &pt, const Eigen::Vector2d &hint,
                       double &error, Eigen::Vector3d &p, Eigen::Vector3d &tu, Eigen::Vector3d &tv, int maxSteps = 100,
                       double accuracy = 1e-6, bool quiet = true);
 
-      static Eigen::Vector2d
-      inverseMapping (const ON_NurbsSurface &nurbs, const Eigen::Vector3d &pt, const Eigen::Vector2d &hint,
-                      Eigen::Vector3d &p, int maxSteps, double accuracy, bool quiet);
-
       /** \brief Given a point pt, the function finds the closest midpoint of the elements of the surface.
-       * \param[in] nurbs the B-Spline surface.
-       * \param[in] pt the point to which the closest midpoint of the elements will be computed.
-       * return closest midpoint in parametric domain.
-       */
+       *  \param[in] nurbs the B-Spline surface.
+       *  \param[in] pt the point to which the closest midpoint of the elements will be computed.
+       *  return closest midpoint in parametric domain. */
       static Eigen::Vector2d
       findClosestElementMidPoint (const ON_NurbsSurface &nurbs, const Eigen::Vector3d &pt);
 
       /** \brief Inverse mapping / point inversion: Given a point pt, this function finds the closest
        * point on the boundary of the B-Spline surface using Newtons method and point-distance (L2-, Euclidean norm).
-       * \param[in] nurbs the B-Spline surface.
-       * \param[in] pt the point to which the closest point on the surface will be computed.
-       * \param[in] error the distance between the point pt and p after convergence.
-       * \param[in] p closest boundary point on surface.
-       * \param[in] tu the tangent vector at point p in u-direction.
-       * \param[in] tv the tangent vector at point p in v-direction.
-       * \param[in] maxSteps maximum number of iterations.
-       * \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
-       * \return closest point on surface in parametric domain.
-       */
+       *  \param[in] nurbs the B-Spline surface.
+       *  \param[in] pt the point to which the closest point on the surface will be computed.
+       *  \param[in] error the distance between the point pt and p after convergence.
+       *  \param[in] p closest boundary point on surface.
+       *  \param[in] tu the tangent vector at point p in u-direction.
+       *  \param[in] tv the tangent vector at point p in v-direction.
+       *  \param[in] maxSteps maximum number of iterations.
+       *  \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
+       *  \return closest point on surface in parametric domain.*/
       static Eigen::Vector2d
       inverseMappingBoundary (const ON_NurbsSurface &nurbs, const Eigen::Vector3d &pt, double &error,
                               Eigen::Vector3d &p, Eigen::Vector3d &tu, Eigen::Vector3d &tv, int maxSteps = 100,
@@ -196,18 +179,17 @@ namespace pcl
       /** \brief Inverse mapping / point inversion: Given a point pt, this function finds the closest
        * point on one side of the boundary of the B-Spline surface using Newtons method and
        * point-distance (L2-, Euclidean norm).
-       * \param[in] nurbs the B-Spline surface.
-       * \param[in] pt the point to which the closest point on the surface will be computed.
-       * \param[in] side the side of the boundary (NORTH, SOUTH, EAST, WEST)
-       * \param[in] hint the starting point in parametric domain (warning: may lead to convergence at local minima).
-       * \param[in] error the distance between the point pt and p after convergence.
-       * \param[in] p closest boundary point on surface.
-       * \param[in] tu the tangent vector at point p in u-direction.
-       * \param[in] tv the tangent vector at point p in v-direction.
-       * \param[in] maxSteps maximum number of iterations.
-       * \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
-       * \return closest point on surface in parametric domain.
-       */
+       *  \param[in] nurbs the B-Spline surface.
+       *  \param[in] pt the point to which the closest point on the surface will be computed.
+       *  \param[in] side the side of the boundary (NORTH, SOUTH, EAST, WEST)
+       *  \param[in] hint the starting point in parametric domain (warning: may lead to convergence at local minima).
+       *  \param[in] error the distance between the point pt and p after convergence.
+       *  \param[in] p closest boundary point on surface.
+       *  \param[in] tu the tangent vector at point p in u-direction.
+       *  \param[in] tv the tangent vector at point p in v-direction.
+       *  \param[in] maxSteps maximum number of iterations.
+       *  \param[in] accuracy convergence criteria: if error is lower than accuracy the function returns
+       *  \return closest point on surface in parametric domain.*/
       static Eigen::Vector2d
       inverseMappingBoundary (const ON_NurbsSurface &nurbs, const Eigen::Vector3d &pt, int side, double hint,
                               double &error, Eigen::Vector3d &p, Eigen::Vector3d &tu, Eigen::Vector3d &tv,
@@ -230,7 +212,7 @@ namespace pcl
       setQuiet (bool val)
       {
         m_quiet = val;
-        m_solver.setQuiet (val);
+        m_solver.setQuiet(val);
       }
 
     protected:
@@ -301,16 +283,16 @@ namespace pcl
       int
       gl2gr (int A)
       {
-        return (static_cast<int> (A / m_nurbs.CVCount (1)));
+        return (int)(A / m_nurbs.CVCount (1));
       } // global lexicographic in global row index
       int
       gl2gc (int A)
       {
-        return (static_cast<int> (A % m_nurbs.CVCount (1)));
+        return (int)(A % m_nurbs.CVCount (1));
       } // global lexicographic in global col index
     };
 
-  } // namespace on_nurbs
-} // namespace pcl
+  }
+}
 
-#endif    // PATCHFITTING_H_
+#endif /* PATCHFITTING_H_ */

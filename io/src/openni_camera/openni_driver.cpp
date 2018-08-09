@@ -1,9 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011 2011 Willow Garage, Inc.
+ *    Suat Gedikli <gedikli@willowgarage.com>
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,11 +37,6 @@
 #include <pcl/pcl_config.h>
 #ifdef HAVE_OPENNI
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
-
-#include <pcl/io/openni_camera/openni.h>
 #include <pcl/io/openni_camera/openni_driver.h>
 #include <pcl/io/openni_camera/openni_device_kinect.h>
 #include <pcl/io/openni_camera/openni_device_primesense.h>
@@ -54,15 +48,22 @@
 #include <locale>
 #include <cctype>
 #include <map>
+#include <XnVersion.h>
 
 #ifndef _WIN32
 #include <libusb-1.0/libusb.h>
 #else
-#include <pcl/io/boost.h>
+#include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
 #endif
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::OpenNIDriver::OpenNIDriver ()
+using namespace std;
+using namespace boost;
+
+namespace openni_wrapper
+{
+
+OpenNIDriver::OpenNIDriver ()
   : device_context_ ()
   , context_ ()
   , bus_map_ ()
@@ -77,9 +78,7 @@ openni_wrapper::OpenNIDriver::OpenNIDriver ()
   updateDeviceList ();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned 
-openni_wrapper::OpenNIDriver::updateDeviceList ()
+unsigned OpenNIDriver::updateDeviceList ()
 {
   // clear current list of devices
   device_context_.clear ();
@@ -214,16 +213,14 @@ openni_wrapper::OpenNIDriver::updateDeviceList ()
   return (static_cast<unsigned int> (device_context_.size ()));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::OpenNIDriver::stopAll ()
+void OpenNIDriver::stopAll ()
 {
   XnStatus status = context_.StopGeneratingAll ();
   if (status != XN_STATUS_OK)
     THROW_OPENNI_EXCEPTION ("stopping all streams failed. Reason: %s", xnGetStatusString (status));
 }
 
-openni_wrapper::OpenNIDriver::~OpenNIDriver () throw ()
+OpenNIDriver::~OpenNIDriver () throw ()
 {
   // no exception during destuctor
   try
@@ -241,22 +238,19 @@ openni_wrapper::OpenNIDriver::~OpenNIDriver () throw ()
 #endif
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::OpenNIDevice> 
-openni_wrapper::OpenNIDriver::createVirtualDevice (const std::string& path, bool repeat, bool stream) const
+boost::shared_ptr<OpenNIDevice> OpenNIDriver::createVirtualDevice (const string& path, bool repeat, bool stream) const
 {
-  return (boost::shared_ptr<OpenNIDevice> (new DeviceONI (context_, path, repeat, stream)));
+  return boost::shared_ptr<OpenNIDevice> (new DeviceONI (context_, path, repeat, stream));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::OpenNIDevice> 
-openni_wrapper::OpenNIDriver::getDeviceByIndex (unsigned index) const
+boost::shared_ptr<OpenNIDevice> 
+OpenNIDriver::getDeviceByIndex (unsigned index) const
 {
   using namespace std;
 
   if (index >= device_context_.size ())
     THROW_OPENNI_EXCEPTION ("Device index out of range. Only %d devices connected but device %d requested.", device_context_.size (), index);
-  boost::shared_ptr<openni_wrapper::OpenNIDevice> device = device_context_[index].device.lock ();
+  boost::shared_ptr<OpenNIDevice> device = device_context_[index].device.lock ();
   if (!device)
   {
     unsigned short vendor_id;
@@ -296,9 +290,8 @@ openni_wrapper::OpenNIDriver::getDeviceByIndex (unsigned index) const
   return (device);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::OpenNIDevice>
-openni_wrapper::OpenNIDriver::getDeviceBySerialNumber (const std::string& serial_number) const
+boost::shared_ptr<OpenNIDevice>
+OpenNIDriver::getDeviceBySerialNumber (const std::string& serial_number) const
 {
   std::map<std::string, unsigned>::const_iterator it = serial_map_.find (serial_number);
 
@@ -310,13 +303,11 @@ openni_wrapper::OpenNIDriver::getDeviceBySerialNumber (const std::string& serial
   THROW_OPENNI_EXCEPTION ("No device with serial number \'%s\' found", serial_number.c_str ());
 
   // because of warnings!!!
-  return (boost::shared_ptr<openni_wrapper::OpenNIDevice> (static_cast<OpenNIDevice*> (NULL)));
+  return (boost::shared_ptr<OpenNIDevice > (static_cast<OpenNIDevice*> (NULL)));
 }
-
 #ifndef _WIN32
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::OpenNIDevice>
-openni_wrapper::OpenNIDriver::getDeviceByAddress (unsigned char bus, unsigned char address) const
+boost::shared_ptr<OpenNIDevice>
+OpenNIDriver::getDeviceByAddress (unsigned char bus, unsigned char address) const
 {
   std::map<unsigned char, std::map<unsigned char, unsigned> >::const_iterator busIt = bus_map_.find (bus);
   if (busIt != bus_map_.end ())
@@ -334,9 +325,8 @@ openni_wrapper::OpenNIDriver::getDeviceByAddress (unsigned char bus, unsigned ch
   return (boost::shared_ptr<OpenNIDevice > (static_cast<OpenNIDevice*> (NULL)));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-openni_wrapper::OpenNIDriver::getDeviceInfos () throw ()
+OpenNIDriver::getDeviceInfos () throw ()
 {
   libusb_context *context = NULL;
   int result;
@@ -410,49 +400,44 @@ openni_wrapper::OpenNIDriver::getDeviceInfos () throw ()
 }
 #endif
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char* 
-openni_wrapper::OpenNIDriver::getSerialNumber (unsigned index) const throw ()
+const char* OpenNIDriver::getSerialNumber (unsigned index) const throw ()
 {
 #ifndef _WIN32
-  return (device_context_[index].device_node.GetInstanceName ());
+  return device_context_[index].device_node.GetInstanceName ();
 #else
-  std::string info = device_context_[index].device_node.GetCreationInfo ();
-  boost::char_separator<char> sep ("#");
-  boost::tokenizer<boost::char_separator<char> > tokens (info, sep);
-  boost::tokenizer<boost::char_separator<char> >::iterator itr = tokens.begin ();
-  ++itr;
-  ++itr;
+  std::string info = device_context_[index].device_node.GetCreationInfo();
+  char_separator<char> sep("#");
+  tokenizer< char_separator<char> > tokens(info, sep);
+  tokenizer<char_separator<char>>::iterator itr = tokens.begin();
+  itr++;
+  itr++;
   std::string sn = *itr;
-  device_context_[index].device_node.SetInstanceName(sn.c_str ());
-  return (device_context_[index].device_node.GetInstanceName ());
+  device_context_[index].device_node.SetInstanceName(sn.c_str());
+  return device_context_[index].device_node.GetInstanceName ();
 #endif
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::OpenNIDriver::getDeviceType (const std::string& connectionString, unsigned short& vendorId, unsigned short& productId)
+void OpenNIDriver::getDeviceType (const std::string& connectionString, unsigned short& vendorId, unsigned short& productId)
 {
 #if _WIN32
     // expected format: "\\?\usb#vid_[ID]&pid_[ID]#[SERIAL]#{GUID}"
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> separators("#&_");
-    tokenizer tokens (connectionString, separators);
+    tokenizer tokens(connectionString, separators);
 
     unsigned int tokenIndex = 0;
-    for (tokenizer::iterator tok_iter = tokens.begin (); tok_iter != tokens.end (); ++tok_iter, tokenIndex++)
+    for (tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter, tokenIndex++)
     {
-      std::string tokenValue = *tok_iter;
+        std::string tokenValue = *tok_iter;
 
-      switch (tokenIndex) 
-      {
-        case 2:    // the vendor ID
-          sscanf (tokenValue.c_str (), "%hx", &vendorId);
-          break;
-        case 4: // the product ID
-          sscanf (tokenValue.c_str (), "%hx", &productId);
-          break;
-      }
+        switch(tokenIndex) {
+            case 2:    // the vendor ID
+                sscanf(tokenValue.c_str(), "%hx", &vendorId);
+                break;
+            case 4: // the product ID
+                sscanf(tokenValue.c_str(), "%hx", &productId);
+                break;
+        }
     }
 #else
     unsigned char bus;
@@ -461,30 +446,22 @@ openni_wrapper::OpenNIDriver::getDeviceType (const std::string& connectionString
 #endif
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char* 
-openni_wrapper::OpenNIDriver::getConnectionString (unsigned index) const throw ()
+const char* OpenNIDriver::getConnectionString (unsigned index) const throw ()
 {
-  return (device_context_[index].device_node.GetCreationInfo ());
+  return device_context_[index].device_node.GetCreationInfo ();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char* 
-openni_wrapper::OpenNIDriver::getVendorName (unsigned index) const throw ()
+const char* OpenNIDriver::getVendorName (unsigned index) const throw ()
 {
-  return (device_context_[index].device_node.GetDescription ().strVendor);
+  return device_context_[index].device_node.GetDescription ().strVendor;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const char* 
-openni_wrapper::OpenNIDriver::getProductName (unsigned index) const throw ()
+const char* OpenNIDriver::getProductName (unsigned index) const throw ()
 {
-  return (device_context_[index].device_node.GetDescription ().strName);
+  return device_context_[index].device_node.GetDescription ().strName;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned short 
-openni_wrapper::OpenNIDriver::getVendorID (unsigned index) const throw ()
+unsigned short OpenNIDriver::getVendorID (unsigned index) const throw ()
 {
   unsigned short vendor_id;
   unsigned short product_id;
@@ -496,12 +473,10 @@ openni_wrapper::OpenNIDriver::getVendorID (unsigned index) const throw ()
 #else
   getDeviceType (device_context_[index].device_node.GetCreationInfo (), vendor_id, product_id);
 #endif
-  return (vendor_id);
+  return vendor_id;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned short 
-openni_wrapper::OpenNIDriver::getProductID (unsigned index) const throw ()
+unsigned short OpenNIDriver::getProductID (unsigned index) const throw ()
 {
   unsigned short vendor_id;
   unsigned short product_id;
@@ -513,12 +488,10 @@ openni_wrapper::OpenNIDriver::getProductID (unsigned index) const throw ()
 #else
   getDeviceType (device_context_[index].device_node.GetCreationInfo (), vendor_id, product_id);
 #endif
-  return (product_id);
+  return product_id;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned char 
-openni_wrapper::OpenNIDriver::getBus (unsigned index) const throw ()
+unsigned char OpenNIDriver::getBus (unsigned index) const throw ()
 {
   unsigned char bus = 0;
 #ifndef _WIN32
@@ -527,12 +500,10 @@ openni_wrapper::OpenNIDriver::getBus (unsigned index) const throw ()
   unsigned char address;
   sscanf (device_context_[index].device_node.GetCreationInfo (), "%hx/%hx@%hhu/%hhu", &vendor_id, &product_id, &bus, &address);
 #endif
-  return (bus);
+  return bus;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned char 
-openni_wrapper::OpenNIDriver::getAddress (unsigned index) const throw ()
+unsigned char OpenNIDriver::getAddress (unsigned index) const throw ()
 {
   unsigned char address = 0;
 #ifndef _WIN32
@@ -541,11 +512,10 @@ openni_wrapper::OpenNIDriver::getAddress (unsigned index) const throw ()
   unsigned char bus;
   sscanf (device_context_[index].device_node.GetCreationInfo (), "%hx/%hx@%hhu/%hhu", &vendor_id, &product_id, &bus, &address);
 #endif
-  return (address);
+  return address;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& device, xn::NodeInfo* image, xn::NodeInfo* depth, xn::NodeInfo* ir)
+OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& device, xn::NodeInfo* image, xn::NodeInfo* depth, xn::NodeInfo* ir)
 : device_node (device)
 , image_node (image)
 , depth_node (depth)
@@ -554,8 +524,7 @@ openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& 
 {
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& device)
+OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& device)
 : device_node (device)
 , image_node (static_cast<xn::NodeInfo*> (0))
 , depth_node (static_cast<xn::NodeInfo*> (0))
@@ -564,8 +533,7 @@ openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const xn::NodeInfo& 
 {
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const DeviceContext& other)
+OpenNIDriver::DeviceContext::DeviceContext (const DeviceContext& other)
 : device_node (other.device_node)
 , image_node (other.image_node)
 , depth_node (other.depth_node)
@@ -574,4 +542,5 @@ openni_wrapper::OpenNIDriver::DeviceContext::DeviceContext (const DeviceContext&
 {
 }
 
+} // namespace
 #endif

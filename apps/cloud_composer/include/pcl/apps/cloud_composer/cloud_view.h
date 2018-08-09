@@ -38,16 +38,18 @@
 #ifndef CLOUD_VIEW_H_
 #define CLOUD_VIEW_H_
 
-#include <pcl/apps/cloud_composer/qt.h>
+
+#include <QAbstractItemView>
+#include <QVTKWidget.h>
+
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/apps/cloud_composer/point_selectors/interactor_style_switch.h>
-#include <vtkEventQtSlotConnect.h>
 
 namespace pcl
 {
   namespace cloud_composer
   {
     class ProjectModel;
+    
     /** \brief View class for displaying ProjectModel data using PCLVisualizer
      * \author Jeremie Papon
      * \ingroup cloud_composer
@@ -61,42 +63,22 @@ namespace pcl
       CloudView (const CloudView& to_copy);
       CloudView (ProjectModel* model, QWidget* parent = 0);
       virtual ~CloudView ();
-      
       void 
       setModel (ProjectModel* new_model);
-      ProjectModel* 
-      getModel () const { return model_; }
-      
-      QVTKWidget* 
-      getQVTK() const {return qvtk_; }
-      
-      boost::shared_ptr<pcl::visualization::PCLVisualizer>
-      getPCLVisualizer () const { return vis_; }
-      
-      void 
-      setAxisVisibility (bool visible);
-      
-      void 
-      setInteractorStyle (interactor_styles::INTERACTOR_STYLES style);
-    public Q_SLOTS:
+      ProjectModel* getModel () const { return model_; }
+      QVTKWidget* getQVTK() const {return qvtk_; }
+    
+    public slots:
       void 
       refresh ();
       
-      /** \brief Slot called when the item selected in cloud browser changes */
-      void 
-      selectedItemChanged (const QItemSelection & selected, const QItemSelection & deselected);
-      
-      /** \brief Slot called when the data in model changes */
-      void 
-      dataChanged ( const QModelIndex & topLeft, const QModelIndex & bottomRight );
-      
-    protected Q_SLOTS:
-      /** \brief Slot called when an item in the model changes
+    protected slots:
+      /** \brief Slot called when underlying model changes
        * \param topLeft 
        * \param bottomRight
        */
       void
-      itemChanged (QStandardItem* item);
+      dataChanged (const QModelIndex& topLeft, const QModelIndex& bottomRight);
       
       /** \brief Slot called when rows inserted to model
        * \param start Start of new rows (inclusive)
@@ -108,11 +90,7 @@ namespace pcl
       void
       rowsAboutToBeRemoved (const QModelIndex& parent, int start, int end);
       
-      void
-      selectionCompleted (vtkObject* caller, unsigned long event_id, void* client_data, void* call_data);
       
-      void
-      manipulationCompleted (vtkObject* caller, unsigned long event_id, void* client_data, void* call_data);
       
     protected:
       void
@@ -127,29 +105,15 @@ namespace pcl
       void
       connectSignalsAndSlots ();
       
-      /** \brief Internal function for setting up the style_switch_ */
-      void 
-      initializeInteractorSwitch ();
-      
-      void
-      addOrientationMarkerWidgetAxes ();
-      void
-      removeOrientationMarkerWidgetAxes ();
       
       boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
       ProjectModel* model_;
       QVTKWidget* qvtk_;
-      vtkSmartPointer<InteractorStyleSwitch> style_switch_;
       
-      vtkSmartPointer<vtkOrientationMarkerWidget> axes_widget_;
-      vtkSmartPointer<vtkAxesActor> axes_;
       
-      /** \brief Manages VTK events by connecting them to QT slots */
-      vtkSmartPointer<vtkEventQtSlotConnect> connections_;
     };
   }
 }
 
 Q_DECLARE_METATYPE (pcl::cloud_composer::CloudView);
 #endif
-

@@ -39,17 +39,10 @@
 
 #include <pcl/visualization/point_cloud_handlers.h>
 #include <vector>
-#include <map>
-#include <pcl/PCLPointCloud2.h>
 #include <boost/unordered_map.hpp>
 #include <vtkLODActor.h>
 #include <vtkSmartPointer.h>
-#include <pcl/PCLPointCloud2.h>
-#include <pcl/visualization/boost.h>
-
-template <typename T> class vtkSmartPointer;
-class vtkLODActor;
-class vtkProp;
+#include <sensor_msgs/PointCloud2.h>
 
 namespace pcl
 {
@@ -57,11 +50,11 @@ namespace pcl
   {
     class PCL_EXPORTS CloudActor
     {
-      typedef PointCloudGeometryHandler<pcl::PCLPointCloud2> GeometryHandler;
+      typedef PointCloudGeometryHandler<sensor_msgs::PointCloud2> GeometryHandler;
       typedef GeometryHandler::Ptr GeometryHandlerPtr;
       typedef GeometryHandler::ConstPtr GeometryHandlerConstPtr;
 
-      typedef PointCloudColorHandler<pcl::PCLPointCloud2> ColorHandler;
+      typedef PointCloudColorHandler<sensor_msgs::PointCloud2> ColorHandler;
       typedef ColorHandler::Ptr ColorHandlerPtr;
       typedef ColorHandler::ConstPtr ColorHandlerConstPtr;
 
@@ -102,8 +95,7 @@ namespace pcl
     typedef boost::unordered_map<std::string, vtkSmartPointer<vtkProp> > ShapeActorMap;
     typedef boost::shared_ptr<ShapeActorMap> ShapeActorMapPtr;
 
-    typedef boost::unordered_map<std::string, vtkSmartPointer<vtkProp> > CoordinateActorMap;
-    typedef boost::shared_ptr<CoordinateActorMap> CoordinateActorMapPtr;
+    typedef std::map<int, vtkSmartPointer<vtkProp> > CoordinateActorMap;
   }
 }
 

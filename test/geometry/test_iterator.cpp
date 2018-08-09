@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -169,9 +169,9 @@ void checkGeneralLine (unsigned x_start, unsigned y_start, unsigned x_end, unsig
   else
     EXPECT_EQ (abs(dx) + abs(dy), idx);
   
-  float length = std::sqrt (float (dx * dx + dy * dy));
-  float dir_x = float (dx) / length;
-  float dir_y = float (dy) / length;
+  float length = sqrt (float (dx * dx + dy * dy));
+  float dir_x = float(dx) / length;
+  float dir_y = float(dy) / length;
   
   // now all z-values should be 0 again!
   for (int yIdx = 0; yIdx < int(cloud.height); ++yIdx)

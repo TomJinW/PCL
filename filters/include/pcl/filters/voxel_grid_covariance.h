@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,9 +38,11 @@
 #ifndef PCL_VOXEL_GRID_COVARIANCE_H_
 #define PCL_VOXEL_GRID_COVARIANCE_H_
 
-#include <pcl/filters/boost.h>
 #include <pcl/filters/voxel_grid.h>
 #include <map>
+#include <boost/unordered_map.hpp>
+#include <boost/mpl/size.hpp>
+#include <boost/fusion/sequence/intrinsic/at_key.hpp>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
@@ -83,11 +85,6 @@ namespace pcl
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
     public:
-
-      typedef boost::shared_ptr< VoxelGrid<PointT> > Ptr;
-      typedef boost::shared_ptr< const VoxelGrid<PointT> > ConstPtr;
-
-
       /** \brief Simple structure to hold a centroid, covarince and the number of points in a leaf.
         * Inverse covariance, eigen vectors and engen values are precomputed. */
       struct Leaf
@@ -242,7 +239,7 @@ namespace pcl
       }
 
       /** \brief Set the minimum allowable ratio between eigenvalues to prevent singular covariance matrices.
-        * \param[in] min_covar_eigvalue_mult the minimum allowable ratio between eigenvalues
+        * \param[in] min_points_per_voxel the minimum allowable ratio between eigenvalues
         */
       inline void
       setCovEigValueInflationRatio (double min_covar_eigvalue_mult)
@@ -302,7 +299,7 @@ namespace pcl
       inline LeafConstPtr
       getLeaf (int index)
       {
-        typename std::map<size_t, Leaf>::iterator leaf_iter = leaves_.find (index);
+        typename boost::unordered_map<size_t, Leaf>::iterator leaf_iter = leaves_.find (index);
         if (leaf_iter != leaves_.end ())
         {
           LeafConstPtr ret (&(leaf_iter->second));
@@ -328,7 +325,7 @@ namespace pcl
         int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
 
         // Find leaf associated with index
-        typename std::map<size_t, Leaf>::iterator leaf_iter = leaves_.find (idx);
+        typename boost::unordered_map<size_t, Leaf>::iterator leaf_iter = leaves_.find (idx);
         if (leaf_iter != leaves_.end ())
         {
           // If such a leaf exists return the pointer to the leaf structure
@@ -355,7 +352,7 @@ namespace pcl
         int idx = ijk0 * divb_mul_[0] + ijk1 * divb_mul_[1] + ijk2 * divb_mul_[2];
 
         // Find leaf associated with index
-        typename std::map<size_t, Leaf>::iterator leaf_iter = leaves_.find (idx);
+        typename boost::unordered_map<size_t, Leaf>::iterator leaf_iter = leaves_.find (idx);
         if (leaf_iter != leaves_.end ())
         {
           // If such a leaf exists return the pointer to the leaf structure
@@ -367,7 +364,7 @@ namespace pcl
 
       }
 
-      /** \brief Get the voxels surrounding point p, not including the voxel containing point p.
+      /** \brief Get the voxels surrounding point p, not including the voxel contating point p.
        * \note Only voxels containing a sufficient number of points are used (slower than radius search in practice).
        * \param[in] reference_point the point to get the leaf structure at
        * \param[out] neighbors
@@ -379,7 +376,7 @@ namespace pcl
       /** \brief Get the leaf structure map
        * \return a map contataining all leaves
        */
-      inline const std::map<size_t, Leaf>&
+      inline const boost::unordered_map<size_t, Leaf>&
       getLeaves ()
       {
         return leaves_;
@@ -397,7 +394,7 @@ namespace pcl
 
 
       /** \brief Get a cloud to visualize each voxels normal distribution.
-       * \param[out] cell_cloud a cloud created by sampling the normal distributions of each voxel
+       * \param[out] a cloud created by sampling the normal distributions of each voxel
        */
       void
       getDisplayCloud (pcl::PointCloud<PointXYZ>& cell_cloud);
@@ -438,8 +435,7 @@ namespace pcl
 
       /** \brief Search for the k-nearest occupied voxels for the given query point.
        * \note Only voxels containing a sufficient number of points are used.
-       * \param[in] cloud the given query point
-       * \param[in] index the index
+       * \param[in] point the given query point
        * \param[in] k the number of neighbors to search for
        * \param[out] k_leaves the resultant leaves of the neighboring points
        * \param[out] k_sqr_distances the resultant squared distances to the neighboring points
@@ -461,7 +457,6 @@ namespace pcl
        * \param[in] radius the radius of the sphere bounding all of p_q's neighbors
        * \param[out] k_leaves the resultant leaves of the neighboring points
        * \param[out] k_sqr_distances the resultant squared distances to the neighboring points
-       * \param[in] max_nn
        * \return number of neighbors found
        */
       int
@@ -497,7 +492,6 @@ namespace pcl
        * \param[in] radius the radius of the sphere bounding all of p_q's neighbors
        * \param[out] k_leaves the resultant leaves of the neighboring points
        * \param[out] k_sqr_distances the resultant squared distances to the neighboring points
-       * \param[in] max_nn
        * \return number of neighbors found
        */
       inline int
@@ -527,7 +521,7 @@ namespace pcl
       double min_covar_eigvalue_mult_;
 
       /** \brief Voxel structure containing all leaf nodes (includes voxels with less than a sufficient number of points). */
-      std::map<size_t, Leaf> leaves_;
+      boost::unordered_map<size_t, Leaf> leaves_;
 
       /** \brief Point cloud containing centroids of voxels containing atleast minimum number of points. */
       PointCloudPtr voxel_centroids_;
@@ -539,9 +533,5 @@ namespace pcl
       KdTreeFLANN<PointT> kdtree_;
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/filters/impl/voxel_grid_covariance.hpp>
-#endif
 
 #endif  //#ifndef PCL_VOXEL_GRID_COVARIANCE_H_

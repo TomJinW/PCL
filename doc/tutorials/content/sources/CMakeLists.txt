@@ -16,11 +16,8 @@ foreach(subdir
           extract_indices
           #feature_evaluation
           greedy_projection
-		  implicit_shape_model
           iterative_closest_point
           kdtree_search
-          min_cut_segmentation
-          moment_of_inertia
           #narf_descriptor_visualization
           narf_feature_extraction
           narf_keypoint_extraction
@@ -41,17 +38,12 @@ foreach(subdir
           range_image_border_extraction
           range_image_creation
           range_image_visualization
-          region_growing_rgb_segmentation
-          region_growing_segmentation
           registration_api
           remove_outliers
           resampling
-          rops_feature
           statistical_removal
           stick_segmentation
-          supervoxel_clustering
           template_alignment
-	  tracking
           vfh_recognition
           voxel_grid
           normal_distributions_transform

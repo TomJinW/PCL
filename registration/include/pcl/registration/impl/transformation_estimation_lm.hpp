@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -44,45 +43,36 @@
 #include <pcl/registration/warp_point_rigid_6d.h>
 #include <pcl/registration/distances.h>
 #include <unsupported/Eigen/NonLinearOptimization>
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar>
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::TransformationEstimationLM ()
-  : tmp_src_ ()
-  , tmp_tgt_ ()
-  , tmp_idx_src_ ()
-  , tmp_idx_tgt_ ()
-  , warp_point_ (new WarpPointRigid6D<PointSource, PointTarget, MatScalar>)
-{
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> void
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::estimateRigidTransformation (
+template <typename PointSource, typename PointTarget> void
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
-    Matrix4 &transformation_matrix) const
+    Eigen::Matrix4f &transformation_matrix)
 {
 
   // <cloud_src,cloud_src> is the source dataset
   if (cloud_src.points.size () != cloud_tgt.points.size ())
   {
     PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] ");
-    PCL_ERROR ("Number or points in source (%lu) differs than target (%lu)!\n", 
+    PCL_ERROR ("Number or points in source (%zu) differs than target (%zu)!\n", 
                cloud_src.points.size (), cloud_tgt.points.size ());
     return;
   }
   if (cloud_src.points.size () < 4)     // need at least 4 samples
   {
     PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] ");
-    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %lu points!\n", 
+    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %zu points!\n", 
                cloud_src.points.size ());
     return;
   }
 
+  // If no warp function has been set, use the default (WarpPointRigid6D)
+  if (!warp_point_)
+    warp_point_.reset (new WarpPointRigid6D<PointSource, PointTarget>);
+
   int n_unknowns = warp_point_->getDimension ();
-  VectorX x (n_unknowns);
+  Eigen::VectorXd x (n_unknowns);
   x.setZero ();
   
   // Set temporary pointers
@@ -91,8 +81,7 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 
   OptimizationFunctor functor (static_cast<int> (cloud_src.points.size ()), this);
   Eigen::NumericalDiff<OptimizationFunctor> num_diff (functor);
-  //Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctor>, double> lm (num_diff);
-  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctor>, MatScalar> lm (num_diff);
+  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctor>, double> lm (num_diff);
   int info = lm.minimize (x);
 
   // Compute the norm of the residuals
@@ -104,7 +93,8 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
   PCL_DEBUG ("]\n");
 
   // Return the correct transformation
-  warp_point_->setParam (x);
+  Eigen::VectorXf params = x.cast<float> ();
+  warp_point_->setParam (params);
   transformation_matrix = warp_point_->getTransform ();
 
   tmp_src_ = NULL;
@@ -112,16 +102,16 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> void
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::estimateRigidTransformation (
+template <typename PointSource, typename PointTarget> void
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const std::vector<int> &indices_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
-    Matrix4 &transformation_matrix) const
+    Eigen::Matrix4f &transformation_matrix)
 {
   if (indices_src.size () != cloud_tgt.points.size ())
   {
-    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%lu) differs than target (%lu)!\n", indices_src.size (), cloud_tgt.points.size ());
+    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%zu) differs than target (%zu)!\n", indices_src.size (), cloud_tgt.points.size ());
     return;
   }
 
@@ -138,30 +128,34 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> inline void
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::estimateRigidTransformation (
+template <typename PointSource, typename PointTarget> inline void
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const std::vector<int> &indices_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
     const std::vector<int> &indices_tgt,
-    Matrix4 &transformation_matrix) const
+    Eigen::Matrix4f &transformation_matrix)
 {
   if (indices_src.size () != indices_tgt.size ())
   {
-    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%lu) differs than target (%lu)!\n", indices_src.size (), indices_tgt.size ());
+    PCL_ERROR ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] Number or points in source (%zu) differs than target (%zu)!\n", indices_src.size (), indices_tgt.size ());
     return;
   }
 
   if (indices_src.size () < 4)     // need at least 4 samples
   {
     PCL_ERROR ("[pcl::IterativeClosestPointNonLinear::estimateRigidTransformationLM] ");
-    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %lu points!",
+    PCL_ERROR ("Need at least 4 points to estimate a transform! Source and target have %zu points!",
                indices_src.size ());
     return;
   }
 
+  // If no warp function has been set, use the default (WarpPointRigid6D)
+  if (!warp_point_)
+    warp_point_.reset (new WarpPointRigid6D<PointSource, PointTarget>);
+
   int n_unknowns = warp_point_->getDimension ();  // get dimension of unknown space
-  VectorX x (n_unknowns);
+  Eigen::VectorXd x (n_unknowns);
   x.setConstant (n_unknowns, 0);
 
   // Set temporary pointers
@@ -172,19 +166,20 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 
   OptimizationFunctorWithIndices functor (static_cast<int> (indices_src.size ()), this);
   Eigen::NumericalDiff<OptimizationFunctorWithIndices> num_diff (functor);
-  //Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithIndices> > lm (num_diff);
-  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithIndices>, MatScalar> lm (num_diff);
+  Eigen::LevenbergMarquardt<Eigen::NumericalDiff<OptimizationFunctorWithIndices> > lm (num_diff);
   int info = lm.minimize (x);
 
   // Compute the norm of the residuals
-  PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation] LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm.fvec.norm ());
+  PCL_DEBUG ("[pcl::registration::TransformationEstimationLM::estimateRigidTransformation]");
+  PCL_DEBUG ("LM solver finished with exit code %i, having a residual norm of %g. \n", info, lm.fvec.norm ());
   PCL_DEBUG ("Final solution: [%f", x[0]);
   for (int i = 1; i < n_unknowns; ++i) 
     PCL_DEBUG (" %f", x[i]);
   PCL_DEBUG ("]\n");
 
   // Return the correct transformation
-  warp_point_->setParam (x);
+  Eigen::VectorXf params = x.cast<float> ();
+  warp_point_->setParam (params);
   transformation_matrix = warp_point_->getTransform ();
 
   tmp_src_ = NULL;
@@ -193,12 +188,12 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> inline void
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::estimateRigidTransformation (
+template <typename PointSource, typename PointTarget> inline void
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::estimateRigidTransformation (
     const pcl::PointCloud<PointSource> &cloud_src,
     const pcl::PointCloud<PointTarget> &cloud_tgt,
     const pcl::Correspondences &correspondences,
-    Matrix4 &transformation_matrix) const
+    Eigen::Matrix4f &transformation_matrix)
 {
   const int nr_correspondences = static_cast<const int> (correspondences.size ());
   std::vector<int> indices_src (nr_correspondences);
@@ -209,19 +204,20 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
     indices_tgt[i] = correspondences[i].index_match;
   }
 
-  estimateRigidTransformation (cloud_src, indices_src, cloud_tgt, indices_tgt, transformation_matrix);
+  estimateRigidTransformation(cloud_src, indices_src, cloud_tgt, indices_tgt, transformation_matrix);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> int 
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::OptimizationFunctor::operator () (
-    const VectorX &x, VectorX &fvec) const
+template <typename PointSource, typename PointTarget> int 
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::OptimizationFunctor::operator () (
+    const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
 {
   const PointCloud<PointSource> & src_points = *estimator_->tmp_src_;
   const PointCloud<PointTarget> & tgt_points = *estimator_->tmp_tgt_;
 
   // Initialize the warp function with the given parameters
-  estimator_->warp_point_->setParam (x);
+  Eigen::VectorXf params = x.cast<float> ();
+  estimator_->warp_point_->setParam (params);
 
   // Transform each source point and compute its distance to the corresponding target point
   for (int i = 0; i < values (); ++i)
@@ -230,9 +226,9 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
     const PointTarget & p_tgt = tgt_points.points[i];
 
     // Transform the source point based on the current warp parameters
-    Vector4 p_src_warped;
+    PointSource p_src_warped;
     estimator_->warp_point_->warpPoint (p_src, p_src_warped);
-
+    
     // Estimate the distance (cost function)
     fvec[i] = estimator_->computeDistance (p_src_warped, p_tgt);
   }
@@ -240,9 +236,9 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename MatScalar> int
-pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScalar>::OptimizationFunctorWithIndices::operator() (
-    const VectorX &x, VectorX &fvec) const
+template <typename PointSource, typename PointTarget> int
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::OptimizationFunctorWithIndices::operator() (
+    const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
 {
   const PointCloud<PointSource> & src_points = *estimator_->tmp_src_;
   const PointCloud<PointTarget> & tgt_points = *estimator_->tmp_tgt_;
@@ -250,7 +246,8 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
   const std::vector<int> & tgt_indices = *estimator_->tmp_idx_tgt_;
 
   // Initialize the warp function with the given parameters
-  estimator_->warp_point_->setParam (x);
+  Eigen::VectorXf params = x.cast<float> ();
+  estimator_->warp_point_->setParam (params);
 
   // Transform each source point and compute its distance to the corresponding target point
   for (int i = 0; i < values (); ++i)
@@ -259,7 +256,7 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
     const PointTarget & p_tgt = tgt_points.points[tgt_indices[i]];
 
     // Transform the source point based on the current warp parameters
-    Vector4 p_src_warped;
+    PointSource p_src_warped;
     estimator_->warp_point_->warpPoint (p_src, p_src_warped);
     
     // Estimate the distance (cost function)
@@ -267,6 +264,26 @@ pcl::registration::TransformationEstimationLM<PointSource, PointTarget, MatScala
   }
   return (0);
 }
+/*
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointSource, typename PointTarget> inline double 
+pcl::registration::TransformationEstimationLM<PointSource, PointTarget>::computeMedian (double *fvec, int m)
+{
+  double median;
+  // Copy the values to vectors for faster sorting
+  std::vector<double> data (m);
+  memcpy (&data[0], fvec, sizeof (double) * m);
+
+  std::sort (data.begin (), data.end ());
+
+  int mid = data.size () / 2;
+  if (data.size () % 2 == 0)
+    median = (data[mid-1] + data[mid]) / 2.0;
+  else
+    median = data[mid];
+  return (median);
+}
+*/
 
 //#define PCL_INSTANTIATE_TransformationEstimationLM(T,U) template class PCL_EXPORTS pcl::registration::TransformationEstimationLM<T,U>;
 

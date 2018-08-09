@@ -17,7 +17,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,7 +41,7 @@
 #ifndef PLY_PLY_H
 #define PLY_PLY_H
 
-#include <pcl/io/boost.h>
+#include <boost/cstdint.hpp>
 #include <pcl/io/ply/byte_order.h>
 
 /** \file ply.h contains standard typedefs and generic type traits
@@ -73,25 +73,23 @@ namespace pcl
 #  error
 #endif
       
-#define PLY_TYPE_TRAITS(TYPE, PARSE_TYPE, NAME, OLD_NAME)   \
+#define PLY_TYPE_TRAITS(TYPE, NAME, OLD_NAME)               \
       template <>                                           \
       struct type_traits<TYPE>                              \
       {                                                     \
         typedef TYPE type;                                  \
-        typedef PARSE_TYPE parse_type;                      \
-        static const char* name () { return NAME; }         \
-        static const char* old_name () { return OLD_NAME; } \
-      };
+        static const char* name() { return NAME; }          \
+        static const char* old_name() { return OLD_NAME; }  \
+      }
 
-      PLY_TYPE_TRAITS(int8, int16, "int8", "char");
-      PLY_TYPE_TRAITS(int16, int16, "int16", "short");
-      PLY_TYPE_TRAITS(int32, int32, "int32", "int");
-      PLY_TYPE_TRAITS(uint8, uint16, "uint8", "uchar");
-      PLY_TYPE_TRAITS(uint16, uint16, "uint16", "ushort");
-      PLY_TYPE_TRAITS(uint32, uint32, "uint32", "uint");
-      PLY_TYPE_TRAITS(float32, float32, "float32", "float");
-      PLY_TYPE_TRAITS(float64, float64, "float64", "double");
-
+      PLY_TYPE_TRAITS(int8, "int8", "char");
+      PLY_TYPE_TRAITS(int16, "int16", "short");
+      PLY_TYPE_TRAITS(int32, "int32", "int");
+      PLY_TYPE_TRAITS(uint8, "uint8", "uchar");
+      PLY_TYPE_TRAITS(uint16, "uint16", "ushort");
+      PLY_TYPE_TRAITS(uint32, "uint32", "uint");
+      PLY_TYPE_TRAITS(float32, "float32", "float");
+      PLY_TYPE_TRAITS(float64, "float64", "double");
       
 #undef PLY_TYPE_TRAITS
       

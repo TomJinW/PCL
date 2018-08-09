@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,23 +33,19 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ *  $Id$
  */
 #ifndef PCL_COMMON_CORRESPONDENCE_H_
 #define PCL_COMMON_CORRESPONDENCE_H_
 
-#ifdef __GNUC__
-#pragma GCC system_header 
-#endif
-
 #include <boost/shared_ptr.hpp>
-#include <Eigen/StdVector>
-#include <Eigen/Geometry>
-#include <pcl/pcl_exports.h>
+#include <pcl/common/eigen.h>
+#include <vector>
 
 namespace pcl
 {
   /** \brief Correspondence represents a match between two entities (e.g., points, descriptors, etc). This is 
-    * represented via the indices of a \a source point and a \a target point, and the distance between them.
+    * represesented via the indices of a \a source point and a \a target point, and the distance between them.
     *
     * \author Dirk Holz, Radu B. Rusu, Bastian Steder
     * \ingroup common
@@ -87,7 +82,12 @@ namespace pcl
   };
   
   /** \brief overloaded << operator */
-  PCL_EXPORTS std::ostream& operator << (std::ostream& os, const Correspondence& c);
+  inline std::ostream& 
+  operator << (std::ostream& os, const Correspondence& c)
+  {
+    os << c.index_query << " " << c.index_match << " " << c.distance;
+    return (os);
+  }
 
   typedef std::vector< pcl::Correspondence, Eigen::aligned_allocator<pcl::Correspondence> > Correspondences;
   typedef boost::shared_ptr<Correspondences> CorrespondencesPtr;
@@ -104,7 +104,7 @@ namespace pcl
     * By default (true), vectors are internally sorted before determining their difference.
     * If the order of correspondences in \a correspondences_after is not different (has not been changed)
     * from the order in \b correspondences_before this pre-processing step can be disabled
-    * in order to gain efficiency. In order to disable pre-sorting set \a presorting_required to false.
+    * in order to gain efficiency. In order to disable pre-sorting set \a presorting_requered to false.
     */
   void
   getRejectedQueryIndices (const pcl::Correspondences &correspondences_before,
@@ -134,7 +134,7 @@ namespace pcl
 
   /**
     * \brief Representation of a (possible) correspondence between two points (e.g. from feature matching),
-    *        that encode complete 6DOF transformations.
+    *        that encode complete 6DOF transoformations.
     * \ingroup common
     */
   struct PointCorrespondence6D : public PointCorrespondence3D

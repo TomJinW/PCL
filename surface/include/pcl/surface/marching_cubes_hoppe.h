@@ -36,8 +36,8 @@
 #ifndef PCL_SURFACE_MARCHING_CUBES_HOPPE_H_
 #define PCL_SURFACE_MARCHING_CUBES_HOPPE_H_
 
-#include <pcl/surface/boost.h>
 #include <pcl/surface/marching_cubes.h>
+#include <boost/unordered_map.hpp>
 
 namespace pcl
 {
@@ -52,18 +52,14 @@ namespace pcl
   class MarchingCubesHoppe : public MarchingCubes<PointNT>
   {
     public:
-      typedef boost::shared_ptr<MarchingCubesHoppe<PointNT> > Ptr;
-      typedef boost::shared_ptr<const MarchingCubesHoppe<PointNT> > ConstPtr;
-
       using SurfaceReconstruction<PointNT>::input_;
       using SurfaceReconstruction<PointNT>::tree_;
       using MarchingCubes<PointNT>::grid_;
       using MarchingCubes<PointNT>::res_x_;
       using MarchingCubes<PointNT>::res_y_;
       using MarchingCubes<PointNT>::res_z_;
-      using MarchingCubes<PointNT>::size_voxel_;
-      using MarchingCubes<PointNT>::upper_boundary_;
-      using MarchingCubes<PointNT>::lower_boundary_;
+      using MarchingCubes<PointNT>::min_p_;
+      using MarchingCubes<PointNT>::max_p_;
 
       typedef typename pcl::PointCloud<PointNT>::Ptr PointCloudPtr;
 
@@ -72,52 +68,20 @@ namespace pcl
 
 
       /** \brief Constructor. */
-      MarchingCubesHoppe (const float dist_ignore = -1.0f,
-                          const float percentage_extend_grid = 0.0f,
-                          const float iso_level = 0.0f) :
-        MarchingCubes<PointNT> (percentage_extend_grid, iso_level),
-        dist_ignore_ (dist_ignore)
-      {
-      }
+      MarchingCubesHoppe ();
 
       /** \brief Destructor. */
       ~MarchingCubesHoppe ();
 
-      /** \brief Convert the point cloud into voxel data.
-        */
+      /** \brief Convert the point cloud into voxel data. */
       void
       voxelizeData ();
 
-      /** \brief Method that sets the distance for ignoring voxels which are far from point cloud.
-        * If the distance is negative, then the distance functions would be calculated in all voxels;
-        * otherwise, only voxels with distance lower than dist_ignore would be involved in marching cube.
-        * \param[in] threshold of distance. Default value is -1.0. Set to negative if all voxels are
-        * to be involved.
-        */
-      inline void
-      setDistanceIgnore (const float dist_ignore)
-      { dist_ignore_ = dist_ignore; }
-
-      /** \brief get the distance for ignoring voxels which are far from point cloud.
-       * */
-      inline float
-      getDistanceIgnore () const
-      { return dist_ignore_; }
-
-    protected:
-      /** \brief ignore the distance function
-       * if it is negative
-       * or distance between voxel centroid and point are larger that it. */
-      float dist_ignore_;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/surface/impl/marching_cubes_hoppe.hpp>
-#endif
 
 #endif  // PCL_SURFACE_MARCHING_CUBES_HOPPE_H_
 

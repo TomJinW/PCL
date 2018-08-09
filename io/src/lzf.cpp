@@ -54,11 +54,7 @@
 typedef unsigned int LZF_HSLOT;
 typedef unsigned int LZF_STATE[1 << (HLOG)];
 
-#if !(defined(__i386) || defined (__amd64))
-# define STRICT_ALIGN 1
-#else
-# define STRICT_ALIGN 0
-#endif
+#define STRICT_ALIGN !(defined(__i386) || defined (__amd64))
 #if !STRICT_ALIGN
 /* for unaligned accesses we need a 16 bit datatype. */
 # if USHRT_MAX == 65535
@@ -101,7 +97,7 @@ pcl::lzfCompress (const void *const in_data, unsigned int in_len,
   // no bit pattern traps. Since the only platform that is both non-POSIX
   // and fails to support both assumptions is windows 64 bit, we make a
   // special workaround for it.
-#if defined (WIN32) && defined (_M_X64) && defined (_MSC_VER)
+#if defined (WIN32) && defined (_M_X64)
   // workaround for missing POSIX compliance
   unsigned _int64 off; 
 #else

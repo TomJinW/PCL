@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,12 +33,14 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ * Author: Suat Gedikli (gedikli@willowgarage.com)
+ *
  */
 
 #ifndef PCL_VISUALIZATION_MOUSE_EVENT_H_
 #define	PCL_VISUALIZATION_MOUSE_EVENT_H_
 
-#include <pcl/visualization/keyboard_event.h>
+#include "keyboard_event.h"
 
 namespace pcl
 {
@@ -75,12 +76,10 @@ namespace pcl
           * \param[in] alt    whether the ALT key was pressed at that time where event got fired
           * \param[in] ctrl   whether the CTRL key was pressed at that time where event got fired
           * \param[in] shift  whether the Shift key was pressed at that time where event got fired
-          * \param[in] selection_mode whether we are in selection mode
           */
         inline MouseEvent (const Type& type, const MouseButton& button, 
                            unsigned int x, unsigned int y, 
-                           bool alt, bool ctrl, bool shift,
-                           bool selection_mode = false);
+                           bool alt, bool ctrl, bool shift);
 
         /**
           * \return type of mouse event
@@ -122,31 +121,22 @@ namespace pcl
         inline unsigned int 
         getKeyboardModifiers () const;
 
-        /**
-          * \return selection mode status
-          */
-        inline bool
-        getSelectionMode () const;
-
       protected:
         Type type_;
         MouseButton button_;
         unsigned int pointer_x_;
         unsigned int pointer_y_;
         unsigned int key_state_;
-        bool selection_mode_;
     };
 
     MouseEvent::MouseEvent (const Type& type, const MouseButton& button,
                             unsigned x, unsigned y, 
-                            bool alt, bool ctrl, bool shift,
-                            bool selection_mode)
+                            bool alt, bool ctrl, bool shift)
     : type_ (type)
     , button_ (button)
     , pointer_x_ (x)
     , pointer_y_ (y)
     , key_state_ (0)
-    , selection_mode_ (selection_mode)
     {
       if (alt)
         key_state_ = KeyboardEvent::Alt;
@@ -198,12 +188,6 @@ namespace pcl
     MouseEvent::getKeyboardModifiers () const
     {
       return (key_state_);
-    }
-
-    bool
-    MouseEvent::getSelectionMode () const
-    {
-      return (selection_mode_);
     }
 
   } //namespace visualization

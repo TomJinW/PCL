@@ -15,7 +15,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -36,7 +36,7 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/console/print.h>
@@ -68,7 +68,7 @@ printHelp (int, char **argv)
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
@@ -83,7 +83,7 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud)
 }
 
 void
-compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output,
+compute (const sensor_msgs::PointCloud2::ConstPtr &input, sensor_msgs::PointCloud2 &output,
          float leaf_x, float leaf_y, float leaf_z, const std::string &field, double fmin, double fmax)
 {
   TicToc tt;
@@ -91,7 +91,7 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output
   
   print_highlight ("Computing ");
 
-  VoxelGrid<pcl::PCLPointCloud2> grid;
+  VoxelGrid<sensor_msgs::PointCloud2> grid;
   grid.setInputCloud (input);
   grid.setFilterFieldName (field);
   grid.setFilterLimits (fmin, fmax);
@@ -102,15 +102,14 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &output)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &output)
 {
   TicToc tt;
   tt.tic ();
 
   print_highlight ("Saving "); print_value ("%s ", filename.c_str ());
-
-  PCDWriter w;
-  w.writeBinaryCompressed (filename, output);
+  
+  pcl::io::savePCDFile (filename, output);
   
   print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", output.width * output.height); print_info (" points]\n");
 }
@@ -157,7 +156,7 @@ main (int argc, char** argv)
   }
   else
   {
-    print_error ("Leaf size must be specified with either 1 or 3 numbers (%lu given).\n", values.size ());
+    print_error ("Leaf size must be specified with either 1 or 3 numbers (%zu given). ", values.size ());
   }
   print_info ("Using a leaf size of: "); print_value ("%f, %f, %f\n", leaf_x, leaf_y, leaf_z);
 
@@ -178,12 +177,12 @@ main (int argc, char** argv)
     print_value ("%f\n", fmax);
 
   // Load the first file
-  pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2);
   if (!loadCloud (argv[p_file_indices[0]], *cloud)) 
     return (-1);
 
   // Apply the voxel grid
-  pcl::PCLPointCloud2 output;
+  sensor_msgs::PointCloud2 output;
   compute (cloud, output, leaf_x, leaf_y, leaf_z, field, fmin, fmax);
 
   // Save into the second file

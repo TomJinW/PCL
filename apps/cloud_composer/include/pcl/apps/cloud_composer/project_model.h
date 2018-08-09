@@ -38,6 +38,11 @@
 #ifndef PROJECT_MODEL_H_
 #define PROJECT_MODEL_H_
 
+#include <QStandardItemModel>
+#include <QItemSelectionModel>
+#include <QModelIndex>
+#include <QVariant>
+#include <QUndoStack>
 
 #include <vtkSmartPointer.h>
 #include <vtkCamera.h>
@@ -45,10 +50,7 @@
 #include <pcl/io/pcd_io.h>
 
 #include <pcl/apps/cloud_composer/commands.h>
-#include <pcl/apps/cloud_composer/qt.h>
-#include <pcl/apps/cloud_composer/point_selectors/selection_event.h> 
-#include <pcl/apps/cloud_composer/point_selectors/manipulation_event.h>
-#include <pcl/apps/cloud_composer/point_selectors/interactor_style_switch.h>
+
 
 class QItemSelectionModel;
 
@@ -60,8 +62,6 @@ namespace pcl
     class AbstractTool;
     class WorkQueue;
     class CloudComposerItem;
-    class CloudView;
-    class InteractorStyleSwitch;
     
     class ProjectModel : public QStandardItemModel
     {
@@ -85,130 +85,40 @@ namespace pcl
         setName (QString new_name);     
         
         /** \brief Returns the selection model which is used for this project */
-        inline QItemSelectionModel*
+        inline QItemSelectionModel* const
         getSelectionModel ()
         {
           return selection_model_;
         }
         
-        
+        /** \brief Loads from file and inserts a new pointcloud into the model   */
+        void 
+        insertNewCloudFromFile (const QString filename);
         
         /** \brief Takes tool object issues signal to work queue to take control of it */
         void
         enqueueToolAction (AbstractTool* tool);
-               
-        /** \brief Helper function which inserts the item into this model and makes connections for properties */
-        void 
-        insertNewCloudComposerItem (CloudComposerItem* new_item, QStandardItem* parent_item);
-        
-        /** \brief Sets the CloudView that this project is rendering in */
-        void
-        setCloudView (CloudView* view);
-        
-        /** \brief This sets the selection for points which have been selected in the QVTKWindow */
-        void 
-        setPointSelection (boost::shared_ptr<SelectionEvent> selected_event);
-        
-        /** \brief This is invoked to perform the manipulations specified on the model */
-        void
-        manipulateClouds (boost::shared_ptr<ManipulationEvent> manip_event);
-      public Q_SLOTS:
+      public slots:
         void 
         commandCompleted (CloudCommand* command);
-        
-        void
-        clearSelection ();
-        
-        void 
-        deleteSelectedItems ();
-        
-        /** \brief Loads from file and inserts a new pointcloud into the model   */
-        void 
-        insertNewCloudFromFile ();
-        
-        /** \brief Loads from rgb and depth file and inserts a new pointcloud into the model   */
-        void 
-        insertNewCloudFromRGBandDepth ();
-        
-        /** \brief Opens a file dialog and saves selected cloud to file   */
-        void 
-        saveSelectedCloudToFile ();
-        
-        /** \brief This emits all the state signals, which updates the GUI action button status (enabled/disabled)" */
-        void
-        emitAllStateSignals ();
-        
-        /** \brief This sets whether the CloudView for this project shows axes */
-        void
-        setAxisVisibility (bool visible);
-              
-        /** \brief Slot called when the mouse style selected in the GUI changes */
-        void 
-        mouseStyleChanged (QAction* new_style_action);
-        
-        /** \brief Slot Called whenever the item selection_model_ changes */
-        void
-        itemSelectionChanged ( const QItemSelection &, const QItemSelection &);
-        
-        /** \brief Creates a new cloud from the selected items and points */
-        void 
-        createNewCloudFromSelection ();
-        
-        /** \brief Selects all items in the model */
-        void 
-        selectAllItems (QStandardItem* item = 0 );
-      Q_SIGNALS:
+      signals:  
         void
         enqueueNewAction (AbstractTool* tool, ConstItemList data);
         
-        /** \brief Catch-all signal emitted whenever the model changes */
-        void
-        modelChanged ();
-        
-        void 
-        axisVisible (const bool axis_visible);
-        
-        void
-        deleteAvailable (bool can_delete);
-        
-        void
-        newCloudFromSelectionAvailable (bool can_create);
-        
-        void
-        mouseStyleState (interactor_styles::INTERACTOR_STYLES);
-        
       private:
-        /** \brief Checks to see if selection contains only CloudItem s */
-        bool
-        onlyCloudItemsSelected ();
-        
         QItemSelectionModel* selection_model_;
+        vtkSmartPointer<vtkCamera> camera_; 
         QMap <QString, int> name_to_type_map_;
         QUndoStack* undo_stack_;
         WorkQueue* work_queue_; 
         QThread* work_thread_;
-        CloudView* cloud_view_;
-        
-        /** \brief Stores last directory used in file read/write operations */
-        QDir last_directory_;
-                
-        //Variables for toggle action status
-        bool axis_visible_;
-        QMap <interactor_styles::INTERACTOR_STYLES, bool> selected_style_map_; 
-        /** \brief Internal helper function for updating map */
-        void
-        setSelectedStyle (interactor_styles::INTERACTOR_STYLES style);
-        
-        /** \brief Internal pointer storing the last selection event arriving from vtk */
-        boost::shared_ptr<SelectionEvent> selection_event_;
-        /** \brief Map which stores which cloud items and indices were selected in the selection_event_ */
-        QMap <CloudItem*, pcl::PointIndices::Ptr > selected_item_index_map_;
+
     };
   }
 }
 
 Q_DECLARE_METATYPE (pcl::cloud_composer::ProjectModel);
-Q_DECLARE_METATYPE (pcl::cloud_composer::interactor_styles::INTERACTOR_STYLES);
+
 
 #endif //PROJECT_MODEL_H
 

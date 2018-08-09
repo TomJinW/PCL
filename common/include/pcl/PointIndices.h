@@ -5,7 +5,7 @@
 #include <ostream>
 
 // Include the correct Header path here
-#include <pcl/PCLHeader.h>
+#include "std_msgs/Header.h"
 
 namespace pcl
 {
@@ -14,7 +14,7 @@ namespace pcl
     PointIndices () : header (), indices ()
     {}
 
-    ::pcl::PCLHeader header;
+    ::std_msgs::Header header;
 
     std::vector<int> indices;
 

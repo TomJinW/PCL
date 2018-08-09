@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -223,7 +223,7 @@ pcl::filters::Convolution3D<PointInT, PointOutT, KernelT>::initCompute ()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT, typename KernelT> void
-pcl::filters::Convolution3D<PointInT, PointOutT, KernelT>::convolve (PointCloudOut& output)
+pcl::filters::Convolution3D<PointInT, PointOutT, KernelT>::convolve (PointCloud<PointOutT>& output)
 {
   if (!initCompute ())
   {
@@ -237,10 +237,10 @@ pcl::filters::Convolution3D<PointInT, PointOutT, KernelT>::convolve (PointCloudO
   std::vector<int> nn_indices;
   std::vector<float> nn_distances;
 
-#ifdef _OPENMP
+#if !defined __APPLE__ && defined HAVE_OPENMP
 #pragma omp parallel for shared (output) private (nn_indices, nn_distances) num_threads (threads_)
 #endif
-  for (int64_t point_idx = 0; point_idx < static_cast<int64_t> (surface_->size ()); ++point_idx)
+  for (std::size_t point_idx = 0; point_idx < surface_->size (); ++point_idx)
   {
     const PointInT& point_in = surface_->points [point_idx];
     PointOutT& point_out = output [point_idx];

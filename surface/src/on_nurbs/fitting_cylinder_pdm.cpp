@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald, Jonathan Balzer, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald or Jonathan Balzer nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,13 +31,12 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
 #include <stdexcept>
 #include <pcl/surface/on_nurbs/fitting_cylinder_pdm.h>
-#include <pcl/pcl_macros.h>
 
 using namespace pcl;
 using namespace on_nurbs;
@@ -95,7 +94,7 @@ FittingCylinder::refine (int dim, double param)
 
   if (param == elements[elements.size () - 1])
   {
-    int i = int (elements.size ()) - 2;
+    int i = elements.size () - 2;
     double xi = elements[i] + 0.5 * (elements[i + 1] - elements[i]);
     m_nurbs.InsertKnot (dim, xi);
     return;
@@ -116,7 +115,7 @@ FittingCylinder::refine (int dim, unsigned span_index)
 {
   std::vector<double> elements = getElementVector (m_nurbs, dim);
 
-  if (span_index > int (elements.size ()) - 2)
+  if (span_index > elements.size () - 2 && span_index < 0)
   {
     printf ("[NurbsTools::refine(int, unsigned)] Warning span index out of bounds\n");
     return;
@@ -130,9 +129,12 @@ FittingCylinder::refine (int dim, unsigned span_index)
 void
 FittingCylinder::assemble (double smoothness)
 {
+  clock_t time_start, time_end;
+  time_start = clock ();
+
   int cp_red = (m_nurbs.m_order[1] - 2);
   int ncp = m_nurbs.m_cv_count[0] * (m_nurbs.m_cv_count[1] - 2 * cp_red);
-  int nInt = int (m_data->interior.size ());
+  int nInt = m_data->interior.size ();
   int nCageRegInt = (m_nurbs.m_cv_count[0] - 2) * (m_nurbs.m_cv_count[1] - 2 * cp_red);
   int nCageRegBnd = 2 * (m_nurbs.m_cv_count[1] - 2 * cp_red);
 
@@ -141,6 +143,8 @@ FittingCylinder::assemble (double smoothness)
   double wCageRegBnd = smoothness;
 
   int nrows = nInt + nCageRegInt + nCageRegBnd;
+
+  double time_invmap = 0.0;
 
   if (!m_quiet)
     printf ("[FittingCylinder::assemble] %dx%d (invmap: %f %d)\n", nrows, ncp, in_accuracy, in_max_steps);
@@ -161,6 +165,14 @@ FittingCylinder::assemble (double smoothness)
     addCageBoundaryRegularisation (wCageRegBnd, WEST, row);
     addCageBoundaryRegularisation (wCageRegBnd, EAST, row);
   }
+
+  time_end = clock ();
+  if (!m_quiet)
+  {
+    double solve_time = (double)(time_end - time_start) / (double)(CLOCKS_PER_SEC);
+    printf ("[FittingCylinder::assemble()] (assemble (%d,%d): %f sec invmap: %f sec)\n", nrows, ncp, solve_time,
+            time_invmap);
+  }
 }
 
 void
@@ -171,7 +183,7 @@ FittingCylinder::solve (double damp)
 }
 
 void
-FittingCylinder::updateSurf (double)
+FittingCylinder::updateSurf (double damp)
 {
   int cp_red = (m_nurbs.m_order[1] - 2);
 
@@ -220,7 +232,7 @@ FittingCylinder::initNurbsPCACylinder (int order, NurbsDataSurface *data)
   Eigen::Matrix3d eigenvectors;
   Eigen::Vector3d eigenvalues;
 
-  unsigned s = unsigned (data->interior.size ());
+  unsigned s = data->interior.size ();
 
   NurbsTools::pca (data->interior, mean, eigenvectors, eigenvalues);
 
@@ -233,7 +245,7 @@ FittingCylinder::initNurbsPCACylinder (int order, NurbsDataSurface *data)
   Eigen::Vector3d v_min (DBL_MAX, DBL_MAX, DBL_MAX);
   for (unsigned i = 0; i < s; i++)
   {
-    Eigen::Vector3d p (eigenvectors.inverse () * (data->interior[i] - mean));
+    Eigen::Vector3d p = eigenvectors.inverse () * (data->interior[i] - mean);
 
     if (p (0) > v_max (0))
       v_max (0) = p (0);
@@ -251,7 +263,7 @@ FittingCylinder::initNurbsPCACylinder (int order, NurbsDataSurface *data)
   }
 
   int ncpsU (order);
-  int ncpsV (2 * order + 4);
+  int ncpsV (2 * order);
   ON_NurbsSurface nurbs (3, false, order, order, ncpsU, ncpsV);
   nurbs.MakeClampedUniformKnotVector (0, 1.0);
   nurbs.MakePeriodicUniformKnotVector (1, 1.0 / (ncpsV - order + 1));
@@ -271,65 +283,6 @@ FittingCylinder::initNurbsPCACylinder (int order, NurbsDataSurface *data)
       cv (1) = ry * sin (dcv * j);
       cv (2) = rz * cos (dcv * j);
       cv_t = eigenvectors * cv + mean;
-      nurbs.SetCV (i, j, ON_3dPoint (cv_t (0), cv_t (1), cv_t (2)));
-    }
-  }
-
-  return nurbs;
-}
-
-ON_NurbsSurface
-FittingCylinder::initNurbsCylinderWithAxes (int order, NurbsDataSurface *data, Eigen::Matrix3d &axes)
-{
-  Eigen::Vector3d mean;
-
-  unsigned s = unsigned (data->interior.size ());
-  mean = NurbsTools::computeMean (data->interior);
-
-  data->mean = mean;
-
-  Eigen::Vector3d v_max (0.0, 0.0, 0.0);
-  Eigen::Vector3d v_min (DBL_MAX, DBL_MAX, DBL_MAX);
-  for (unsigned i = 0; i < s; i++)
-  {
-    Eigen::Vector3d p (axes.inverse () * (data->interior[i] - mean));
-
-    if (p (0) > v_max (0))
-      v_max (0) = p (0);
-    if (p (1) > v_max (1))
-      v_max (1) = p (1);
-    if (p (2) > v_max (2))
-      v_max (2) = p (2);
-
-    if (p (0) < v_min (0))
-      v_min (0) = p (0);
-    if (p (1) < v_min (1))
-      v_min (1) = p (1);
-    if (p (2) < v_min (2))
-      v_min (2) = p (2);
-  }
-
-  int ncpsU (order);
-  int ncpsV (2 * order + 4);
-  ON_NurbsSurface nurbs (3, false, order, order, ncpsU, ncpsV);
-  nurbs.MakeClampedUniformKnotVector (0, 1.0);
-  nurbs.MakePeriodicUniformKnotVector (1, 1.0 / (ncpsV - order + 1));
-
-  double dcu = (v_max (0) - v_min (0)) / (ncpsU - 1);
-  double dcv = (2.0 * M_PI) / (ncpsV - order + 1);
-
-  double ry = std::max<double> (std::fabs (v_min (1)), std::fabs (v_max (1)));
-  double rz = std::max<double> (std::fabs (v_min (2)), std::fabs (v_max (2)));
-
-  Eigen::Vector3d cv_t, cv;
-  for (int i = 0; i < ncpsU; i++)
-  {
-    for (int j = 0; j < ncpsV; j++)
-    {
-      cv (0) = v_min (0) + dcu * i;
-      cv (1) = ry * sin (dcv * j);
-      cv (2) = rz * cos (dcv * j);
-      cv_t = axes * cv + mean;
       nurbs.SetCV (i, j, ON_3dPoint (cv_t (0), cv_t (1), cv_t (2)));
     }
   }
@@ -402,7 +355,7 @@ FittingCylinder::assembleInterior (double wInt, unsigned &row)
   m_data->interior_line_end.clear ();
   m_data->interior_error.clear ();
   m_data->interior_normals.clear ();
-  unsigned nInt = unsigned (m_data->interior.size ());
+  unsigned nInt = m_data->interior.size ();
   for (unsigned p = 0; p < nInt; p++)
   {
     Vector3d pcp;
@@ -440,8 +393,8 @@ void
 FittingCylinder::addPointConstraint (const Eigen::Vector2d &params, const Eigen::Vector3d &point, double weight,
                                      unsigned &row)
 {
-  double *N0 = new double[m_nurbs.m_order[0] * m_nurbs.m_order[0]];
-  double *N1 = new double[m_nurbs.m_order[1] * m_nurbs.m_order[1]];
+  double N0[m_nurbs.m_order[0] * m_nurbs.m_order[0]];
+  double N1[m_nurbs.m_order[1] * m_nurbs.m_order[1]];
 
   int E = ON_NurbsSpanIndex (m_nurbs.m_order[0], m_nurbs.m_cv_count[0], m_nurbs.m_knot[0], params (0), 0, 0);
   int F = ON_NurbsSpanIndex (m_nurbs.m_order[1], m_nurbs.m_cv_count[1], m_nurbs.m_knot[1], params (1), 0, 0);
@@ -466,9 +419,6 @@ FittingCylinder::addPointConstraint (const Eigen::Vector2d &params, const Eigen:
   } // i
 
   row++;
-
-  delete [] N1;
-  delete [] N0;
 }
 
 void
@@ -608,12 +558,13 @@ FittingCylinder::inverseMapping (const ON_NurbsSurface &nurbs, const Vector3d &p
 Vector2d
 FittingCylinder::findClosestElementMidPoint (const ON_NurbsSurface &nurbs, const Vector3d &pt)
 {
+
   Vector2d hint;
   Vector3d r;
   std::vector<double> elementsU = getElementVector (nurbs, 0);
   std::vector<double> elementsV = getElementVector (nurbs, 1);
 
-  double d_shortest = std::numeric_limits<double>::max ();
+  double d_shortest;
   for (unsigned i = 0; i < elementsU.size () - 1; i++)
   {
     for (unsigned j = 0; j < elementsV.size () - 1; j++)

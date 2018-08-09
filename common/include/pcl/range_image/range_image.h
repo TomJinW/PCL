@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,6 +37,7 @@
 #ifndef PCL_RANGE_IMAGE_H_
 #define PCL_RANGE_IMAGE_H_
 
+#include <pcl/common/eigen.h>
 #include <pcl/point_cloud.h>
 #include <pcl/pcl_macros.h>
 #include <pcl/point_types.h>
@@ -72,7 +72,7 @@ namespace pcl
       /** Constructor */
       PCL_EXPORTS RangeImage ();
       /** Destructor */
-      PCL_EXPORTS virtual ~RangeImage ();
+      PCL_EXPORTS ~RangeImage ();
       
       // =====STATIC VARIABLES=====
       /** The maximum number of openmp threads that can be used in this class */
@@ -113,11 +113,11 @@ namespace pcl
       getAverageViewPoint (const PointCloudTypeWithViewpoints& point_cloud);
       
       /** \brief Check if the provided data includes far ranges and add them to far_ranges
-        * \param point_cloud_data a PCLPointCloud2 message containing the input cloud
+        * \param point_cloud_data a PointCloud2 message containing the input cloud
         * \param far_ranges the resulting cloud containing those points with far ranges
         */
       PCL_EXPORTS static void
-      extractFarRanges (const pcl::PCLPointCloud2& point_cloud_data, PointCloud<PointWithViewpoint>& far_ranges);
+      extractFarRanges (const sensor_msgs::PointCloud2& point_cloud_data, PointCloud<PointWithViewpoint>& far_ranges);
       
       // =====METHODS=====
       /** \brief Get a boost shared pointer of a copy of this */
@@ -203,6 +203,7 @@ namespace pcl
         *                             individual pixels in the image in the x-direction
         * \param angular_resolution_y the angular difference (in radians) between the
         *                             individual pixels in the image in the y-direction
+        * \param angular_resolution the angle (in radians) between each sample in the depth image
         * \param point_cloud_center the center of bounding sphere
         * \param point_cloud_radius the radius of the bounding sphere
         * \param sensor_pose an affine matrix defining the pose of the sensor (defaults to
@@ -313,8 +314,8 @@ namespace pcl
                  float min_range, int& top, int& right, int& bottom, int& left);
       
       /** \brief Integrates the given far range measurements into the range image */
-      template <typename PointCloudType> void
-      integrateFarRanges (const PointCloudType& far_ranges);
+      PCL_EXPORTS void
+      integrateFarRanges (const PointCloud<PointWithViewpoint>& far_ranges);
       
       /** \brief Cut the range image to the minimal size so that it still contains all actual range readings.
         * \param border_size allows increase from the minimal size by the specified number of pixels (defaults to 0)
@@ -349,7 +350,7 @@ namespace pcl
       getTransformationToWorldSystem () const { return to_world_system_;}
       
       /** Getter for the angular resolution of the range image in x direction in radians per pixel.
-       *  Provided for downwards compatibility */
+       *  Provided for downwards compatability */
       inline float
       getAngularResolution () const { return angular_resolution_x_;}
       
@@ -702,12 +703,12 @@ namespace pcl
       getIntegralImage (float*& integral_image, int*& valid_points_num_image) const;
       
       /** Get a blurred version of the range image using box filters on the provided integral image*/
-      PCL_EXPORTS void     // Template necessary so that this function also works in derived classes
+      PCL_EXPORTS void
       getBlurredImageUsingIntegralImage (int blur_radius, float* integral_image, int* valid_points_num_image,
                                          RangeImage& range_image) const;
       
       /** Get a blurred version of the range image using box filters */
-      PCL_EXPORTS virtual void     // Template necessary so that this function also works in derived classes
+      PCL_EXPORTS void
       getBlurredImage (int blur_radius, RangeImage& range_image) const;
       
       /** Get the squared euclidean distance between the two image points.
@@ -746,13 +747,9 @@ namespace pcl
       getViewingDirection (const Eigen::Vector3f& point, Eigen::Vector3f& viewing_direction) const;
       
       /** Return a newly created Range image.
-       *  Can be reimplemented in derived classes like RangeImagePlanar to return an image of the same type. */
-      PCL_EXPORTS virtual RangeImage* 
+       *  Can be reimplmented in derived classes like RangeImagePlanar to return an image of the same type. */
+      virtual RangeImage* 
       getNew () const { return new RangeImage; }
-
-      /** Copy other to *this. Necessary for use in virtual functions that need to copy derived RangeImage classes (like RangeImagePlanar) */
-      PCL_EXPORTS virtual void
-      copyTo (RangeImage& other) const;
 
       
       // =====MEMBER VARIABLES=====
@@ -771,9 +768,9 @@ namespace pcl
       Eigen::Affine3f to_world_system_;        /**< Inverse of to_range_image_system_ */
       float angular_resolution_x_;             /**< Angular resolution of the range image in x direction in radians per pixel */
       float angular_resolution_y_;             /**< Angular resolution of the range image in y direction in radians per pixel */
-      float angular_resolution_x_reciprocal_;  /**< 1.0/angular_resolution_x_ - provided for better performance of
+      float angular_resolution_x_reciprocal_;  /**< 1.0/angular_resolution_x_ - provided for better performace of
                                                 *   multiplication compared to division */
-      float angular_resolution_y_reciprocal_;  /**< 1.0/angular_resolution_y_ - provided for better performance of
+      float angular_resolution_y_reciprocal_;  /**< 1.0/angular_resolution_y_ - provided for better performace of
                                                 *   multiplication compared to division */
       int image_offset_x_, image_offset_y_;    /**< Position of the top left corner of the range image compared to
                                                 *   an image of full size (360x180 degrees) */

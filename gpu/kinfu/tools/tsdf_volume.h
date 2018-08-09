@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  $Id: tsdf_volume.h 6459 2012-07-18 07:50:37Z dpb $
+ *  $Id$
  */
 
 
@@ -79,7 +79,7 @@ namespace pcl
           weights_element_size (sizeof(WeightT))
       {};
 
-      Header (const Eigen::Vector3i &res, const Eigen::Vector3f &size)
+      Header (Eigen::Vector3i res, Eigen::Vector3f size)
         : resolution (res),
           volume_size (size),
           volume_element_size (sizeof(VoxelT)),
@@ -95,10 +95,6 @@ namespace pcl
         os << "(resolution = " << h.resolution.transpose() << ", volume size = " << h.volume_size.transpose() << ")";
         return (os);
       }
-
-public:
-EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     };
 
   #define DEFAULT_TRANCATION_DISTANCE 30.0f
@@ -150,7 +146,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /** \brief Set the header directly. Useful if directly writing into volume and weights */
     inline void
-    setHeader (const Eigen::Vector3i &resolution, const Eigen::Vector3f &volume_size) {
+    setHeader (Eigen::Vector3i resolution, Eigen::Vector3f volume_size) {
       header_ = Header (resolution, volume_size);
       if (volume_->size() != this->size())
         pcl::console::print_warn ("[TSDFVolume::setHeader] Header volume size (%d) doesn't fit underlying data size (%d)", volume_->size(), size());
@@ -158,7 +154,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /** \brief Resizes the internal storage and updates the header accordingly */
     inline void
-    resize (Eigen::Vector3i &grid_resolution, const Eigen::Vector3f& volume_size = Eigen::Vector3f (DEFAULT_VOLUME_SIZE_X, DEFAULT_VOLUME_SIZE_Y, DEFAULT_VOLUME_SIZE_Z)) {
+    resize (Eigen::Vector3i grid_resolution, Eigen::Vector3f volume_size = Eigen::Vector3f (DEFAULT_VOLUME_SIZE_X, DEFAULT_VOLUME_SIZE_Y, DEFAULT_VOLUME_SIZE_Z)) {
       int lin_size = grid_resolution[0] * grid_resolution[1] * grid_resolution[2];
       volume_->resize (lin_size);
       weights_->resize (lin_size);
@@ -225,13 +221,9 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     ////////////////////////////////////////////////////////////////////////////////////////
     // Functionality
 
-    /** \brief Converts volume to cloud of TSDF values
-      * \param[ou] cloud - the output point cloud
-      * \param[in] step - the decimation step to use
-      */
+    /** \brief Converts volume to cloud of TSDF values*/
     void
-    convertToTsdfCloud (pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
-                        const unsigned step = 2) const;
+    convertToTsdfCloud (pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud) const;
 
     /** \brief Converts the volume to a surface representation via a point cloud */
   //  void
@@ -290,8 +282,6 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Header header_;
     VolumePtr volume_;
     WeightsPtr weights_;
-public:
-EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   };
 

@@ -48,7 +48,7 @@
      <x>0</x>
      <y>0</y>
      <width>1063</width>
-     <height>18</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -84,8 +84,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionCreateRenderWindow"/>
-    <addaction name="actionCloseRenderWindow"/>
-    <addaction name="actionToggleSceneExplorer"/>
+    <addaction name="actionChangeBackgroundColor"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -94,37 +93,22 @@
     <addaction name="actionHelp"/>
     <addaction name="actionAboutPCLModeler"/>
    </widget>
+   <widget class="QMenu" name="menuRender">
+    <property name="title">
+     <string>Render</string>
+    </property>
+    <addaction name="actionSwitchColorHandler"/>
+   </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
      <string>Edit</string>
     </property>
-    <widget class="QMenu" name="menuFilters">
-     <property name="title">
-      <string>Filters</string>
-     </property>
-     <addaction name="actionEstimateNormals"/>
-     <addaction name="actionVoxelGridDownsample"/>
-     <addaction name="actionStatisticalOutlierRemoval"/>
-    </widget>
-    <widget class="QMenu" name="menuRegistration">
-     <property name="title">
-      <string>Registration</string>
-     </property>
-     <addaction name="actionICPRegistration"/>
-    </widget>
-    <widget class="QMenu" name="menuSurfaceReconstruction">
-     <property name="title">
-      <string>Surface Reconstration</string>
-     </property>
-     <addaction name="actionPoissonReconstruction"/>
-    </widget>
-    <addaction name="menuFilters"/>
-    <addaction name="menuRegistration"/>
-    <addaction name="menuSurfaceReconstruction"/>
+    <addaction name="actionDownSampleFilter"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
+   <addaction name="menuRender"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -138,7 +122,7 @@
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContentsScene">
+   <widget class="QWidget" name="dockWidgetContentsSceneExplorer">
     <layout class="QVBoxLayout" name="verticalLayoutSceneExplorer">
      <property name="spacing">
       <number>0</number>
@@ -147,16 +131,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="pcl::modeler::SceneTree" name="scene_tree_">
-       <attribute name="headerVisible">
-        <bool>false</bool>
-       </attribute>
-       <column>
-        <property name="text">
-         <string notr="true">1</string>
-        </property>
-       </column>
-      </widget>
+      <widget class="pcl::modeler::TreeView" name="treeViewSceneExplorer"/>
      </item>
     </layout>
    </widget>
@@ -237,42 +212,27 @@
     <string>Scene Explorer</string>
    </property>
   </action>
-  <action name="actionVoxelGridDownsample">
+  <action name="actionChangeBackgroundColor">
    <property name="text">
-    <string>Voxel Grid Downsample</string>
+    <string>Change Background Color</string>
    </property>
   </action>
-  <action name="actionPoissonReconstruction">
+  <action name="actionSwitchColorHandler">
    <property name="text">
-    <string>Poisson Reconstruction</string>
+    <string>Switch Color Handler</string>
    </property>
   </action>
-  <action name="actionEstimateNormals">
+  <action name="actionDownSampleFilter">
    <property name="text">
-    <string>Estimate Normals</string>
-   </property>
-  </action>
-  <action name="actionICPRegistration">
-   <property name="text">
-    <string>ICP Registration</string>
-   </property>
-  </action>
-  <action name="actionCloseRenderWindow">
-   <property name="text">
-    <string>Close Render Window</string>
-   </property>
-  </action>
-  <action name="actionStatisticalOutlierRemoval">
-   <property name="text">
-    <string>Statistical Ourlier Removal</string>
+    <string>Down Sample Filter</string>
    </property>
   </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>pcl::modeler::SceneTree</class>
-   <extends>QTreeWidget</extends>
-   <header location="global">pcl/apps/modeler/scene_tree.h</header>
+   <class>pcl::modeler::TreeView</class>
+   <extends>QTreeView</extends>
+   <header location="global">pcl/apps/modeler/tree_view.h</header>
   </customwidget>
  </customwidgets>
  <resources>

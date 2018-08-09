@@ -34,9 +34,7 @@
  *  Author: Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
  */
 
-#if defined _MSC_VER
-  #pragma warning (disable : 4996 4530)
-#endif
+#pragma warning (disable : 4996 4530)
 
 #include <gtest/gtest.h>
 
@@ -44,15 +42,9 @@
 #include<fstream>
 #include<algorithm>
 
-#if defined _MSC_VER
-  #pragma warning (disable: 4521)
-#endif
-
+#pragma warning (disable: 4521)
 #include <pcl/point_cloud.h>
-
-#if defined _MSC_VER
-  #pragma warning (default: 4521)
-#endif
+#pragma warning (default: 4521)
 
 
 #include <pcl/gpu/surface/convex_hull.h>

@@ -37,10 +37,10 @@
  *
  */
 
+#include <boost/thread/thread.hpp>
 #include <pcl/apps/timer.h>
 #include <pcl/common/common.h>
 #include <pcl/common/angles.h>
-#include <pcl/common/time.h>
 #include <pcl/io/openni_grabber.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/search/organized.h>
@@ -191,7 +191,7 @@ class NILinemod
     
     /////////////////////////////////////////////////////////////////////////
     void 
-    mouse_callback (const visualization::MouseEvent&, void*)
+    mouse_callback (const visualization::MouseEvent& mouse_event, void*)
     {
       //if (mouse_event.getType() == visualization::MouseEvent::MouseButtonPress && mouse_event.getButton() == visualization::MouseEvent::LeftButton)
       //{
@@ -249,7 +249,7 @@ class NILinemod
       exppd.segment (*points_above_plane);
 
       // Use an organized clustering segmentation to extract the individual clusters
-      EuclideanClusterComparator<PointT, Label>::Ptr euclidean_cluster_comparator (new EuclideanClusterComparator<PointT, Label>);
+      EuclideanClusterComparator<PointT, Normal, Label>::Ptr euclidean_cluster_comparator (new EuclideanClusterComparator<PointT, Normal, Label>);
       euclidean_cluster_comparator->setInputCloud (cloud);
       euclidean_cluster_comparator->setDistanceThreshold (0.03f, false);
       // Set the entire scene to false, and the inliers of the objects located on top of the plane to true
@@ -260,8 +260,8 @@ class NILinemod
         scene->points[points_above_plane->indices[i]].label = 1;
       euclidean_cluster_comparator->setLabels (scene);
 
-      boost::shared_ptr<std::set<uint32_t> > exclude_labels = boost::make_shared<std::set<uint32_t> > ();
-      exclude_labels->insert (0);
+      vector<bool> exclude_labels (2);  exclude_labels[0] = true; exclude_labels[1] = false;
+      euclidean_cluster_comparator->setExcludeLabels (exclude_labels);
 
       OrganizedConnectedComponentSegmentation<PointT, Label> euclidean_segmentation (euclidean_cluster_comparator);
       euclidean_segmentation.setInputCloud (cloud);
@@ -297,7 +297,7 @@ class NILinemod
     segment (const PointT &picked_point, 
              int picked_idx,
              PlanarRegion<PointT> &region,
-             PointIndices &,
+             PointIndices &indices,
              CloudPtr &object)
     {
       // First frame is segmented using an organized multi plane segmentation approach from points and their normals
@@ -316,14 +316,14 @@ class NILinemod
       mps_.setInputCloud (search_.getInputCloud ());
 
       // Use one of the overloaded segmentAndRefine calls to get all the information that we want out
-      vector<PlanarRegion<PointT>, Eigen::aligned_allocator<PlanarRegion<PointT> > > regions;
+      vector<PlanarRegion<PointT> > regions;
       vector<ModelCoefficients> model_coefficients;
       vector<PointIndices> inlier_indices;  
       PointCloud<Label>::Ptr labels (new PointCloud<Label>);
       vector<PointIndices> label_indices;
       vector<PointIndices> boundary_indices;
       mps_.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
-      PCL_DEBUG ("Number of planar regions detected: %lu for a cloud of %lu points and %lu normals.\n", regions.size (), search_.getInputCloud ()->points.size (), normal_cloud->points.size ());
+      PCL_DEBUG ("Number of planar regions detected: %zu for a cloud of %zu points and %zu normals.\n", regions.size (), search_.getInputCloud ()->points.size (), normal_cloud->points.size ());
 
       double max_dist = numeric_limits<double>::max ();
       // Compute the distances from all the planar regions to the picked point, and select the closest region
@@ -396,9 +396,9 @@ class NILinemod
       search_.nearestKSearch (picked_pt, 1, indices, distances);
 
       // Get the [u, v] in pixel coordinates for the ImageViewer. Remember that 0,0 is bottom left.
-      uint32_t width  = search_.getInputCloud ()->width;
-//               height = search_.getInputCloud ()->height;
-      int v = indices[0] / width,
+      uint32_t width  = search_.getInputCloud ()->width,
+               height = search_.getInputCloud ()->height;
+      int v = height - indices[0] / width,
           u = indices[0] % width;
 
       // Add some marker to the image
@@ -428,7 +428,7 @@ class NILinemod
 
         PlanarRegion<PointT> refined_region;
         pcl::approximatePolygon (region, refined_region, 0.01, false, true);
-        PCL_INFO ("Planar region: %lu points initial, %lu points after refinement.\n", region.getContour ().size (), refined_region.getContour ().size ());
+        PCL_INFO ("Planar region: %zu points initial, %zu points after refinement.\n", region.getContour ().size (), refined_region.getContour ().size ());
         cloud_viewer_.addPolygon (refined_region, 0.0, 0.0, 1.0, "refined_region");
         cloud_viewer_.setShapeRenderingProperties (visualization::PCL_VISUALIZER_LINE_WIDTH, 10, "refined_region");
 
@@ -487,6 +487,8 @@ class NILinemod
       grabber_.start ();
       
       bool image_init = false, cloud_init = false;
+      unsigned char* rgb_data = 0;
+      unsigned rgb_data_size = 0;
 
       while (!cloud_viewer_.wasStopped () && !image_viewer_.wasStopped ())
       {

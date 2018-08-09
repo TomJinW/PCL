@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,11 +41,9 @@
 #define PCL_FILTER_H_
 
 #include <pcl/pcl_base.h>
-#include <pcl/common/io.h>
-#include <pcl/conversions.h>
-#include <pcl/filters/boost.h>
+#include <pcl/ros/conversions.h>
+#include <boost/make_shared.hpp>
 #include <cfloat>
-#include <pcl/PointIndices.h>
 
 namespace pcl
 {
@@ -62,19 +60,6 @@ namespace pcl
                            pcl::PointCloud<PointT> &cloud_out, 
                            std::vector<int> &index);
 
-  /** \brief Removes points that have their normals invalid (i.e., equal to NaN)
-    * \param[in] cloud_in the input point cloud
-    * \param[out] cloud_out the input point cloud
-    * \param[out] index the mapping (ordered): cloud_out.points[i] = cloud_in.points[index[i]]
-    * \note The density of the point cloud is lost.
-    * \note Can be called with cloud_in == cloud_out
-    * \ingroup filters
-    */
-  template<typename PointT> void
-  removeNaNNormalsFromPointCloud (const pcl::PointCloud<PointT> &cloud_in, 
-                                  pcl::PointCloud<PointT> &cloud_out, 
-                                  std::vector<int> &index);
-
   ////////////////////////////////////////////////////////////////////////////////////////////
   /** \brief Filter represents the base filter class. All filters must inherit from this interface.
     * \author Radu B. Rusu
@@ -89,7 +74,6 @@ namespace pcl
 
       typedef boost::shared_ptr< Filter<PointT> > Ptr;
       typedef boost::shared_ptr< const Filter<PointT> > ConstPtr;
-
 
       typedef pcl::PointCloud<PointT> PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
@@ -106,23 +90,11 @@ namespace pcl
       {
       }
 
-      /** \brief Empty destructor */
-      virtual ~Filter () {}
-
       /** \brief Get the point indices being removed */
       inline IndicesConstPtr const
       getRemovedIndices ()
       {
         return (removed_indices_);
-      }
-
-      /** \brief Get the point indices being removed 
-        * \param[out] pi the resultant point indices that have been removed
-        */
-      inline void
-      getRemovedIndices (PointIndices &pi)
-      {
-        pi.indices = *removed_indices_;
       }
 
       /** \brief Calls the filtering method and returns the filtered dataset in output.
@@ -134,22 +106,17 @@ namespace pcl
         if (!initCompute ())
           return;
 
-        if (input_.get () == &output)  // cloud_in = cloud_out
-        {
-          PointCloud output_temp;
-          applyFilter (output_temp);
-          output_temp.header = input_->header;
-          output_temp.sensor_origin_ = input_->sensor_origin_;
-          output_temp.sensor_orientation_ = input_->sensor_orientation_;
-          pcl::copyPointCloud (output_temp, output);
-        }
-        else
-        {
-          output.header = input_->header;
-          output.sensor_origin_ = input_->sensor_origin_;
-          output.sensor_orientation_ = input_->sensor_orientation_;
-          applyFilter (output);
-        }
+        // Resize the output dataset
+        //if (output.points.size () != indices_->size ())
+        //  output.points.resize (indices_->size ());
+
+        // Copy header at a minimum
+        output.header = input_->header;
+        output.sensor_origin_ = input_->sensor_origin_;
+        output.sensor_orientation_ = input_->sensor_orientation_;
+
+        // Apply the actual filter
+        applyFilter (output);
 
         deinitCompute ();
       }
@@ -191,15 +158,12 @@ namespace pcl
     * \ingroup filters
     */
   template<>
-  class PCL_EXPORTS Filter<pcl::PCLPointCloud2> : public PCLBase<pcl::PCLPointCloud2>
+  class PCL_EXPORTS Filter<sensor_msgs::PointCloud2> : public PCLBase<sensor_msgs::PointCloud2>
   {
     public:
-      typedef boost::shared_ptr< Filter<pcl::PCLPointCloud2> > Ptr;
-      typedef boost::shared_ptr< const Filter<pcl::PCLPointCloud2> > ConstPtr;
-
-      typedef pcl::PCLPointCloud2 PCLPointCloud2;
-      typedef PCLPointCloud2::Ptr PCLPointCloud2Ptr;
-      typedef PCLPointCloud2::ConstPtr PCLPointCloud2ConstPtr;
+      typedef sensor_msgs::PointCloud2 PointCloud2;
+      typedef PointCloud2::Ptr PointCloud2Ptr;
+      typedef PointCloud2::ConstPtr PointCloud2ConstPtr;
 
       /** \brief Empty constructor. 
         * \param[in] extract_removed_indices set to true if the filtered data indices should be saved in a 
@@ -211,9 +175,6 @@ namespace pcl
         filter_name_ ()
       {
       }
-      
-      /** \brief Empty destructor */
-      virtual ~Filter () {}
 
       /** \brief Get the point indices being removed */
       inline IndicesConstPtr const
@@ -222,20 +183,11 @@ namespace pcl
         return (removed_indices_);
       }
 
-      /** \brief Get the point indices being removed 
-        * \param[out] pi the resultant point indices that have been removed
-        */
-      inline void
-      getRemovedIndices (PointIndices &pi)
-      {
-        pi.indices = *removed_indices_;
-      }
-
       /** \brief Calls the filtering method and returns the filtered dataset in output.
         * \param[out] output the resultant filtered point cloud dataset
         */
       void
-      filter (PCLPointCloud2 &output);
+      filter (PointCloud2 &output);
 
     protected:
 
@@ -255,7 +207,7 @@ namespace pcl
         * \param[out] output the resultant filtered point cloud
         */
       virtual void
-      applyFilter (PCLPointCloud2 &output) = 0;
+      applyFilter (PointCloud2 &output) = 0;
 
       /** \brief Get a string representation of the name of this class. */
       inline const std::string&
@@ -265,9 +217,5 @@ namespace pcl
       }
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/filters/impl/filter.hpp>
-#endif
 
 #endif  //#ifndef PCL_FILTER_H_

@@ -34,26 +34,17 @@
  *  Author: Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
  */
 
-#if defined _MSC_VER
-    #pragma warning (disable : 4996 4530)
-#endif
+#pragma warning (disable : 4996 4530)
 
 #include <gtest/gtest.h>
 
 #include<iostream>
 #include<algorithm>
 
-#if defined _MSC_VER
-    #pragma warning (disable: 4521)
-#endif
-    
+#pragma warning (disable: 4521)
 #include <pcl/point_cloud.h>
 #include <pcl/octree/octree.h>
-
-#if defined _MSC_VER
-    #pragma warning (default: 4521)
-#endif
-    
+#pragma warning (default: 4521)
 
 #include <pcl/gpu/octree/octree.hpp>
 #include <pcl/gpu/containers/device_array.h>
@@ -69,8 +60,8 @@ using pcl::ScopeTime;
     #include "opencv2/contrib/contrib.hpp"
 #endif
 
-//TEST(PCL_OctreeGPU, DISABLED_performance)
-TEST(PCL_OctreeGPU, performance)
+//TEST(PCL_OctreeGPU, DISABLED_perfomance)
+TEST(PCL_OctreeGPU, perfomance)
 {
     DataGenerator data;
     data.data_size = 871000;
@@ -108,7 +99,7 @@ TEST(PCL_OctreeGPU, performance)
     
     cout << "[!] Host octree resolution: " << host_octree_resolution << endl << endl;    
 
-    cout << "======  Build performance =====" << endl;
+    cout << "======  Build perfomance =====" << endl;
     // build device octree
     pcl::gpu::Octree octree_device;                
     octree_device.setCloud(cloud_device);	    
@@ -142,7 +133,7 @@ TEST(PCL_OctreeGPU, performance)
     }
 #endif
     
-    //// Radius search performance ///
+    //// Radius search perfomance ///
 
     const int max_answers = 500;
     float dist;

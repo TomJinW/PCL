@@ -22,7 +22,7 @@ namespace pcl
 
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
-        typedef pcl::PointCloud<pcl::PointXYZ> KeypointCloud;
+        typedef pcl::PointCloud<int> KeypointCloud;
 
         using LocalEstimator<PointInT, FeatureT>::support_radius_;
         using LocalEstimator<PointInT, FeatureT>::normal_estimator_;
@@ -30,7 +30,7 @@ namespace pcl
 
       public:
         bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (PointInTPtr & in, PointInTPtr & processed, KeypointCloud & keypoints, FeatureTPtr & signatures)
         {
 
           if (!normal_estimator_)
@@ -39,7 +39,7 @@ namespace pcl
             return false;
           }
 
-          if (keypoint_extractor_.size() == 0)
+          if (!keypoint_extractor_)
           {
             PCL_ERROR("FPFHLocalEstimation :: This feature needs a keypoint extractor... please provide one\n");
             return false;
@@ -49,10 +49,10 @@ namespace pcl
           pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
           normal_estimator_->estimate (in, processed, normals);
 
-          this->computeKeypoints(processed, keypoints, normals);
-          std::cout << " " << normals->points.size() << " " << processed->points.size() << std::endl;
-
-          if (keypoints->points.size () == 0)
+          //compute keypoints
+          keypoint_extractor_->setInputCloud (processed);
+          keypoint_extractor_->compute (keypoints);
+          if (keypoints.points.size () == 0)
           {
             PCL_WARN("FPFHLocalEstimation :: No keypoints were found\n");
             return false;
@@ -64,14 +64,21 @@ namespace pcl
           typedef typename pcl::FPFHEstimation<PointInT, pcl::Normal, pcl::FPFHSignature33> FPFHEstimator;
           typename pcl::search::KdTree<PointInT>::Ptr tree (new pcl::search::KdTree<PointInT>);
 
+          boost::shared_ptr < std::vector<int> > indices (new std::vector<int> ());
+          indices->resize (keypoints.points.size ());
+          for (size_t i = 0; i < indices->size (); i++)
+            (*indices)[i] = keypoints.points[i];
+
           pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs (new pcl::PointCloud<pcl::FPFHSignature33>);
           FPFHEstimator fpfh_estimate;
           fpfh_estimate.setSearchMethod (tree);
-          fpfh_estimate.setInputCloud (keypoints);
-          fpfh_estimate.setSearchSurface(processed);
+          fpfh_estimate.setIndices (indices);
+          fpfh_estimate.setInputCloud (processed);
           fpfh_estimate.setInputNormals (normals);
           fpfh_estimate.setRadiusSearch (support_radius_);
           fpfh_estimate.compute (*fpfhs);
+
+          assert (fpfhs->points.size () == indices->size ());
 
           signatures->resize (fpfhs->points.size ());
           signatures->width = static_cast<int> (fpfhs->points.size ());

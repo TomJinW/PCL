@@ -1,97 +1,101 @@
-#include <pcl/apps/cloud_composer/qt.h>
 #include <pcl/apps/cloud_composer/items/cloud_composer_item.h>
+//Needed for the helper function which gets a cloud ptr... this is a bad dependency
+#include <pcl/apps/cloud_composer/items/cloud_item.h>
 
-
-
+#include <QDebug>
 
 pcl::cloud_composer::CloudComposerItem::CloudComposerItem (QString name)
   : QStandardItem(name)
 {
-  //Set up the properties, store pointer locally for convenience
-  properties_ = new PropertiesModel (this);
-  
-  QString item_id = name + QString ("%1").arg ((long)this);  
-  
-  
-  this->setData (QVariant::fromValue (properties_), ItemDataRole::PROPERTIES); 
-  this->setData (QVariant (item_id), ItemDataRole::ITEM_ID);
-  
-  this->setForeground (QBrush (Qt::black));
-  
+ //Set up the properties 
+  properties_ = new QStandardItemModel (0,2);
+  properties_->setHorizontalHeaderItem (0, new QStandardItem ("Name"));
+  properties_->setHorizontalHeaderItem (1, new QStandardItem ("Value"));
+  //Set the pointer to a data role so item inspector can get it
+  this->setData ( qVariantFromValue ( (void*)properties_), PROPERTIES); 
 }
-
 
 pcl::cloud_composer::CloudComposerItem::~CloudComposerItem ()
 {
   properties_->deleteLater ();
-  qDebug () << "Cloud Composer Item Destructor";
+}
+
+void
+pcl::cloud_composer::CloudComposerItem::addProperty (const QString prop_name, QVariant value,  Qt::ItemFlags flags, QStandardItem* parent)
+{
+  QStandardItem* parent_item = parent;
+  if (!parent_item)
+    parent_item = properties_->invisibleRootItem ();
+  QList <QStandardItem*> new_row;
+  
+  QStandardItem* new_property = new QStandardItem (prop_name);
+  new_property->setFlags (Qt::ItemIsSelectable);
+  new_row.append (new_property);
+  
+  QStandardItem* new_value = new QStandardItem ();
+  new_value->setFlags (flags);
+  new_value->setData (value, Qt::EditRole);
+  new_row.append (new_value);
+ 
+  parent_item->appendRow (new_row);
+  
+}
+
+QVariant 
+pcl::cloud_composer::CloudComposerItem::getProperty (const QString prop_name) const
+{
+  QList<QStandardItem*> items = properties_->findItems (prop_name);
+  if (items.size () == 0)
+  {
+    qWarning () << "No property named "<<prop_name<<" found in "<<this->text ();
+    return QVariant ();
+  }
+  else if (items.size () > 1)
+  {
+    qWarning () << "Multiple properties found with name "<<prop_name<<" in "<<this->text ();
+  }
+  
+  return items.value (0)->data (Qt::EditRole);
 }
 
 pcl::cloud_composer::CloudComposerItem*
 pcl::cloud_composer::CloudComposerItem::clone () const
 {
   CloudComposerItem* new_item = new CloudComposerItem (this->text ());
+  QStandardItemModel* new_item_properties = new_item->getProperties ();
   
-  PropertiesModel* new_item_properties = new_item->getPropertiesModel ();
-  new_item_properties->copyProperties (properties_);
+  for (int i=0; i < properties_->rowCount (); ++i){
+    QList <QStandardItem*> new_row;
+    QStandardItem* parent = properties_->item(i,0);
+    QModelIndex parent_index = properties_->index(i,0);
+    new_row.append (parent->clone ());
+    for (int j=0; j < properties_->columnCount (parent_index); ++j)
+    {
+      if (properties_->item (i,j))      
+        new_row.append (properties_->item(i,j)->clone ());
+    }
+    new_item_properties->appendRow (new_row);
+  }
+  new_item->setProperties (new_item_properties);
   
   return new_item;  
 }
 
-QList <pcl::cloud_composer::CloudComposerItem*>
-pcl::cloud_composer::CloudComposerItem::getChildren (CloudComposerItem::ItemType type) const
+bool
+pcl::cloud_composer::CloudComposerItem::getCloudConstPtr (sensor_msgs::PointCloud2::ConstPtr& const_ptr) const
 {
-  QList <CloudComposerItem*> items;
-  for (int i = 0; i < this->rowCount (); ++i)
+  if (this->type () != CLOUD_ITEM)
   {
-    if ( this->child (i)->type () == type )
-    {
-        items.append (dynamic_cast <CloudComposerItem*> (this->child (i)));
-    }
+    qWarning () << "Attempted to get cloud from non-cloud item!";
+    return false;
   }
-  
-  return items;
-}
-
-void 
-pcl::cloud_composer::CloudComposerItem::addChild (CloudComposerItem *item_arg)
-{
-  this->appendRow (item_arg);
-}
-
-void
-pcl::cloud_composer::CloudComposerItem::paintView (boost::shared_ptr<pcl::visualization::PCLVisualizer>) const
-{
-  qDebug () << "Paint View in Cloud Composer Item - doing nothing";
-}
-
-void
-pcl::cloud_composer::CloudComposerItem::removeFromView (boost::shared_ptr<pcl::visualization::PCLVisualizer>) const
-{
-  qDebug () << "Remove from View in Cloud Composer Item - doing nothing";
-}
-
-QMap <QString, QWidget*>
-pcl::cloud_composer::CloudComposerItem::getInspectorTabs ()
-{
-  return QMap <QString, QWidget*> ();
-}
-
-/*
-template <typename CloudPtrT>
-CloudPtrT
-pcl::cloud_composer::CloudComposerItem::getCloudPtr () const
-{
   QVariant cloud_variant = this->data (CLOUD);
-  // Get Extract the pointer from the cloud contained in this item, if the type can't be converted, default-constructed value is returned
-  CloudPtrT ptr;
-  if (cloud_variant.canConvert <CloudPtrT> ())
-    ptr =  cloud_variant.value <CloudPtrT> ();
+  const_ptr = cloud_variant.value <sensor_msgs::PointCloud2::Ptr> ();
+  if (const_ptr)
+    return true;
   else
-    qCritical () << "Requested Cloud of incorrect type from "<<this->text ()<<" correct type is "<<cloud_variant.typeName();
-    
-  return ptr;
+  {
+    qWarning () << "Fetched cloud, but pointer is NULL!!!";
+    return false;
+  }
 }
-*/
-
-

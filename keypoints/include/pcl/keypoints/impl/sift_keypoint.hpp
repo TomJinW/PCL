@@ -97,7 +97,7 @@ pcl::SIFTKeypoint<PointInT, PointOutT>::initCompute ()
 template <typename PointInT, typename PointOutT> void 
 pcl::SIFTKeypoint<PointInT, PointOutT>::detectKeypoints (PointCloudOut &output)
 {
-  if (surface_ && surface_ != input_)
+  if (surface_ != input_)
   {
     PCL_WARN ("[pcl::%s::detectKeypoints] : ", name_.c_str ());
     PCL_WARN ("A search surface has been set by setSearchSurface, but this SIFT keypoint detection algorithm does ");
@@ -142,12 +142,8 @@ pcl::SIFTKeypoint<PointInT, PointOutT>::detectKeypoints (PointCloudOut &output)
     scale *= 2;
   }
 
-  // Set final properties
   output.height = 1;
   output.width = static_cast<uint32_t> (output.points.size ());
-  output.header = input_->header;
-  output.sensor_origin_ = input_->sensor_origin_;
-  output.sensor_orientation_ = input_->sensor_orientation_;
 }
 
 

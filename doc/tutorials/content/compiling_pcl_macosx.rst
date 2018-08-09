@@ -20,7 +20,7 @@ Prerequisites
 Before getting started download and install the following prerequisites for
 Mac OS X:
 
-- **XCode** (https://developer.apple.com/xcode/)
+- **XCode** (http://developer.apple.com/xcode)
    Apple’s powerful integrated development environment
 
 
@@ -60,7 +60,7 @@ The following libraries are **Required** to build PCL.
    Unified matrix library.  Used as the matrix backend for SSE optimized math.
 
 - **FLANN** version >= 1.6.8
-  (http://www.cs.ubc.ca/research/flann/)
+  (http://www.cs.ubc.ca/~mariusm/index.php/FLANN/FLANN)
   Library for performing fast approximate nearest neighbor searches in high
   dimensional spaces.  Used in `kdtree` for fast approximate nearest neighbors
   search.
@@ -104,7 +104,7 @@ for PCL developers:
    A documentation system for C++, C, Java, Objective-C, Python, IDL (Corba and
    Microsoft flavors), Fortran, VHDL, PHP, C#, and to some extent D.
 
-- **Sphinx** (http://sphinx-doc.org/)
+- **Sphinx** (http://sphinx.pocoo.org/)
    A tool that makes it easy to create intelligent and beautiful
    documentation.
 
@@ -149,7 +149,7 @@ Install VTK
 
 To install via MacPorts::
 
-   $ sudo port install vtk5 +qt4_mac
+   $ sudo port install vtk5 +x11
    
 To install from source download the source from
 http://www.vtk.org/VTK/resources/software.html
@@ -166,13 +166,22 @@ Within the CMake configuration:
 
    Press [t] to get into advanced mode and change the following::
    
+      OPENGL_INCLUDE_DIR:/usr/X11R6/include
+      OPENGL_gl_LIBRARY:-L/usr/X11R6/lib -lGL
+      OPENGL_glu_LIBRARY:-L/usr/X11R6/lib -lGLU
+      OPENGL_xmesa_INCLUDE_DIR:/usr/X11R6/include
       VTK_USE_CARBON:OFF
-      VTK_USE_COCOA:ON
-      VTK_USE_X:OFF
+      VTK_USE_COCOA:OFF
+      VTK_USE_X:ON
+
+   .. note::
+      
+      If you don't see OPENGL_xmesa_INCLUDE_DIR when you first load it's because
+      VTK_USE_X: OFF.  Once set to ON you should see it.
 
    .. note::
 
-      VTK *must* be built with Cocoa support and *must* be installed,
+      VTK *must* be built with X11 support and *must* be installed,
       in order for the visualization module to be able to compile. If you do
       not require visualisation, you may omit this step.
 
@@ -235,9 +244,9 @@ Building PCL
 At this point you should have everything needed installed to build PCL with
 almost no additional configuration.
 
-Checkout the PCL source from the Github:
+Checkout the PCL source from the trunk::
 
-   $ git clone https://github.com/PointCloudLibrary/pcl
+   $ svn co http://svn.pointclouds.org/pcl/trunk pcl
    $ cd pcl
    
 Create the build directories, configure CMake, build and install::
@@ -292,7 +301,7 @@ using Sphinx.  The easiest way to get this installed is using pythons
    $ easy_install -U Sphinx
 
 The Sphinx documentation also requires the third party contrib extension
-`sphinxcontrib-doxylink` (https://pypi.python.org/pypi/sphinxcontrib-doxylink)
+`sphinxcontrib-doxylink` (http://pypi.python.org/pypi/sphinxcontrib-doxylink)
 to reference the Doxygen built documentation.
 
 To install from source you'll also need Mercurial::

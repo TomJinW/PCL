@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -39,16 +38,9 @@
 #ifndef PCL_TIME_H_
 #define PCL_TIME_H_
 
-#ifdef __GNUC__
-#pragma GCC system_header 
-#endif
-
 #include <cmath>
-#include <queue>
 #include <string>
-#ifndef Q_MOC_RUN
 #include <boost/date_time/posix_time/posix_time.hpp>
-#endif
 
 /**
   * \file pcl/common/time.h
@@ -59,6 +51,7 @@
 /*@{*/
 namespace pcl
 {
+
   /** \brief Simple stopwatch.
     * \ingroup common
     */
@@ -139,62 +132,6 @@ namespace pcl
       std::string title_;
   };
 
-  /** \brief A helper class to measure frequency of a certain event.
-    *
-    * To use this class create an instance and call event() function every time
-    * the event in question occurs. The estimated frequency can be retrieved
-    * with getFrequency() function.
-    *
-    * \author Sergey Alexandrov
-    * \ingroup common
-    */
-  class EventFrequency
-  {
-
-    public:
-
-      /** \brief Constructor.
-        *
-        * \param[in] window_size number of most recent events that are
-        * considered in frequency estimation (default: 30) */
-      EventFrequency (size_t window_size = 30)
-      : window_size_ (window_size)
-      {
-        stop_watch_.reset ();
-      }
-
-      /** \brief Notifies the class that the event occurred. */
-      void event ()
-      {
-        event_time_queue_.push (stop_watch_.getTimeSeconds ());
-        if (event_time_queue_.size () > window_size_)
-          event_time_queue_.pop ();
-      }
-
-      /** \brief Retrieve the estimated frequency. */
-      double
-      getFrequency () const
-      {
-        if (event_time_queue_.size () < 2)
-          return (0.0);
-        return ((event_time_queue_.size () - 1) /
-                (event_time_queue_.back () - event_time_queue_.front ()));
-      }
-
-      /** \brief Reset frequency computation. */
-      void reset ()
-      {
-        stop_watch_.reset ();
-        event_time_queue_ = std::queue<double> ();
-      }
-
-    private:
-
-      pcl::StopWatch stop_watch_;
-      std::queue<double> event_time_queue_;
-      const size_t window_size_;
-
-  };
 
 #ifndef MEASURE_FUNCTION_TIME
 #define MEASURE_FUNCTION_TIME \

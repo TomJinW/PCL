@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,7 +38,6 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include <pcl/common/distances.h>
 #include <pcl/common/time.h>
 #include <pcl/search/pcl_search.h>
 #include <pcl/search/flann_search.h>
@@ -54,29 +53,26 @@ PointCloud<PointXYZ> cloud, cloud_big;
 void
 init ()
 {
-  float resolution = 0.1f;
+  float resolution = 0.1;
   for (float z = -0.5f; z <= 0.5f; z += resolution)
     for (float y = -0.5f; y <= 0.5f; y += resolution)
       for (float x = -0.5f; x <= 0.5f; x += resolution)
         cloud.points.push_back (PointXYZ (x, y, z));
-  cloud.width = int (cloud.points.size ());
+  cloud.width = cloud.points.size ();
   cloud.height = 1;
 
   cloud_big.width = 640;
   cloud_big.height = 480;
-  srand (int (time (NULL)));
+  srand (time (NULL));
   // Randomly create a new point cloud
   for (size_t i = 0; i < cloud_big.width * cloud_big.height; ++i)
     cloud_big.points.push_back (
-                                PointXYZ (
-                                  float (1024 * rand () / (RAND_MAX + 1.0)),
-                                  float (1024 * rand () / (RAND_MAX + 1.0)),
-                                  float (1024 * rand () / (RAND_MAX + 1.0))));
-}
+                                PointXYZ (1024 * rand () / (RAND_MAX + 1.0), 1024 * rand () / (RAND_MAX + 1.0),
+                                          1024 * rand () / (RAND_MAX + 1.0)));
+};
 
 
-/* Test for FlannSearch nearestKSearch */
-TEST (PCL, FlannSearch_nearestKSearch)
+/* Test for FlannSearch nearestKSearch */TEST (PCL, FlannSearch_nearestKSearch)
 {
   pcl::search::Search<PointXYZ>* FlannSearch = new pcl::search::FlannSearch<PointXYZ> (new search::FlannSearch<PointXYZ>::KdTreeIndexCreator);
   FlannSearch->setInputCloud (cloud.makeShared ());
@@ -86,7 +82,7 @@ TEST (PCL, FlannSearch_nearestKSearch)
   for (size_t i = 0; i < cloud.points.size (); ++i)
   {
     float distance = euclideanDistance (cloud.points[i], test_point);
-    sorted_brute_force_result.insert (make_pair (distance, int (i)));
+    sorted_brute_force_result.insert (make_pair (distance, (int)i));
   }
   float max_dist = 0.0f;
   unsigned int counter = 0;
@@ -154,22 +150,22 @@ TEST (PCL, FlannSearch_differentPointT)
   vector<float> k_distances;
   k_distances.resize (no_of_neighbors);
 
-  //vector<int> k_indices_t;
-  //k_indices_t.resize (no_of_neighbors);
-  //vector<float> k_distances_t;
-  //k_distances_t.resize (no_of_neighbors);
+  vector<int> k_indices_t;
+  k_indices_t.resize (no_of_neighbors);
+  vector<float> k_distances_t;
+  k_distances_t.resize (no_of_neighbors);
 
   for (size_t i = 0; i < cloud_rgb.points.size (); ++i)
   {
-    //FlannSearch->nearestKSearchT (cloud_rgb.points[i], no_of_neighbors, k_indices_t, k_distances_t);
+    FlannSearch->nearestKSearchT (cloud_rgb.points[i], no_of_neighbors, k_indices_t, k_distances_t);
     FlannSearch->nearestKSearch (cloud_big.points[i], no_of_neighbors, k_indices, k_distances);
     EXPECT_EQ (k_indices.size (), indices[i].size ());
     EXPECT_EQ (k_distances.size (), dists[i].size ());
     for (size_t j = 0; j< no_of_neighbors; j++)
     {
       EXPECT_TRUE (k_indices[j] == indices[i][j] || k_distances[j] == dists[i][j]);
-      //EXPECT_TRUE (k_indices[j] == k_indices_t[j]);
-      //EXPECT_TRUE (k_distances[j] == k_distances_t[j]);
+      EXPECT_TRUE (k_indices[j] == k_indices_t[j]);
+      EXPECT_TRUE (k_distances[j] == k_distances_t[j]);
     }
 
   }
@@ -224,7 +220,7 @@ TEST (PCL, FlannSearch_knnByIndex)
   std::vector< int > query_indices;
   for (size_t i = 0; i<cloud_big.size (); i+=2)
   {
-    query_indices.push_back (int (i));
+    query_indices.push_back (i);
   }
   flann_search->nearestKSearch (cloud_big, query_indices,no_of_neighbors,indices,dists);
 
@@ -254,8 +250,7 @@ TEST (PCL, FlannSearch_knnByIndex)
 }
 
 
-/* Test for FlannSearch nearestKSearch */
-TEST (PCL, FlannSearch_compareToKdTreeFlann)
+/* Test for FlannSearch nearestKSearch */TEST (PCL, FlannSearch_compareToKdTreeFlann)
 {
 
   int no_of_neighbors=3;
@@ -337,7 +332,7 @@ TEST (PCL, FlannSearch_compareToKdTreeFlann)
 
   vector<int> query_indices;
   for (size_t i = 0; i<cloud_big.size (); i+=2)
-    query_indices.push_back (int (i));
+    query_indices.push_back (i);
 
   {
     ScopeTime scopeTime ("FLANN multi nearestKSearch with indices");
@@ -357,8 +352,9 @@ TEST (PCL, FlannSearch_compareToKdTreeFlann)
     ASSERT_EQ (indices_tree[i].size (), no_of_neighbors);
     ASSERT_EQ (dists_flann[i].size (), no_of_neighbors);
     ASSERT_EQ (dists_tree[i].size (), no_of_neighbors);
-    for (int j = 0; j < no_of_neighbors; j++ )
+    for (size_t j = 0; j<no_of_neighbors; j++ )
     {
+
       ASSERT_TRUE( indices_flann[i][j] == indices_tree[i][j] || dists_flann[i][j]==dists_tree[i][j]);
     }
   }
@@ -377,5 +373,9 @@ main (int argc, char** argv)
   pcl::search::Search<PointXYZ>* FlannSearch = new pcl::search::FlannSearch<PointXYZ> ( new search::FlannSearch<PointXYZ>::KdTreeIndexCreator);
   FlannSearch->setInputCloud (cloud.makeShared ());
 
+  pthread_key_t t;
+  pthread_key_create(&t,0);
+
   return (RUN_ALL_TESTS ());
 }
+;

@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -33,8 +32,6 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *
- * $Id$
  *
  */
 
@@ -86,18 +83,10 @@ namespace pcl
 
 
     public:
-
-      typedef boost::shared_ptr< NormalDistributionsTransform<PointSource, PointTarget> > Ptr;
-      typedef boost::shared_ptr< const NormalDistributionsTransform<PointSource, PointTarget> > ConstPtr;
-
-
       /** \brief Constructor.
         * Sets \ref outlier_ratio_ to 0.35, \ref step_size_ to 0.05 and \ref resolution_ to 1.0
         */
       NormalDistributionsTransform ();
-      
-      /** \brief Empty destructor */
-      virtual ~NormalDistributionsTransform () {}
 
       /** \brief Provide a pointer to the input target (e.g., the point cloud that we want to align the input source to).
         * \param[in] cloud the input point cloud target
@@ -194,10 +183,10 @@ namespace pcl
       static void
       convertTransform (const Eigen::Matrix<double, 6, 1> &x, Eigen::Affine3f &trans)
       {
-        trans = Eigen::Translation<float, 3>(float (x (0)), float (x (1)), float (x (2))) *
-                Eigen::AngleAxis<float>(float (x (3)), Eigen::Vector3f::UnitX ()) *
-                Eigen::AngleAxis<float>(float (x (4)), Eigen::Vector3f::UnitY ()) *
-                Eigen::AngleAxis<float>(float (x (5)), Eigen::Vector3f::UnitZ ());
+        trans = Eigen::Translation<float, 3>(x (0), x (1), x (2)) *
+                Eigen::AngleAxis<float>(x (3), Eigen::Vector3f::UnitX ()) *
+                Eigen::AngleAxis<float>(x (4), Eigen::Vector3f::UnitY ()) *
+                Eigen::AngleAxis<float>(x (5), Eigen::Vector3f::UnitZ ());
       }
 
       /** \brief Convert 6 element transformation vector to transformation matrix.
@@ -225,7 +214,6 @@ namespace pcl
       using Registration<PointSource, PointTarget>::final_transformation_;
       using Registration<PointSource, PointTarget>::transformation_;
       using Registration<PointSource, PointTarget>::transformation_epsilon_;
-      using Registration<PointSource, PointTarget>::transformation_rotation_epsilon_;
       using Registration<PointSource, PointTarget>::converged_;
       using Registration<PointSource, PointTarget>::corr_dist_threshold_;
       using Registration<PointSource, PointTarget>::inlier_threshold_;
@@ -348,7 +336,7 @@ namespace pcl
                            PointCloudSource &trans_cloud);
 
       /** \brief Update interval of possible step lengths for More-Thuente method, \f$ I \f$ in More-Thuente (1994)
-        * \note Updating Algorithm until some value satisfies \f$ \psi(\alpha_k) \leq 0 \f$ and \f$ \phi'(\alpha_k) \geq 0 \f$
+        * \note Updating Algorithm until some value satifies \f$ \psi(\alpha_k) \leq 0 \f$ and \f$ \phi'(\alpha_k) \geq 0 \f$
         * and Modified Updating Algorithm from then on [More, Thuente 1994].
         * \param[in,out] a_l first endpoint of interval \f$ I \f$, \f$ \alpha_l \f$ in Moore-Thuente (1994)
         * \param[in,out] f_l value at first endpoint, \f$ f_l \f$ in Moore-Thuente (1994), \f$ \psi(\alpha_l) \f$ for Update Algorithm and \f$ \phi(\alpha_l) \f$ for Modified Update Algorithm
@@ -368,9 +356,9 @@ namespace pcl
 
       /** \brief Select new trial value for More-Thuente method.
         * \note Trial Value Selection [More, Thuente 1994], \f$ \psi(\alpha_k) \f$ is used for \f$ f_k \f$ and \f$ g_k \f$
-        * until some value satisfies the test \f$ \psi(\alpha_k) \leq 0 \f$ and \f$ \phi'(\alpha_k) \geq 0 \f$
+        * until some value satifies the test \f$ \psi(\alpha_k) \leq 0 \f$ and \f$ \phi'(\alpha_k) \geq 0 \f$
         * then \f$ \phi(\alpha_k) \f$ is used from then on.
-        * \note Interpolation Minimizer equations from Optimization Theory and Methods: Nonlinear Programming By Wenyu Sun, Ya-xiang Yuan (89-100).
+        * \note Interpolation Minimizer equations from Optimization Theory and Methods: Nonlinear Programming By Wenyu Sun, Ya-xiang Yuan (89-100).<\b>
         * \param[in] a_l first endpoint of interval \f$ I \f$, \f$ \alpha_l \f$ in Moore-Thuente (1994)
         * \param[in] f_l value at first endpoint, \f$ f_l \f$ in Moore-Thuente (1994)
         * \param[in] g_l derivative at first endpoint, \f$ g_l \f$ in Moore-Thuente (1994)
@@ -387,14 +375,14 @@ namespace pcl
                              double a_u, double f_u, double g_u,
                              double a_t, double f_t, double g_t);
 
-      /** \brief Auxiliary function used to determine endpoints of More-Thuente interval.
+      /** \brief Auxilary function used to determin endpoints of More-Thuente interval.
         * \note \f$ \psi(\alpha) \f$ in Equation 1.6 (Moore, Thuente 1994)
         * \param[in] a the step length, \f$ \alpha \f$ in More-Thuente (1994)
         * \param[in] f_a function value at step length a, \f$ \phi(\alpha) \f$ in More-Thuente (1994)
         * \param[in] f_0 initial function value, \f$ \phi(0) \f$ in Moore-Thuente (1994)
         * \param[in] g_0 initial function gradiant, \f$ \phi'(0) \f$ in More-Thuente (1994)
         * \param[in] mu the step length, constant \f$ \mu \f$ in Equation 1.1 [More, Thuente 1994]
-        * \return sufficient decrease value
+        * \return sufficent decrease value
         */
       inline double
       auxilaryFunction_PsiMT (double a, double f_a, double f_0, double g_0, double mu = 1.e-4)
@@ -402,12 +390,12 @@ namespace pcl
         return (f_a - f_0 - mu * g_0 * a);
       }
 
-      /** \brief Auxiliary function derivative used to determine endpoints of More-Thuente interval.
+      /** \brief Auxilary function derivative used to determin endpoints of More-Thuente interval.
         * \note \f$ \psi'(\alpha) \f$, derivative of Equation 1.6 (Moore, Thuente 1994)
         * \param[in] g_a function gradient at step length a, \f$ \phi'(\alpha) \f$ in More-Thuente (1994)
         * \param[in] g_0 initial function gradiant, \f$ \phi'(0) \f$ in More-Thuente (1994)
         * \param[in] mu the step length, constant \f$ \mu \f$ in Equation 1.1 [More, Thuente 1994]
-        * \return sufficient decrease derivative
+        * \return sufficent decrease derivative
         */
       inline double
       auxilaryFunction_dPsiMT (double g_a, double g_0, double mu = 1.e-4)

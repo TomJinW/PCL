@@ -156,7 +156,7 @@ struct ColorCloudFromImage
 
   template <typename Tuple>
   inline __host__ __device__
-  PointXYZRGB operator () (const Tuple &t)
+  PointXYZRGB operator () (Tuple &t)
   {
     PointXYZRGB &pt = thrust::get<0>(t);
     char4 rgb = colors_[thrust::get<1>(t)];

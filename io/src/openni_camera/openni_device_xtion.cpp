@@ -1,9 +1,8 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011 2011 Willow Garage, Inc.
+ *    Suat Gedikli <gedikli@willowgarage.com>
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -38,16 +37,18 @@
 #include <pcl/pcl_config.h>
 #ifdef HAVE_OPENNI
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#endif
-
 #include <pcl/io/openni_camera/openni_device_xtion.h>
+//#include <iostream>
 #include <sstream>
-#include <pcl/io/boost.h>
+#include <boost/thread/mutex.hpp>
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::DeviceXtionPro::DeviceXtionPro (xn::Context& context, const xn::NodeInfo& device_node, const xn::NodeInfo& depth_node, const xn::NodeInfo& ir_node)
+using namespace std;
+using namespace boost;
+
+namespace openni_wrapper
+{
+
+DeviceXtionPro::DeviceXtionPro (xn::Context& context, const xn::NodeInfo& device_node, const xn::NodeInfo& depth_node, const xn::NodeInfo& ir_node)
 : OpenNIDevice (context, device_node, depth_node, ir_node)
 {
   // setup stream modes
@@ -55,30 +56,25 @@ openni_wrapper::DeviceXtionPro::DeviceXtionPro (xn::Context& context, const xn::
   setDepthOutputMode (getDefaultDepthMode ());
   setIROutputMode (getDefaultIRMode ());
 
-  boost::lock_guard<boost::mutex> depth_lock (depth_mutex_);
+  lock_guard<mutex> depth_lock(depth_mutex_);
   XnStatus status = depth_generator_.SetIntProperty ("RegistrationType", 1);
   if (status != XN_STATUS_OK)
     THROW_OPENNI_EXCEPTION ("Error setting the registration type. Reason: %s", xnGetStatusString (status));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-openni_wrapper::DeviceXtionPro::~DeviceXtionPro () throw ()
+DeviceXtionPro::~DeviceXtionPro () throw ()
 {
   depth_mutex_.lock ();
   depth_generator_.UnregisterFromNewDataAvailable (depth_callback_handle_);
   depth_mutex_.unlock ();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool 
-openni_wrapper::DeviceXtionPro::isImageResizeSupported (unsigned, unsigned, unsigned, unsigned) const throw ()
+bool DeviceXtionPro::isImageResizeSupported (unsigned, unsigned, unsigned, unsigned) const throw ()
 {
-  return (false);
+  return false;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::DeviceXtionPro::enumAvailableModes () throw ()
+void DeviceXtionPro::enumAvailableModes () throw ()
 {
   XnMapOutputMode output_mode;
   available_image_modes_.clear();
@@ -111,16 +107,12 @@ openni_wrapper::DeviceXtionPro::enumAvailableModes () throw ()
   available_depth_modes_.push_back (output_mode);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<openni_wrapper::Image> 
-openni_wrapper::DeviceXtionPro::getCurrentImage (boost::shared_ptr<xn::ImageMetaData>) const throw ()
+boost::shared_ptr<Image> DeviceXtionPro::getCurrentImage (boost::shared_ptr<xn::ImageMetaData>) const throw ()
 {
-  return (boost::shared_ptr<Image> (reinterpret_cast<Image*> (0)));
+  return boost::shared_ptr<Image> (reinterpret_cast<Image*> (0));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void 
-openni_wrapper::DeviceXtionPro::startDepthStream ()
+void DeviceXtionPro::startDepthStream ()
 {
   if (isDepthRegistered ())
   {
@@ -138,4 +130,5 @@ openni_wrapper::DeviceXtionPro::startDepthStream ()
     OpenNIDevice::startDepthStream ();
 }
 
+}//namespace
 #endif

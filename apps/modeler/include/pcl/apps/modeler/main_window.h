@@ -37,37 +37,67 @@
 #ifndef PCL_MODELER_MAIN_WINDOW_H_
 #define PCL_MODELER_MAIN_WINDOW_H_
 
-#include <pcl/apps/modeler/qt.h>
 #include <boost/shared_ptr.hpp>
+#include <vtkSmartPointer.h>
+#include <QMainWindow>
+#include <QItemSelection>
 
-#include <ui_main_window.h>
+// Forward Qt class declarations
+namespace Ui
+{
+  class MainWindow;
+}
 
+class QMenu;
+class vtkActor;
+class vtkRenderer;
+class vtkRenderWindow;
 
 namespace pcl
 {
   namespace modeler
   {
-    class SceneTree;
-    class AbstractItem;
+    class CloudActor;
+    class PCLModeler;
+    class RenderWidget;
 
     class MainWindow : public QMainWindow
     {
       Q_OBJECT
 
       public:
-        static MainWindow& getInstance() {
-          static MainWindow theSingleton;
-          return theSingleton;
-        }
+        MainWindow();
+        ~MainWindow();
 
-        QString 
-        getRecentFolder();
+        void
+        setActiveDockWidget(RenderWidget* render_widget);
 
-        RenderWindowItem*
-        createRenderWindow();
+        std::vector<CloudActor*>
+        getSelectedCloud();
 
-      public Q_SLOTS:
+        void
+        addActionsToRenderWidget(QMenu* menu);
+        void
+        addActionsToCloudActor(QMenu* menu);
+
+        vtkSmartPointer<vtkRenderer>
+        getActiveRender();
+
+        RenderWidget*
+        getActiveRenderWidget();
+
+        void
+        triggerRender(vtkActor* actor);
+      public slots:
         // slots for file menu
+        void 
+        slotOpenPointCloud();
+        void 
+        slotImportPointCloud();
+        void 
+        slotSavePointCloud();
+        void 
+        slotClosePointCloud();
         void 
         slotOpenProject();
         void 
@@ -76,19 +106,23 @@ namespace pcl
         slotCloseProject();
         void 
         slotExit();
-        void
-        slotUpdateRecentFile(const QString& filename);
 
         // slots for view menu
         void
         slotCreateRenderWindow();
+        void
+        slotChangeBackgroundColor();
+
+        // slots for render menu
+        void
+        slotSwitchColorHandler();
+
+        // slots for edit menu
+        void
+        slotDownSampleFilter();
 
         void
-        slotOnWorkerStarted();
-
-        void
-        slotOnWorkerFinished();
-
+        slotUpdateSelection(const QItemSelection & selected, const QItemSelection & deselected);
       private:
         // methods for file Menu
         void 
@@ -97,6 +131,10 @@ namespace pcl
         createRecentPointCloudActions();
         void 
         updateRecentPointCloudActions();
+        bool
+        openPointCloudImpl(const QStringList& filenames);
+        bool 
+        openPointCloudImpl(const QString& filename);
         void 
         createRecentProjectActions();
         void 
@@ -105,10 +143,17 @@ namespace pcl
         openProjectImpl(const QString& filename);
         static void 
         updateRecentActions(std::vector<boost::shared_ptr<QAction> >& recent_actions, QStringList& recent_items);
+        QString 
+        getRecentFolder();
+
 
         // methods for view menu
         void 
         connectViewMenuActions();
+
+        // methods for render menu
+        void 
+        connectRenderMenuActions();
 
         // methods for edit menu
         void 
@@ -120,28 +165,33 @@ namespace pcl
         void 
         saveGlobalSettings();
 
-      private Q_SLOTS:
+        void
+        updateRenderWidgetSelection(const QItemSelection & selection, bool selected);
+
+      private slots:
         void 
         slotOpenRecentPointCloud();
         void 
         slotOpenRecentProject();
 
+        void
+        slotOnTreeViewItemClick(const QModelIndex & index);
+
+        void
+        slotOnTreeViewItemDoubleClick(const QModelIndex & index);
+
       private:
-        friend class AbstractItem;
-
-        MainWindow();
-        MainWindow(const MainWindow &) : QMainWindow () {}            // copy ctor hidden
-        MainWindow& operator=(const MainWindow &) { return (*this); } // assign op. hidden
-        ~MainWindow();
-
         Ui::MainWindow                    *ui_; // Designer form
 
         // shortcuts for recent point clouds/projects
-        QStringList                       recent_files_;
+        QStringList                       recent_pointclouds_;
         QStringList                       recent_projects_;
         static const size_t               MAX_RECENT_NUMBER = 8;
         std::vector<boost::shared_ptr<QAction> >  recent_pointcloud_actions_;
         std::vector<boost::shared_ptr<QAction> >  recent_project_actions_;
+
+        // data
+        boost::shared_ptr<PCLModeler>  pcl_modeler_;
     };
   }
 }

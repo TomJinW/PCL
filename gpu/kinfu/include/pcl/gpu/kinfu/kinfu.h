@@ -49,18 +49,10 @@
 #include <Eigen/Core>
 #include <vector>
 
-// Focal lengths of RGB camera
-#define KINFU_DEFAULT_RGB_FOCAL_X 525.f
-#define KINFU_DEFAULT_RGB_FOCAL_Y 525.f
-
-// Focal lengths of depth (i.e. NIR) camera
-#define KINFU_DEFAULT_DEPTH_FOCAL_X 585.f
-#define KINFU_DEFAULT_DEPTH_FOCAL_Y 585.f
-
 namespace pcl
 {
   namespace gpu
-  {
+  {        
     /** \brief KinfuTracker class encapsulates implementation of Microsoft Kinect Fusion algorithm
       * \author Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
       */
@@ -78,7 +70,7 @@ namespace pcl
 
         /** \brief Constructor
           * \param[in] rows height of depth image
-          * \param[in] cols width of depth image
+          * \param[in] cols width of depth image          
           */
         KinfuTracker (int rows = 480, int cols = 640);
 
@@ -90,18 +82,8 @@ namespace pcl
           */
         void
         setDepthIntrinsics (float fx, float fy, float cx = -1, float cy = -1);
-        
-        /** \brief Get Depth camera intrinsics
-          * \param[out] fx focal length x 
-          * \param[out] fy focal length y
-          * \param[out] cx principal point x
-          * \param[out] cy principal point y
-          */
-        void
-        getDepthIntrinsics (float& fx, float& fy, float& cx, float& cy);
-        
 
-        /** \brief Sets initial camera pose relative to volume coordinate space
+        /** \brief Sets initial camera pose relative to volume coordiante space
           * \param[in] pose Initial camera pose
           */
         void
@@ -109,7 +91,7 @@ namespace pcl
                         
 		/** \brief Sets truncation threshold for depth image for ICP step only! This helps 
 		  *  to filter measurements that are outside tsdf volume. Pass zero to disable the truncation.
-          * \param[in] max_icp_distance Maximal distance, higher values are reset to zero (means no measurement). 
+          * \param[in] max_icp_distance_ Maximal distance, higher values are reset to zero (means no measurement). 
           */
         void
         setDepthTruncationForICP (float max_icp_distance = 0.f);
@@ -132,7 +114,7 @@ namespace pcl
           * \param[in] max_weight max weighe for color integration. -1 means default weight.
           */
         void
-        initColorIntegration(int max_weight = -1);
+        initColorIntegration(int max_weight = -1);        
 
         /** \brief Returns cols passed to ctor */
         int
@@ -143,11 +125,10 @@ namespace pcl
         rows ();
 
         /** \brief Processes next frame.
-          * \param[in] depth next frame with values in millimeters
-          * \param hint
+          * \param[in] Depth next frame with values in millimeters
           * \return true if can render 3D view.
           */
-        bool operator() (const DepthMap& depth, Eigen::Affine3f* hint=NULL);
+        bool operator() (const DepthMap& depth);
 
         /** \brief Processes next frame (both depth and color integration). Please call initColorIntegration before invpoking this.
           * \param[in] depth next depth frame with values in millimeters
@@ -196,9 +177,6 @@ namespace pcl
           */
         void
         getLastFrameNormals (DeviceArray2D<NormalType>& normals) const;
-
-        /** \brief Disables ICP forever */
-        void disableIcp();
 
       private:
         
@@ -280,9 +258,6 @@ namespace pcl
 
         /** \brief Camera movement threshold. TSDF is integrated iff a camera movement metric exceedes some value. */
         float integration_metric_threshold_;
-
-        /** \brief ICP step is completely disabled. Only integration now. */
-        bool disable_icp_;
         
         /** \brief Allocates all GPU internal buffers.
           * \param[in] rows_arg
@@ -294,11 +269,7 @@ namespace pcl
         /** \brief Performs the tracker reset to initial  state. It's used if case of camera tracking fail.
           */
         void
-        reset ();
-
-public:
-EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
+        reset ();       
     };
   }
 };

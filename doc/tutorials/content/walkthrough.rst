@@ -28,25 +28,25 @@ Common_					  Search_
 ========================  ========================  ========================
 
 
-.. |filters_small| image:: images/filters_small.jpg
+.. |filters_small| image:: images/filters_small.png
 
-.. |features_small| image:: images/features_small.jpg
+.. |features_small| image:: images/features_small.png
 
-.. |keypoints_small| image:: images/keypoints_small.jpg
+.. |keypoints_small| image:: images/keypoints_small.png
 
-.. |registration_small| image:: images/registration_small.jpg
+.. |registration_small| image:: images/registration_small.png
 
 .. |kdtree_small| image:: images/kdtree_small.png
 
 .. |octree_small| image:: images/octree_small.png
 
-.. |segmentation_small| image:: images/segmentation_small.jpg
+.. |segmentation_small| image:: images/segmentation_small.png
 
-.. |sample_consensus_small| image:: images/sample_consensus_small.jpg
+.. |sample_consensus_small| image:: images/sample_consensus_small.png
 
-.. |surface_small| image:: images/surface_small.jpg
+.. |surface_small| image:: images/surface_small.png
 
-.. |range_image_small| image:: images/range_image_small.jpg
+.. |range_image_small| image:: images/range_image_small.png
 
 .. |io_small| image:: images/io_small.jpg
 
@@ -67,9 +67,9 @@ Filters
 
     An example of noise removal is presented in the figure below. Due to measurement errors, certain datasets present a large number of shadow points. This complicates the estimation of local point cloud 3D features. Some of these outliers can be filtered by performing a statistical analysis on each point's neighborhood, and trimming those that do not meet a certain criteria. The sparse outlier removal implementation in PCL is based on the computation of the distribution of point to neighbor distances in the input dataset. For each point, the mean distance from it to all its neighbors is computed. By assuming that the resulting distribution is Gaussian with a mean and a standard deviation, all points whose mean distances are outside an interval defined by the global distances mean and standard deviation can be considered as outliers and trimmed from the dataset.
 
-.. image:: images/statistical_removal_2.jpg
+.. image:: images/statistical_removal_2.png
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02945.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__filters.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#filtering-tutorial
 
@@ -104,13 +104,13 @@ Features
 **Background**
 
 	A theoretical primer explaining how features work in PCL can be found in the `3D Features tutorial
-	<http://pointclouds.org/documentation/tutorials/how_features_work.php>`_.
+	<http:/pointclouds.org/documentation/tutorials/how_features_work.php#how-3d-features-work>`_.
 	
 	The *features* library contains data structures and mechanisms for 3D feature estimation from point cloud data. 3D features are representations at certain 3D points, or positions, in space, which describe geometrical patterns based on the information available around the point. The data space selected around the query point is usually referred to as the *k-neighborhood*.
 
 	The following figure shows a simple example of a selected query point, and its selected k-neighborhood.
 	
-	.. image:: images/features_normal.jpg
+	.. image:: images/features_normal.png
 
 	An example of two of the most widely used geometric point features are the underlying surface's estimated curvature and normal at a query point ``p``. Both of them are considered local features, as they characterize a point using the information provided by its ``k`` closest point neighbors. For determining these neighbors efficiently, the input dataset is usually split into smaller chunks using spatial decomposition techniques such as octrees or kD-trees (see the figure below - left: kD-tree, right: octree), and then closest point searches are performed in that space. Depending on the application one can opt for either determining a fixed number of ``k`` points in the vicinity of ``p``, or all points which are found inside of a sphere of radius ``r`` centered at ``p``. Unarguably, one the easiest methods for estimating the surface normals and curvature changes at a point ``p`` is to perform an eigendecomposition (i.e., compute the eigenvectors and eigenvalues) of the k-neighborhood point surface patch. Thus, the eigenvector corresponding to the smallest eigenvalue will approximate the surface normal ``n`` at point ``p``, while the surface curvature change will be estimated from the eigenvalues as:
 
@@ -120,11 +120,11 @@ Features
 	
 	|
 
-	.. image:: images/features_bunny.jpg
+	.. image:: images/features_bunny.png
 	
 	|
 	
-**Documentation:** http://docs.pointclouds.org/trunk/a02944.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__features.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#features-tutorial
 
@@ -168,7 +168,7 @@ Keypoints
 
 |
 	
-**Documentation:** http://docs.pointclouds.org/trunk/a02949.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__keypoints.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#keypoints-tutorial
 
@@ -210,15 +210,15 @@ Registration
 
 	The *registration* library implements a plethora of point cloud registration algorithms for both organized an unorganized (general purpose) datasets. For instance, PCL contains a set of powerful algorithms that allow the estimation of multiple sets of correspondences, as well as methods for rejecting bad correspondences, and estimating transformations in a robust manner.
 
-	.. image:: images/registration/scans.jpg
+	.. image:: images/scans.png
 	
 	|
 	
-	.. image:: images/registration/s1-6.jpg
+	.. image:: images/s1-6.png
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02953.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__registration.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#registration-tutorial
 
@@ -261,11 +261,11 @@ Kd-tree
 
 	.. image:: images/3dtree.png
 	
-	.. image:: images/kdtree_mug.jpg
+	.. image:: images/kdtree_mug.png
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02948.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__kdtree.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#kdtree-tutorial
 
@@ -301,11 +301,11 @@ Octree
 
 	The following figure illustrates the voxel bounding boxes of an octree nodes at lowest tree level. The octree voxels are surrounding every 3D point from the Stanford bunny's surface. The red dots represent the point data. This image is created with the `octree_viewer`_.
 
-	.. image:: images/octree_bunny.jpg
+	.. image:: images/octree_bunny.png
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02950.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__octree.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#octree-tutorial
 
@@ -340,13 +340,13 @@ Segmentation
 	A theoretical primer explaining how clustering methods work can be found in the `cluster extraction tutorial <http://pointclouds.org/documentation/tutorials/cluster_extraction.php#cluster-extraction>`_.
 	The two figures illustrate the results of plane model segmentation (left) and cylinder model segmentation (right). 
 	
-	.. image:: images/plane_model_seg.jpg
+	.. image:: images/plane_model_seg.png
 	
-	.. image:: images/cylinder_model_seg.jpg
+	.. image:: images/cylinder_model_seg.png
 	
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02956.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__segmentation.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#segmentation-tutorial
 
@@ -388,11 +388,11 @@ Sample Consensus
 
 	Some of the models implemented in this library include: lines, planes, cylinders, and spheres. Plane fitting is often applied to the task of detecting common indoor surfaces, such as walls, floors, and table tops. Other models can be used to detect and segment objects with common geometric structures (e.g., fitting a cylinder model to a mug).
 
-	.. image:: images/sample_consensus_planes_cylinders.jpg
+	.. image:: images/sample_consensus_planes_cylinders.png
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02954.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__sample__consensus.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#sample-consensus
 
@@ -426,19 +426,19 @@ Surface
 
 	Smoothing and resampling can be important if the cloud is noisy, or if it is composed of multiple scans that are not aligned perfectly. The complexity of the surface estimation can be adjusted, and normals can be estimated in the same step if needed.
 
-	.. image:: images/resampling_1.jpg
+	.. image:: images/resampling_1.png
 
 	Meshing is a general way to create a surface out of points, and currently there are two algorithms provided: a very fast triangulation of the original points, and a slower meshing that does smoothing and hole filling as well.
 
-	.. image:: images/surface_meshing.jpg
+	.. image:: images/surface_meshing.png
 
 	Creating a convex or concave hull is useful for example when there is a need for a simplified surface representation or when boundaries need to be extracted.
 
-	.. image:: images/surface_hull.jpg
+	.. image:: images/surface_hull.png
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02957.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__surface.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#surface-tutorial
 
@@ -479,7 +479,7 @@ Range Image
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a01344.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__range__image.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#range-images
 
@@ -519,7 +519,7 @@ I/O
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02947.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__io.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#i-o
 
@@ -586,7 +586,7 @@ Visualization
 
 |
 
-**Documentation:** http://docs.pointclouds.org/trunk/a02958.html
+**Documentation:** http://docs.pointclouds.org/trunk/group__visualization.html
 
 **Tutorials:** http://pointclouds.org/documentation/tutorials/#visualization-tutorial
 
@@ -688,9 +688,9 @@ Binaries
 This section provides a quick reference for some of the common tools in PCL. 
 
 
-	* ``pcl_viewer``: a quick way for visualizing PCD (Point Cloud Data) files. More information about PCD files can be found in the `PCD file format tutorial <http://pointclouds.org/documentation/tutorials/pcd_file_format.php>`_.
+	* ``pcd_viewer``: a quick way for visualizing PCD (Point Cloud Data) files. More information about PCD files can be found in the `PCD file format tutorial <http://pointclouds.org/documentation/tutorials/pcd_file_format.php>`_.
 
-		**Syntax is: pcl_viewer <file_name 1..N>.<pcd or vtk> <options>**, where options are:
+		**Syntax is: pcd_viewer <file_name 1..N>.<pcd or vtk> <options>**, where options are:
 		
 		                     -bc r,g,b                = background color
 		
@@ -722,7 +722,7 @@ This section provides a quick reference for some of the common tools in PCL.
 							
 		**Usage example:**
 							
-		``pcl_viewer -multiview 1 data/partial_cup_model.pcd data/partial_cup_model.pcd data/partial_cup_model.pcd``
+		``pcd_viewer -multiview 1 data/partial_cup_model.pcd data/partial_cup_model.pcd data/partial_cup_model.pcd``
 
 		The above will load the partial_cup_model.pcd file 3 times, and will create a multi-viewport rendering (-multiview 1).
 		
@@ -767,7 +767,7 @@ This section provides a quick reference for some of the common tools in PCL.
 	
 	 	**Syntax is: mesh2pcd input.{ply,obj} output.pcd <options>**, where options are:
 	 	
-		                     -level X      = tessellated sphere level (default: 2)
+		                     -level X      = tesselated sphere level (default: 2)
 		
 		                     -resolution X = the sphere resolution in angle increments (default: 100 deg)
 		

@@ -11,8 +11,6 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/features/normal_3d.h>
-#include <pcl/features/integral_image_normal.h>
-#include <pcl/common/time.h>
 
 namespace pcl
 {
@@ -44,16 +42,16 @@ namespace pcl
 
             float avg_dist_neighbours = 0.0;
             for (size_t j = 1; j < nn_indices.size (); j++)
-              avg_dist_neighbours += std::sqrt (nn_distances[j]);
+              avg_dist_neighbours += sqrt (nn_distances[j]);
 
-            avg_dist_neighbours /= static_cast<float> (nn_indices.size ());
+            avg_dist_neighbours /= static_cast<float>(nn_indices.size ());
 
             avg_distances[i] = avg_dist_neighbours;
             sum_distances += avg_dist_neighbours;
           }
 
           std::sort (avg_distances.begin (), avg_distances.end ());
-          float avg = avg_distances[static_cast<int> (avg_distances.size ()) / 2 + 1];
+          float avg = avg_distances[static_cast<int>(avg_distances.size ()) / 2 + 1];
           return avg;
         }
 
@@ -115,12 +113,10 @@ namespace pcl
           if (compute_mesh_resolution_)
           {
             mesh_resolution_ = computeMeshResolution (in);
-            std::cout << "compute mesh resolution:" << mesh_resolution_ << std::endl;
           }
 
           if (do_voxel_grid_)
           {
-            pcl::ScopeTime t ("Voxel grid...");
             float voxel_grid_size = grid_resolution_;
             if (compute_mesh_resolution_)
             {
@@ -130,7 +126,6 @@ namespace pcl
             pcl::VoxelGrid<PointInT> grid_;
             grid_.setInputCloud (in);
             grid_.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
-            grid_.setDownsampleAllData (true);
             grid_.filter (*out);
           }
           else
@@ -140,15 +135,14 @@ namespace pcl
 
           if (out->points.size () == 0)
           {
-            PCL_WARN("NORMAL estimator: Cloud has no points after voxel grid, won't be able to compute normals!\n");
+            PCL_WARN("NORMAL estimator: Cloud has no points after voxel grid, wont be able to compute normals!\n");
             return;
           }
 
           if (remove_outliers_)
           {
-            pcl::ScopeTime t ("remove_outliers_...");
             PointInTPtr out2 (new pcl::PointCloud<PointInT> ());
-            float radius = normal_radius_;
+            float radius= normal_radius_;
             if (compute_mesh_resolution_)
             {
               radius = mesh_resolution_ * factor_normals_;
@@ -159,10 +153,10 @@ namespace pcl
             //in synthetic views the render grazes some parts of the objects
             //thus creating a very sparse set of points that causes the normals to be very noisy
             //remove these points
-            pcl::RadiusOutlierRemoval<PointInT> sor;
+            pcl::RadiusOutlierRemoval < PointInT > sor;
             sor.setInputCloud (out);
             sor.setRadiusSearch (radius);
-            sor.setMinNeighborsInRadius (16);
+            sor.setMinNeighborsInRadius (8);
             sor.filter (*out2);
             out = out2;
 
@@ -182,116 +176,36 @@ namespace pcl
               radius *= factor_voxel_grid_;
           }
 
-          if (out->isOrganized ())
-          {
-            typedef typename pcl::IntegralImageNormalEstimation<PointInT, pcl::Normal> NormalEstimator_;
-            NormalEstimator_ n3d;
-            n3d.setNormalEstimationMethod (n3d.COVARIANCE_MATRIX);
-            //n3d.setNormalEstimationMethod (n3d.AVERAGE_3D_GRADIENT);
-            n3d.setInputCloud (out);
-            n3d.setRadiusSearch (radius);
-            n3d.setKSearch (0);
-            //n3d.setMaxDepthChangeFactor(0.02f);
-            //n3d.setNormalSmoothingSize(15.0f);
-            {
-              pcl::ScopeTime t ("compute normals...");
-              n3d.compute (*normals);
-            }
-          }
-          else
-          {
-
-            //check nans before computing normals
-            {
-              pcl::ScopeTime t ("check nans...");
-              int j = 0;
-              for (size_t i = 0; i < out->points.size (); ++i)
-              {
-                if (!pcl_isfinite (out->points[i].x) || !pcl_isfinite (out->points[i].y) || !pcl_isfinite (out->points[i].z))
-                  continue;
-
-                out->points[j] = out->points[i];
-                j++;
-              }
-
-              if (j != static_cast<int> (out->points.size ()))
-              {
-                PCL_ERROR("Contain nans...");
-              }
-
-              out->points.resize (j);
-              out->width = j;
-              out->height = 1;
-            }
-
-            typedef typename pcl::NormalEstimation<PointInT, pcl::Normal> NormalEstimator_;
-            NormalEstimator_ n3d;
-            typename pcl::search::KdTree<PointInT>::Ptr normals_tree (new pcl::search::KdTree<PointInT>);
-            normals_tree->setInputCloud (out);
-            n3d.setRadiusSearch (radius);
-            n3d.setSearchMethod (normals_tree);
-            n3d.setInputCloud (out);
-            {
-              pcl::ScopeTime t ("compute normals not organized...");
-              n3d.compute (*normals);
-            }
-          }
+          typedef typename pcl::NormalEstimation<PointInT, pcl::Normal> NormalEstimator_;
+          NormalEstimator_ n3d;
+          typename pcl::search::KdTree<PointInT>::Ptr normals_tree (new pcl::search::KdTree<PointInT>);
+          normals_tree->setInputCloud (out);
+          n3d.setRadiusSearch (radius);
+          n3d.setSearchMethod (normals_tree);
+          n3d.setInputCloud (out);
+          n3d.compute (*normals);
 
           //check nans...
-          if (!out->isOrganized ())
+          int j = 0;
+          for (size_t i = 0; i < normals->points.size (); ++i)
           {
-            pcl::ScopeTime t ("check nans...");
-            int j = 0;
-            for (size_t i = 0; i < normals->points.size (); ++i)
-            {
-              if (!pcl_isfinite (normals->points[i].normal_x) || !pcl_isfinite (normals->points[i].normal_y)
-                  || !pcl_isfinite (normals->points[i].normal_z))
-                continue;
+            if (!pcl_isfinite (normals->points[i].normal_x) || !pcl_isfinite (normals->points[i].normal_y)
+                || !pcl_isfinite (normals->points[i].normal_z))
+              continue;
 
-              normals->points[j] = normals->points[i];
-              out->points[j] = out->points[i];
-              j++;
-            }
-
-            normals->points.resize (j);
-            normals->width = j;
-            normals->height = 1;
-
-            out->points.resize (j);
-            out->width = j;
-            out->height = 1;
-          }
-          else
-          {
-            //is is organized, we set the xyz points to NaN
-            pcl::ScopeTime t ("check nans organized...");
-            bool NaNs = false;
-            for (size_t i = 0; i < normals->points.size (); ++i)
-            {
-              if (pcl_isfinite (normals->points[i].normal_x) && pcl_isfinite (normals->points[i].normal_y)
-                  && pcl_isfinite (normals->points[i].normal_z))
-                continue;
-
-              NaNs = true;
-
-              out->points[i].x = out->points[i].y = out->points[i].z = std::numeric_limits<float>::quiet_NaN ();
-            }
-
-            if (NaNs)
-            {
-              PCL_WARN("normals contain NaNs\n");
-              out->is_dense = false;
-            }
+            normals->points[j] = normals->points[i];
+            out->points[j] = out->points[i];
+            j++;
           }
 
-          /*for (size_t i = 0; i < out->points.size (); i++)
-          {
-            int r, g, b;
-            r = static_cast<int> (out->points[i].r);
-            g = static_cast<int> (out->points[i].g);
-            b = static_cast<int> (out->points[i].b);
-            std::cout << "in normal estimator:" << r << " " << g << " " << b << std::endl;
-          }*/
+          normals->points.resize (j);
+          normals->width = j;
+          normals->height = 1;
+
+          out->points.resize (j);
+          out->width = j;
+          out->height = 1;
+
         }
       };
   }

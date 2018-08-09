@@ -40,6 +40,9 @@
 
 #include <pcl/apps/cloud_composer/tool_interface/abstract_tool.h>
 #include <pcl/apps/cloud_composer/tool_interface/tool_factory.h>
+#include <pcl/apps/cloud_composer/items/cloud_item.h>
+#include <pcl/apps/cloud_composer/items/normals_item.h>
+
 
 
 namespace pcl
@@ -50,11 +53,11 @@ namespace pcl
     {
       Q_OBJECT
       public:
-        NormalEstimationTool (PropertiesModel* parameter_model, QObject* parent);
+        NormalEstimationTool (QStandardItemModel* parameter_model, QObject* parent);
         virtual ~NormalEstimationTool ();
         
-       virtual QList <CloudComposerItem*>
-        performAction (QList <const CloudComposerItem*> input_data, PointTypeFlags::PointType type = PointTypeFlags::NONE);
+        virtual QList <CloudComposerItem*>
+        performAction (ConstItemList input_data);
       
         inline virtual QString
         getToolName () const { return "Normal Estimation Tool";}
@@ -65,17 +68,14 @@ namespace pcl
     {
       Q_OBJECT
       Q_INTERFACES (pcl::cloud_composer::ToolFactory)
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-      Q_PLUGIN_METADATA(IID "cloud_composer.ToolFactory/1.0")
-#endif
       public:
         NewItemTool*
-        createTool (PropertiesModel* parameter_model, QObject* parent = 0) 
+        createTool (QStandardItemModel* parameter_model, QObject* parent = 0) 
         {
             return new NormalEstimationTool(parameter_model, parent);
         }
         
-        PropertiesModel*
+        QStandardItemModel*
         createToolParameterModel (QObject* parent);
         
         inline virtual QString 
@@ -86,18 +86,6 @@ namespace pcl
         
         virtual QString
         getIconName () const { return ":/normal_estimation.png"; }
-        
-        inline virtual CloudComposerItem::ItemType
-        getInputItemType () const
-        {
-          return CloudComposerItem::CLOUD_ITEM;
-        }
-        
-        inline virtual QList <CloudComposerItem::ItemType>
-        getRequiredInputChildrenTypes () const 
-        {
-          return QList <CloudComposerItem::ItemType> ();
-        }
     };
 
 

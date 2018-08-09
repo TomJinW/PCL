@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,8 +41,10 @@
 #define PCL_FILTERS_CONVOLUTION_3D_H
 
 #include <pcl/pcl_base.h>
-#include <pcl/filters/boost.h>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
 #include <pcl/search/pcl_search.h>
+#include <boost/optional.hpp>
 
 namespace pcl
 {
@@ -56,8 +58,7 @@ namespace pcl
     {
       public:
         typedef boost::shared_ptr<ConvolvingKernel<PointInT, PointOutT> > Ptr;
-        typedef boost::shared_ptr<const ConvolvingKernel<PointInT, PointOutT> > ConstPtr;
- 
+        typedef boost::shared_ptr<ConvolvingKernel<PointInT, PointOutT> > ConstPtr;
         typedef typename PointCloud<PointInT>::ConstPtr PointCloudInConstPtr;
 
         /// \brief empty constructor
@@ -80,7 +81,7 @@ namespace pcl
         virtual PointOutT
         operator() (const std::vector<int>& indices, const std::vector<float>& distances) = 0;
 
-        /** \brief Must call this method before doing any computation
+        /** \brief Must call this methode before doing any computation
           * \note make sure to override this with at least
           * \code
           * bool initCompute ()
@@ -94,7 +95,7 @@ namespace pcl
         initCompute () { return false; }
 
         /** \brief Utility function that annihilates a point making it fail the \ref pcl::isFinite test
-          * \param p point to annihilate
+          * \param[in/out] p point to annihilate
           */
         static void
         makeInfinite (PointOutT& p)
@@ -129,7 +130,7 @@ namespace pcl
           , threshold_ (std::numeric_limits<float>::infinity ())
         {}
 
-        virtual ~GaussianKernel () {}
+        ~GaussianKernel () {}
 
         /** Set the sigma parameter of the Gaussian
           * \param[in] sigma
@@ -150,7 +151,7 @@ namespace pcl
         inline void
         setThreshold (float threshold) { threshold_ = threshold; }
 
-        /** Must call this method before doing any computation */
+        /** Must call this methode before doing any computation */
         bool initCompute ();
 
         virtual PointOutT
@@ -218,10 +219,10 @@ namespace pcl
         ~Convolution3D () {}
 
         /** \brief Initialize the scheduler and set the number of threads to use.
-          * \param nr_threads the number of hardware threads to use (0 sets the value back to automatic)
+          * \param nr_threads the number of hardware threads to use (-1 sets the value back to automatic)
           */
         inline void
-        setNumberOfThreads (unsigned int nr_threads = 0) { threads_ = nr_threads; }
+        setNumberOfThreads (unsigned int nr_threads) { threads_ = (nr_threads == 0) ? 1 : nr_threads; }
 
         /** \brief Set convolving kernel
           * \param[in] kernel convolving element
@@ -279,7 +280,7 @@ namespace pcl
         double search_radius_;
 
         /** \brief number of threads */
-        unsigned int threads_;
+        int threads_;
 
         /** \brief convlving kernel */
         KernelT kernel_;

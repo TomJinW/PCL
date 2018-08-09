@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -234,7 +233,7 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
   normalDisambiguation (*normals_, neighbours_indices, fitted_normal);
 
   //setting LRF Z axis
-  lrf.row (2).matrix () = fitted_normal;
+  lrf.row (2) = fitted_normal;
 
   /////////////////////////////////////////////////////////////////////////////////////////
   //find X axis
@@ -264,7 +263,7 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
   {
     randomOrthogonalAxis (fitted_normal, x_axis);
 
-    lrf.row (0).matrix () = x_axis;
+    lrf.row (0) = x_axis;
 
     for (int i = 0; i < check_margin_array_size_; i++)
     {
@@ -346,19 +345,13 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
       }
     }//for each neighbor
 
-    // Check if we are not in a degenerate case (all the neighboring normals are NaNs)
-    if (min_normal_index == -1)
-    {
-      lrf.setConstant (std::numeric_limits<float>::quiet_NaN ());
-      return (std::numeric_limits<float>::max ());
-    }
     //find orthogonal axis directed to minNormalIndex point projection on plane with fittedNormal as axis
     directedOrthogonalAxis (fitted_normal, input_->at (index).getVector3fMap (),
                             surface_->at (min_normal_index).getVector3fMap (), x_axis);
     y_axis = fitted_normal.cross (x_axis);
 
-    lrf.row (0).matrix () = x_axis;
-    lrf.row (1).matrix () = y_axis;
+    lrf.row (0) = x_axis;
+    lrf.row (1) = y_axis;
     //z axis already set
 
 
@@ -373,26 +366,19 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
       directedOrthogonalAxis (fitted_normal, input_->at (index).getVector3fMap (), best_margin_point, x_axis);
       y_axis = fitted_normal.cross (x_axis);
 
-      lrf.row (0).matrix () = x_axis;
-      lrf.row (1).matrix () = y_axis;
+      lrf.row (0) = x_axis;
+      lrf.row (1) = y_axis;
       //z axis already set
 
       return (min_normal_cos);
-    }
-
-    // Check if we are not in a degenerate case (all the neighboring normals are NaNs)
-    if (min_normal_index == -1)
-    {
-      lrf.setConstant (std::numeric_limits<float>::quiet_NaN ());
-      return (std::numeric_limits<float>::max ());
     }
 
     directedOrthogonalAxis (fitted_normal, input_->at (index).getVector3fMap (),
                             surface_->at (min_normal_index).getVector3fMap (), x_axis);
     y_axis = fitted_normal.cross (x_axis);
 
-    lrf.row (0).matrix () = x_axis;
-    lrf.row (1).matrix () = y_axis;
+    lrf.row (0) = x_axis;
+    lrf.row (1) = y_axis;
     //z axis already set
 
     return (min_normal_cos);
@@ -417,18 +403,11 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
       directedOrthogonalAxis (fitted_normal, input_->at (index).getVector3fMap (), best_margin_point, x_axis);
       y_axis = fitted_normal.cross (x_axis);
 
-      lrf.row (0).matrix () = x_axis;
-      lrf.row (1).matrix () = y_axis;
+      lrf.row (0) = x_axis;
+      lrf.row (1) = y_axis;
       //z axis already set
 
       return (min_normal_cos);
-    }
-
-    // Check if we are not in a degenerate case (all the neighboring normals are NaNs)
-    if (min_normal_index == -1)
-    {
-      lrf.setConstant (std::numeric_limits<float>::quiet_NaN ());
-      return (std::numeric_limits<float>::max ());
     }
 
     //find orthogonal axis directed to minNormalIndex point projection on plane with fittedNormal as axis
@@ -436,8 +415,8 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
                             surface_->at (min_normal_index).getVector3fMap (), x_axis);
     y_axis = fitted_normal.cross (x_axis);
 
-    lrf.row (0).matrix () = x_axis;
-    lrf.row (1).matrix () = y_axis;
+    lrf.row (0) = x_axis;
+    lrf.row (1) = y_axis;
     //z axis already set
 
     return (min_normal_cos);
@@ -569,13 +548,6 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
     }
     else
     {
-      // Check if we are not in a degenerate case (all the neighboring normals are NaNs)
-      if (min_normal_index == -1)
-      {
-        lrf.setConstant (std::numeric_limits<float>::quiet_NaN ());
-        return (std::numeric_limits<float>::max ());
-      }
-
       //find orthogonal axis directed to minNormalIndex point projection on plane with fittedNormal as axis
       directedOrthogonalAxis (fitted_normal, input_->at (index).getVector3fMap (),
                               surface_->at (min_normal_index).getVector3fMap (), x_axis);
@@ -584,8 +556,8 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computePo
 
   y_axis = fitted_normal.cross (x_axis);
 
-  lrf.row (0).matrix () = x_axis;
-  lrf.row (1).matrix () = y_axis;
+  lrf.row (0) = x_axis;
+  lrf.row (1) = y_axis;
   //z axis already set
 
   return (min_normal_cos);
@@ -617,12 +589,51 @@ pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT>::computeFe
       output.is_dense = false;
     }
 
-    for (int d = 0; d < 3; ++d)
+    rf.x_axis.getNormalVector3fMap () = currentLrf.row (0);
+    rf.y_axis.getNormalVector3fMap () = currentLrf.row (1);
+    rf.z_axis.getNormalVector3fMap () = currentLrf.row (2);
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template<typename PointInT, typename PointNT> void
+pcl::BOARDLocalReferenceFrameEstimation<PointInT, PointNT, Eigen::MatrixXf>::computeFeatureEigen (
+                                                                                                  pcl::PointCloud<
+                                                                                                      Eigen::MatrixXf> &output)
+{
+  //check whether used with search radius or search k-neighbors
+  if (this->getKSearch () != 0)
+  {
+    PCL_ERROR(
+        "[pcl::%s::computeFeatureEigen] Error! Search method set to k-neighborhood. Call setKSearch(0) and setRadiusSearch( radius ) to use this class.\n",
+        getClassName().c_str());
+    return;
+  }
+
+  this->resetData ();
+
+  // Set up the output channels
+  output.channels["board"].name     = "board";
+  output.channels["board"].offset   = 0;
+  output.channels["board"].size     = 4;
+  output.channels["board"].count    = 9;
+  output.channels["board"].datatype = sensor_msgs::PointField::FLOAT32;
+
+  //output.points.resize (indices_->size (), 10);
+  output.points.resize (indices_->size (), 9);
+  for (size_t point_idx = 0; point_idx < indices_->size (); ++point_idx)
+  {
+    Eigen::Matrix3f currentLrf;
+    //output.points (point_idx, 9) = computePointLRF (*indices_[point_idx], currentLrf);
+    //if (output.points (point_idx, 9) == std::numeric_limits<float>::max ())
+    if (this->computePointLRF ((*indices_)[point_idx], currentLrf) == std::numeric_limits<float>::max ())
     {
-      rf.x_axis[d] = currentLrf (0, d);
-      rf.y_axis[d] = currentLrf (1, d);
-      rf.z_axis[d] = currentLrf (2, d);
+      output.is_dense = false;
     }
+
+    output.points.block<1, 3> (point_idx, 0) = currentLrf.row (0);
+    output.points.block<1, 3> (point_idx, 3) = currentLrf.row (1);
+    output.points.block<1, 3> (point_idx, 6) = currentLrf.row (2);
   }
 }
 

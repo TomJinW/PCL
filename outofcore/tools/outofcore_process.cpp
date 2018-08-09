@@ -33,15 +33,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: outofcore_process.cpp 6927 2012-08-23 02:34:54Z stfox88 $
- * \author Justin Rosen
- * \author Stephen Fox
  */
 
 #include <pcl/common/time.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/PCLPointCloud2.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/pcl_macros.h>
@@ -52,8 +48,8 @@
 #include <pcl/outofcore/outofcore.h>
 #include <pcl/outofcore/outofcore_impl.h>
 
-// todo: Read clouds as PCLPointCloud2 so we don't need to define PointT explicitly.
-//       This also requires our octree to take PCLPointCloud2 as an input.
+// todo: Read clouds as PointCloud2 so we don't need to define PointT explicitly.
+//       This also requires our octree to take PointCloud2 as an input.
 typedef pcl::PointXYZ PointT;
 
 using namespace pcl;
@@ -68,34 +64,32 @@ using pcl::console::print_info;
 
 #include <boost/foreach.hpp>
 
-typedef OutofcoreOctreeBase<> octree_disk;
+typedef octree_base<octree_disk_container<PointT> , PointT> octree_disk;
 
 const int OCTREE_DEPTH (0);
 const int OCTREE_RESOLUTION (1);
 
-PCLPointCloud2::Ptr
+PointCloud<PointT>::Ptr
 getCloudFromFile (boost::filesystem::path pcd_path)
 {
+  // Read PCD file
+  PointCloud<PointT>::Ptr cloud (new PointCloud<PointT> ());
+
   print_info ("Reading: %s ", pcd_path.c_str ());
 
-
-  // Read PCD file
-  PCLPointCloud2::Ptr cloud(new PCLPointCloud2);
-
-  if (io::loadPCDFile (pcd_path.string (), *cloud) == -1)
+  if (io::loadPCDFile<PointT> (pcd_path.string (), *cloud) == -1) //* load the file
   {
     PCL_ERROR ("Couldn't read file\n");
     exit (-1);
   }
 
   print_info ("(%d)\n", (cloud->width * cloud->height));
-
   return cloud;
 }
 
 int
 outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesystem::path root_dir, 
-                  int depth, double resolution, int build_octree_with, bool gen_lod, bool overwrite, bool multiresolution)
+                  int depth, double resolution, int build_octree_with, bool gen_lod, bool overwrite)
 {
   // Bounding box min/max pts
   PointT min_pt, max_pt;
@@ -105,21 +99,18 @@ outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesys
   {
 
     // Get cloud
-    PCLPointCloud2::Ptr cloud = getCloudFromFile (pcd_paths[i]);
-    PointCloud<PointXYZ>::Ptr cloudXYZ (new PointCloud<PointXYZ>);
-
-    fromPCLPointCloud2 (*cloud, *cloudXYZ);
+    PointCloud<PointT>::Ptr cloud = getCloudFromFile (pcd_paths[i]);
 
     PointT tmp_min_pt, tmp_max_pt;
 
     if (i == 0)
     {
       // Get initial min/max
-      getMinMax3D (*cloudXYZ, min_pt, max_pt);
+      getMinMax3D (*cloud, min_pt, max_pt);
     }
     else
     {
-      getMinMax3D (*cloudXYZ, tmp_min_pt, tmp_max_pt);
+      getMinMax3D (*cloud, tmp_min_pt, tmp_max_pt);
 
       // Resize new min
       if (tmp_min_pt.x < min_pt.x)
@@ -142,8 +133,12 @@ outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesys
   std::cout << "Bounds: " << min_pt << " - " << max_pt << std::endl;
 
   // The bounding box of the root node of the out-of-core octree must be specified
-  const Eigen::Vector3d bounding_box_min (min_pt.x, min_pt.y, min_pt.z);
-  const Eigen::Vector3d bounding_box_max (max_pt.x, max_pt.y, max_pt.z);
+  const double bounding_box_min[3] = {min_pt.x, min_pt.y, min_pt.z};
+  const double bounding_box_max[3] = {max_pt.x, max_pt.y, max_pt.z};
+  
+//arbitrarily large bounding box
+//  const double bounding_box_min[3] = { -1e8, -1e8, -1e8 };
+//  const double bounding_box_max[3] = { 1e8, 1e8, 1e8 };
 
   //specify the directory and the root node's meta data file with a
   //".oct_idx" extension (currently it must be this extension)
@@ -182,24 +177,22 @@ outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesys
   for (size_t i = 0; i < pcd_paths.size (); i++)
   {
 
-    PCLPointCloud2::Ptr cloud = getCloudFromFile (pcd_paths[i]);
+    PointCloud<PointT>::Ptr cloud = getCloudFromFile (pcd_paths[i]);
 
-    boost::uint64_t pts = 0;
+    uint64_t pts = 0;
     
-    if (gen_lod && !multiresolution)
+    //load the points into the outofcore octree
+    if (gen_lod)
     {
       print_info ("  Generating LODs\n");
       pts = outofcore_octree->addPointCloud_and_genLOD (cloud);
     }
     else
     {
-      pts = outofcore_octree->addPointCloud (cloud, false);
+      pts = outofcore_octree->addPointCloud (cloud);
     }
-    
-    print_info ("Successfully added %lu points\n", pts);
-    print_info ("%lu Points were dropped (probably NaN)\n", cloud->width*cloud->height - pts);
-    
-//    assert ( pts == cloud->width * cloud->height );
+    print_info ("Successfully added %lu points\n",pts);
+    assert ( pts == cloud->points.size () );
     
     total_pts += pts;
   }
@@ -213,13 +206,6 @@ outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesys
   print_info ("  Depth: %i\n", outofcore_octree->getDepth ());
   print_info ("  Resolution: [%f, %f]\n", x, y);
 
-  if(multiresolution)
-  {
-    print_info ("Generating LOD...\n");
-    outofcore_octree->setSamplePercent (0.25);
-    outofcore_octree->buildLOD ();
-  }
-
   //free outofcore data structure; the destructor forces buffer flush to disk
   delete outofcore_octree;
 
@@ -229,7 +215,7 @@ outofcoreProcess (std::vector<boost::filesystem::path> pcd_paths, boost::filesys
 void
 printHelp (int, char **argv)
 {
-  print_info ("This program is used to process pcd files into an outofcore data structure viewable by the");
+  print_info ("This program is used to process pcd fiels into an outofcore data structure viewable by the");
   print_info ("pcl_outofcore_viewer\n\n");
   print_info ("%s <options> <input>.pcd <output_tree_dir>\n", argv[0]);
   print_info ("\n");
@@ -238,7 +224,6 @@ printHelp (int, char **argv)
   print_info ("\t -resolution <resolution>      \t Octree resolution\n");
   print_info ("\t -gen_lod                      \t Generate octree LODs\n");
   print_info ("\t -overwrite                    \t Overwrite existing octree\n");
-  print_info ("\t -multiresolution              \t Generate multiresolutoin LOD\n");
   print_info ("\t -h                            \t Display help\n");
   print_info ("\n");
 }
@@ -272,7 +257,6 @@ main (int argc, char* argv[])
   int depth = 4;
   double resolution = .1;
   bool gen_lod = false;
-  bool multiresolution = false;
   bool overwrite = false;
   int build_octree_with = OCTREE_DEPTH;
 
@@ -292,12 +276,6 @@ main (int argc, char* argv[])
   parse_argument (argc, argv, "-resolution", resolution);
   gen_lod = find_switch (argc, argv, "-gen_lod");
   overwrite = find_switch (argc, argv, "-overwrite");
-
-  if (gen_lod && find_switch (argc, argv, "-multiresolution"))
-  {
-    multiresolution = true;
-  }
-  
 
   // Parse non-option arguments for pcd files
   std::vector<int> file_arg_indices = parse_file_extension_argument (argc, argv, ".pcd");
@@ -327,7 +305,7 @@ main (int argc, char* argv[])
 
   // Check if a root directory was specified, use directory of pcd file
   if (root_dir.extension () == ".pcd")
-    root_dir = root_dir.parent_path () / (root_dir.stem().string() + "_tree").c_str();
+    root_dir = root_dir.parent_path () / "tree";
 
-  return outofcoreProcess (pcd_paths, root_dir, depth, resolution, build_octree_with, gen_lod, overwrite, multiresolution);
+  return outofcoreProcess (pcd_paths, root_dir, depth, resolution, build_octree_with, gen_lod, overwrite);
 }

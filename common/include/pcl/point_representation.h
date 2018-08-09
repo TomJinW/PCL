@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -48,7 +48,7 @@ namespace pcl
   /** \brief @b PointRepresentation provides a set of methods for converting a point structs/object into an
     * n-dimensional vector.
     * \note This is an abstract class.  Subclasses must set nr_dimensions_ to the appropriate value in the constructor
-    * and provide an implementation of the pure virtual copyToFloatArray method.
+    * and provide an implemention of the pure virtual copyToFloatArray method.
     * \author Michael Dixon
     */
   template <typename PointT>
@@ -80,7 +80,7 @@ namespace pcl
       /** \brief Empty destructor */
       virtual ~PointRepresentation () {}
 
-      /** \brief Copy point data from input point to a float array. This method must be overridden in all subclasses.
+      /** \brief Copy point data from input point to a float array. This method must be overriden in all subclasses.
        *  \param[in] p The input point
        *  \param[out] out A pointer to a float array.
        */
@@ -417,45 +417,12 @@ namespace pcl
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   template <>
-  class DefaultPointRepresentation <GASDSignature512> : public DefaultFeatureRepresentation <GASDSignature512>
-  {};
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  template <>
-  class DefaultPointRepresentation <GASDSignature984> : public DefaultFeatureRepresentation <GASDSignature984>
-  {};
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  template <>
-  class DefaultPointRepresentation <GASDSignature7992> : public DefaultFeatureRepresentation <GASDSignature7992>
-  {};
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  template <>
-  class DefaultPointRepresentation <Narf36> : public PointRepresentation <Narf36>
-  {
-    public:
-      DefaultPointRepresentation ()
-      {
-        nr_dimensions_ = 36;
-        trivial_=false;
-      }
-
-      virtual void
-      copyToFloatArray (const Narf36 &p, float * out) const
-      {
-        for (int i = 0; i < nr_dimensions_; ++i)
-          out[i] = p.descriptor[i];
-      }
-  };
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  template <>
   class DefaultPointRepresentation<NormalBasedSignature12> : public DefaultFeatureRepresentation <NormalBasedSignature12>
   {};
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   template <>
-  class DefaultPointRepresentation<ShapeContext1980> : public PointRepresentation<ShapeContext1980>
+  class DefaultPointRepresentation<ShapeContext> : public PointRepresentation<ShapeContext>
   {
     public:
       DefaultPointRepresentation ()
@@ -464,7 +431,7 @@ namespace pcl
       }
 
       virtual void
-      copyToFloatArray (const ShapeContext1980 &p, float * out) const
+      copyToFloatArray (const ShapeContext &p, float * out) const
       {
         for (int i = 0; i < nr_dimensions_; ++i)
           out[i] = p.descriptor[i];
@@ -473,16 +440,19 @@ namespace pcl
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   template <>
-  class DefaultPointRepresentation<UniqueShapeContext1960> : public PointRepresentation<UniqueShapeContext1960>
+  class
+  PCL_DEPRECATED_CLASS (DefaultPointRepresentation, "SHOT POINT IS DEPRECATED, USE SHOT352 FOR SHAPE AND SHOT1344 FOR SHAPE+COLOR INSTEAD")
+    <SHOT>
+    : public PointRepresentation<SHOT>
   {
     public:
       DefaultPointRepresentation ()
       {
-        nr_dimensions_ = 1960;
+        nr_dimensions_ = 352;
       }
 
       virtual void
-      copyToFloatArray (const UniqueShapeContext1960 &p, float * out) const
+      copyToFloatArray (const SHOT &p, float * out) const
       {
         for (int i = 0; i < nr_dimensions_; ++i)
           out[i] = p.descriptor[i];

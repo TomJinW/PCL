@@ -38,14 +38,14 @@
  */
 #include <pcl/io/pcd_grabber.h>
 #include <pcl/console/parse.h>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <pcl/console/print.h>
-#include <pcl/visualization/boost.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/image_viewer.h>
 
-#if (PCL_LINEAR_VERSION(VTK_MAJOR_VERSION,VTK_MINOR_VERSION,0)<=PCL_LINEAR_VERSION(5,4,0))
-  #define DISPLAY_IMAGE
-#endif
 
 using pcl::console::print_error;
 using pcl::console::print_info;
@@ -64,7 +64,7 @@ printHelp (int, char **argv)
   print_info ("                     -file file_name          = PCD file to be read from\n");
   print_info ("                     -dir directory_path      = directory path to PCD file(s) to be read from\n");
   print_info ("                     -fps frequency           = frames per second\n");
-  print_info ("                     -repeat                  = optional parameter that tells whether the PCD file(s) should be \"grabbed\" in a endless loop.\n");
+  print_info ("                     -repeat                  = optional parameter that tells wheter the PCD file(s) should be \"grabbed\" in a endless loop.\n");
   print_info ("\n");
   print_info ("                     -cam (*)                 = use given camera settings as initial view\n");
   print_info (stderr, " (*) [Clipping Range / Focal Point / Position / ViewUp / Distance / Window Size / Window Pos] or use a <filename.cam> that contains the same information.\n");
@@ -72,7 +72,7 @@ printHelp (int, char **argv)
 
 // Create the PCLVisualizer object
 boost::shared_ptr<pcl::visualization::PCLVisualizer> cloud_viewer;
-#ifdef DISPLAY_IMAGE
+#if !((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION <= 4))
 boost::shared_ptr<pcl::visualization::ImageViewer> img_viewer;
 #endif
 
@@ -142,7 +142,7 @@ main (int argc, char** argv)
 
   cloud_viewer.reset (new pcl::visualization::PCLVisualizer (argc, argv, "PCD viewer"));
 
-#ifdef DISPLAY_IMAGE
+#if !((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION <= 4))
   img_viewer.reset (new pcl::visualization::ImageViewer ("OpenNI Viewer"));
 #endif
 
@@ -164,14 +164,13 @@ main (int argc, char** argv)
     float ax_x = 0.0, ax_y = 0.0, ax_z = 0.0;
     pcl::console::parse_3x_arguments (argc, argv, "-ax_pos", ax_x, ax_y, ax_z, false);
     // Draw XYZ axes if command-line enabled
-    cloud_viewer->addCoordinateSystem (axes, ax_x, ax_y, ax_z, "global");
+    cloud_viewer->addCoordinateSystem (axes, ax_x, ax_y, ax_z);
   }
 
   float frames_per_second = 0; // 0 means only if triggered!
   pcl::console::parse (argc, argv, "-fps", frames_per_second);
   if (frames_per_second < 0)
     frames_per_second = 0.0;
-
 
   bool repeat = (pcl::console::find_argument (argc, argv, "-repeat") != -1);
 
@@ -203,7 +202,7 @@ main (int argc, char** argv)
           pcd_files.push_back (itr->path ().string ());
           std::cout << "added: " << itr->path ().string () << std::endl;
 #else
-          pcd_files.push_back (itr->path ().string ());
+          pcd_files.push_back (itr->path ());
           std::cout << "added: " << itr->path () << std::endl;
 #endif
         }
@@ -232,17 +231,15 @@ main (int argc, char** argv)
   std::string mouse_msg_2D ("Mouse coordinates in image viewer");
   std::string key_msg_2D ("Key event for image viewer");
 
-#ifdef DISPLAY_IMAGE
   img_viewer->registerMouseCallback (&mouse_callback, static_cast<void*> (&mouse_msg_2D));
   img_viewer->registerKeyboardCallback(&keyboard_callback, static_cast<void*> (&key_msg_2D));
-#endif
 
   grabber->start ();
   while (!cloud_viewer->wasStopped ())
   {
     cloud_viewer->spinOnce ();
 
-#ifdef DISPLAY_IMAGE
+#if !((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION <= 4))
     img_viewer->spinOnce ();
 #endif
 
@@ -251,13 +248,14 @@ main (int argc, char** argv)
       boost::this_thread::sleep(boost::posix_time::microseconds(10000));
       continue;
     }
-    else if (mutex_.try_lock ())
+
+    if (mutex_.try_lock ())
     {
       pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr temp_cloud;
       temp_cloud.swap (cloud_);
       mutex_.unlock ();
 
-#ifdef DISPLAY_IMAGE
+#if !((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION <= 4))
       img_viewer->showRGBImage (*temp_cloud);
 #endif
 

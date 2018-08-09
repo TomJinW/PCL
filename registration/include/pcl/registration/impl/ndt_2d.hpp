@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2011-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,15 +33,15 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id$
- *
  */
 #ifndef PCL_NDT_2D_IMPL_H_
 #define PCL_NDT_2D_IMPL_H_
 #include <cmath>
 
-#include <pcl/registration/eigen.h>
-#include <pcl/registration/boost.h>
+#include <boost/noncopyable.hpp>
+#include <boost/make_shared.hpp>
+
+#include <Eigen/Dense>
 
 namespace pcl
 {
@@ -358,7 +357,6 @@ namespace Eigen
   template<typename PointT> struct NumTraits<pcl::ndt2d::NormalDist<PointT> >
   {
     typedef double Real;
-    typedef double Literal;
     static Real dummy_precision () { return 1.0; }
     enum {
       IsComplex = 0,
@@ -377,9 +375,6 @@ template <typename PointSource, typename PointTarget> void
 pcl::NormalDistributionsTransform2D<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
   PointCloudSource intm_cloud = output;
-
-  nr_iterations_ = 0;
-  converged_ = false;
 
   if (guess != Eigen::Matrix4f::Identity ())
   {
@@ -455,8 +450,8 @@ pcl::NormalDistributionsTransform2D<PointSource, PointTarget>::computeTransforma
       xytheta_transformation = new_transformation;
       
       // update transformation matrix from x, y, theta:
-      transformation.block<3,3> (0,0).matrix () = Eigen::Matrix3f (Eigen::AngleAxisf (static_cast<float> (xytheta_transformation[2]), Eigen::Vector3f::UnitZ ()));
-      transformation.block<3,1> (0,3).matrix () = Eigen::Vector3f (static_cast<float> (xytheta_transformation[0]), static_cast<float> (xytheta_transformation[1]), 0.0f);
+      transformation.block<3,3> (0,0) = Eigen::Matrix3f (Eigen::AngleAxisf (static_cast<float> (xytheta_transformation[2]), Eigen::Vector3f::UnitZ ()));
+      transformation.block<3,1> (0,3) = Eigen::Vector3f (static_cast<float> (xytheta_transformation[0]), static_cast<float> (xytheta_transformation[1]), 0.0f);
 
       //std::cout << "new transformation:\n" << transformation << std::endl;
     }
@@ -475,19 +470,9 @@ pcl::NormalDistributionsTransform2D<PointSource, PointTarget>::computeTransforma
 
     //std::cout << "eps=" << fabs ((transformation - previous_transformation_).sum ()) << std::endl;
 
-    Eigen::Matrix4f transformation_delta = transformation.inverse() * previous_transformation_;
-    double cos_angle = 0.5 * (transformation_delta.coeff (0, 0) + transformation_delta.coeff (1, 1) + transformation_delta.coeff (2, 2) - 1);
-    double translation_sqr = transformation_delta.coeff (0, 3) * transformation_delta.coeff (0, 3) +
-                               transformation_delta.coeff (1, 3) * transformation_delta.coeff (1, 3) +
-                               transformation_delta.coeff (2, 3) * transformation_delta.coeff (2, 3);
-
-    if (nr_iterations_ >= max_iterations_ ||
-        ((transformation_epsilon_ > 0 && translation_sqr <= transformation_epsilon_) && (transformation_rotation_epsilon_ > 0 && cos_angle >= transformation_rotation_epsilon_)) ||
-        ((transformation_epsilon_ <= 0)                                             && (transformation_rotation_epsilon_ > 0 && cos_angle >= transformation_rotation_epsilon_)) ||
-        ((transformation_epsilon_ > 0 && translation_sqr <= transformation_epsilon_) && (transformation_rotation_epsilon_ <= 0)))
-    {
+    if (nr_iterations_ > max_iterations_ ||
+       (transformation - previous_transformation_).array ().abs ().sum () < transformation_epsilon_)
       converged_ = true;
-    }
   }
   final_transformation_ = transformation;
   output = intm_cloud;

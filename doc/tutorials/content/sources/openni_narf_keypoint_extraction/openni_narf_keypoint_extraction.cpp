@@ -87,13 +87,20 @@ int main (int argc, char** argv)
   pcl::visualization::RangeImageVisualizer range_image_widget ("Range Image");
   
   pcl::visualization::PCLVisualizer viewer ("3D Viewer");
-  viewer.addCoordinateSystem (1.0f, "global");
+  viewer.addCoordinateSystem (1.0f);
   viewer.setBackgroundColor (1, 1, 1);
   
   viewer.initCameraParameters ();
-  viewer.setCameraPosition (0.0, -0.3, -2.0,
-                            0.0, -0.3, 1.0,
-                            0.0, -1.0, 0.0);
+  viewer.camera_.pos[0] = 0.0;
+  viewer.camera_.pos[1] = -0.3;
+  viewer.camera_.pos[2] = -2.0;
+  viewer.camera_.focal[0] = 0.0;
+  viewer.camera_.focal[1] = 0.0+viewer.camera_.pos[1];
+  viewer.camera_.focal[2] = 1.0;
+  viewer.camera_.view[0] = 0.0;
+  viewer.camera_.view[1] = -1.0;
+  viewer.camera_.view[2] = 0.0;
+  viewer.updateCamera ();
   
   openni_wrapper::OpenNIDriver& driver = openni_wrapper::OpenNIDriver::getInstance ();
   if (driver.getNumberDevices () > 0)

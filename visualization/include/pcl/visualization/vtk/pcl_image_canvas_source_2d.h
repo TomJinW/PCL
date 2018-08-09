@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -34,27 +33,34 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ * $Id$
+ *
  */
 #ifndef PCL_VTK_IMAGE_CANVAS_SOURCE_2D_H_
 #define PCL_VTK_IMAGE_CANVAS_SOURCE_2D_H_
 
 #include <pcl/pcl_macros.h>
-#include <vtkImageCanvasSource2D.h>
+#include <pcl/visualization/vtk.h>
 
 namespace pcl
 {
   namespace visualization
   {
-    /** \brief PCLImageCanvasSource2D represents our own custom version of 
-      * vtkImageCanvasSource2D, used by the ImageViewer class.
+    /** \brief pclImageCanvasSource2D represents our own custom version of vtkImageCanvasSource2D, used by 
+      * the ImageViewer class.
       */
     class PCL_EXPORTS PCLImageCanvasSource2D : public vtkImageCanvasSource2D
     {
       public:
         static PCLImageCanvasSource2D *New ();
 
-        void 
-        DrawImage (vtkImageData* image);
+      inline void 
+      DrawImage (vtkImageData* image)
+      {
+        this->ImageData->DeepCopy (image);
+        this->Modified();
+        return;
+      }
     };
   }
 }

@@ -111,15 +111,15 @@ namespace pcl
       }
 
       /** \brief returns the computed transformations
-       * \param[out] transforms transformations
+       * \param[out] transformations
        */
       void getTransforms(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & transforms) {
         transforms = transforms_;
       }
 
       /** \brief sets model and input views
+       * \param[in] model view
        * \param[in] input_view
-       * \param[in] target_view
        */
       void
       setInputAndTargetView (PointTPtr & input_view, PointTPtr & target_view)
@@ -129,8 +129,8 @@ namespace pcl
       }
 
       /** \brief sets model and input centroids
-        * \param[in] c1 model view centroid
-        * \param[in] c2 input view centroid
+        * \param[in] model view centroid
+        * \param[in] input view centroid
         */
       void
       setInputAndTargetCentroids (Eigen::Vector3f & c1, Eigen::Vector3f & c2)
@@ -140,8 +140,8 @@ namespace pcl
       }
 
       /** \brief Computes the transformation aligning model to input
-       * \param[in] input_ftt CRH histogram of the input cloud
-       * \param[in] target_ftt CRH histogram of the target cloud
+       * \param[in] CRH histogram of the input cloud
+       * \param[in] CRH histogram of the target cloud
        */
       void
       align (pcl::PointCloud<pcl::Histogram<nbins_> > & input_ftt, pcl::PointCloud<pcl::Histogram<nbins_> > & target_ftt)
@@ -170,16 +170,16 @@ namespace pcl
           translation2 (1, 3) = centroid_input_[1] - centr[1];
           translation2 (2, 3) = centroid_input_[2] - centr[2];
 
-          Eigen::Matrix4f resultHom (translation2 * rollHomMatrix);
+          Eigen::Matrix4f resultHom = translation2 * rollHomMatrix;
           transforms_.push_back(resultHom.inverse());
         }
 
       }
 
-      /** \brief Computes the roll angle that aligns input to model.
-       * \param[in] input_ftt CRH histogram of the input cloud
-       * \param[in] target_ftt CRH histogram of the target cloud
-       * \param[out] peaks Vector containing angles where the histograms correlate
+      /** \brief Computes the roll angle that aligns input to modle.
+       * \param[in] CRH histogram of the input cloud
+       * \param[in] CRH histogram of the target cloud
+       * \param[out] Vector containing angles where the histograms correlate
        */
       void
       computeRollAngle (pcl::PointCloud<pcl::Histogram<nbins_> > & input_ftt, pcl::PointCloud<pcl::Histogram<nbins_> > & target_ftt,
@@ -213,7 +213,7 @@ namespace pcl
           multAB[k].r = a * c - b * d;
           multAB[k].i = b * c + a * d;
 
-          float tmp = std::sqrt (multAB[k].r * multAB[k].r + multAB[k].i * multAB[k].i);
+          float tmp = sqrt (multAB[k].r * multAB[k].r + multAB[k].i * multAB[k].i);
 
           multAB[k].r /= tmp;
           multAB[k].i /= tmp;
@@ -227,7 +227,7 @@ namespace pcl
 
         std::vector < std::pair<float, int> > scored_peaks (nr_bins_after_padding);
         for (int i = 0; i < nr_bins_after_padding; i++)
-          scored_peaks[i] = std::make_pair (invAB[i].r, i);
+          scored_peaks[i] = std::make_pair<float, int> (invAB[i].r, i);
 
         std::sort (scored_peaks.begin (), scored_peaks.end (), peaks_ordering ());
 
@@ -248,7 +248,7 @@ namespace pcl
 
             for (size_t j = 0; j < peaks_indices.size (); j++)
             { //check inserted peaks, first pick always inserted
-              if (std::abs (peaks_indices[j] - scored_peaks[i].second) <= peak_distance || std::abs (
+              if (fabs (peaks_indices[j] - scored_peaks[i].second) <= peak_distance || fabs (
                                                                                              peaks_indices[j] - (scored_peaks[i].second
                                                                                                  - nr_bins_after_padding)) <= peak_distance)
               {

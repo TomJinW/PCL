@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -87,14 +87,16 @@ compute (const PointCloud<PointNormal>::Ptr &input, pcl::PolygonMesh &output,
   
   print_highlight (stderr, "Computing ");
 
+
   PointCloud<PointNormal>::Ptr cloud (new PointCloud<PointNormal> ());
-  for (size_t i = 0; i < input->size (); ++i)
+  for (size_t i = 0; i < cloud->size (); ++i)
     if (pcl_isfinite (input->points[i].x))
       cloud->push_back (input->points[i]);
 
   cloud->width = static_cast<uint32_t> (cloud->size ());
   cloud->height = 1;
-  cloud->is_dense = true;
+  cloud->is_dense = false;
+
 
   GreedyProjectionTriangulation<PointNormal> gpt;
   gpt.setSearchMethod (pcl::search::KdTree<pcl::PointNormal>::Ptr (new pcl::search::KdTree<pcl::PointNormal>));
@@ -102,9 +104,10 @@ compute (const PointCloud<PointNormal>::Ptr &input, pcl::PolygonMesh &output,
   gpt.setSearchRadius (radius);
   gpt.setMu (mu);
 
+
   gpt.reconstruct (output);
 
-  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%lu", output.polygons.size ()); print_info (" polygons]\n");
+  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%zu", output.polygons.size ()); print_info (" polygons]\n");
 }
 
 void
@@ -116,7 +119,7 @@ saveCloud (const std::string &filename, const pcl::PolygonMesh &output)
   print_highlight ("Saving "); print_value ("%s ", filename.c_str ());
   saveVTKFile (filename, output);
 
-  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%lu", output.polygons.size ()); print_info (" polygons]\n");
+  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%zu", output.polygons.size ()); print_info (" polygons]\n");
 }
 
 /* ---[ */

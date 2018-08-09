@@ -27,7 +27,7 @@ From [RusuDissertation]_:
 
    * **noise** - *the point feature representation must retain the same or very similar values in its feature vector in the presence of mild noise in the data.*
 
-   .. image:: images/good_features.jpg
+   .. image:: images/good_features.png
       :align: center
 
 
@@ -131,7 +131,7 @@ The following code snippet will estimate a set of surface normals for all the po
 
      // Create an empty kdtree representation, and pass it to the normal estimation object. 
      // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZ> ());
      ne.setSearchMethod (tree);
 
      // Output datasets
@@ -161,7 +161,7 @@ The following code snippet will estimate a set of surface normals for a subset o
 
      // Create a set of indices to be used. For simplicity, we're going to be using the first 10% of the points in cloud
      std::vector<int> indices (floor (cloud->points.size () / 10));
-     for (size_t i = 0; i < indices.size (); ++i) indices[i] = i;
+     for (size_t i = 0; indices.size (); ++i) indices[i] = i;
 
      // Create the normal estimation class, and pass the input dataset to it
      pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
@@ -173,7 +173,7 @@ The following code snippet will estimate a set of surface normals for a subset o
 
      // Create an empty kdtree representation, and pass it to the normal estimation object. 
      // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZ> ());
      ne.setSearchMethod (tree);
 
      // Output datasets
@@ -214,7 +214,7 @@ Finally, the following code snippet will estimate a set of surface normals for a
 
      // Create an empty kdtree representation, and pass it to the normal estimation object. 
      // Its content will be filled inside the object, based on the given surface dataset.
-     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
+     pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr tree (new pcl::KdTreeFLANN<pcl::PointXYZ> ());
      ne.setSearchMethod (tree);
 
      // Output datasets

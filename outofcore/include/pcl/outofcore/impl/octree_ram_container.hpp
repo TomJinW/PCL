@@ -34,17 +34,28 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  $Id: octree_ram_container.hpp 6927 2012-08-23 02:34:54Z stfox88 $
  */
 
+/*
+  This code defines the octree used for point storage at Urban Robotics. Please
+  contact Jacob Schloss <jacob.schloss@urbanrobotics.net> with any questions.
+  http://www.urbanrobotics.net/
+*/
 #ifndef PCL_OUTOFCORE_RAM_CONTAINER_IMPL_H_
 #define PCL_OUTOFCORE_RAM_CONTAINER_IMPL_H_
 
 // C++
 #include <sstream>
 
+// Boost
+#include <boost/random/uniform_int.hpp>
+
 // PCL (Urban Robotics)
 #include <pcl/outofcore/octree_ram_container.h>
+
+//todo - Consider using per-node RNG (it is currently a shared static rng,
+//       which is mutexed. I did i this way to be sure that node of the nodes
+//       had RNGs seeded to the same value). the mutex could effect performance
 
 namespace pcl
 {
@@ -52,13 +63,13 @@ namespace pcl
   {
 
     template<typename PointT>
-    boost::mutex OutofcoreOctreeRamContainer<PointT>::rng_mutex_;
+    boost::mutex octree_ram_container<PointT>::rng_mutex_;
 
     template<typename PointT> 
-    boost::mt19937 OutofcoreOctreeRamContainer<PointT>::rand_gen_ (static_cast<unsigned int>(std::time( NULL)));
+    boost::mt19937 octree_ram_container<PointT>::rand_gen_ (static_cast<unsigned int>(std::time( NULL)));
 
     template<typename PointT> void
-    OutofcoreOctreeRamContainer<PointT>::convertToXYZ (const boost::filesystem::path& path)
+    octree_ram_container<PointT>::convertToXYZ (const boost::filesystem::path& path)
     {
       if (!container_.empty ())
       {
@@ -80,19 +91,16 @@ namespace pcl
         assert ( fclose (fxyz) == 0 );
       }
     }
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    template<typename PointT> void
-    OutofcoreOctreeRamContainer<PointT>::insertRange (const PointT* start, const boost::uint64_t count)
+////////////////////////////////////////////////////////////////////////////////
+    template<typename PointT> inline void
+    octree_ram_container<PointT>::insertRange (const PointT* start, const boost::uint64_t count)
     {
       container_.insert (container_.end (), start, start + count);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
-
-    template<typename PointT> void
-    OutofcoreOctreeRamContainer<PointT>::insertRange (const PointT* const * start, const boost::uint64_t count)
+////////////////////////////////////////////////////////////////////////////////
+    template<typename PointT> inline void
+    octree_ram_container<PointT>::insertRange (const PointT* const * start, const boost::uint64_t count)
     {
       AlignedPointTVector temp;
       temp.resize (count);
@@ -102,25 +110,24 @@ namespace pcl
       }
       container_.insert (container_.end (), temp.begin (), temp.end ());
     }
-
-    ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
     template<typename PointT> void
-    OutofcoreOctreeRamContainer<PointT>::readRange (const boost::uint64_t start, const boost::uint64_t count,
+    octree_ram_container<PointT>::readRange (const boost::uint64_t start, const boost::uint64_t count,
                                              AlignedPointTVector& v)
     {
       v.resize (count);
       memcpy (v.data (), container_.data () + start, count * sizeof(PointT));
     }
-
-    ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
     template<typename PointT> void
-    OutofcoreOctreeRamContainer<PointT>::readRangeSubSample (const boost::uint64_t start, 
+    octree_ram_container<PointT>::readRangeSubSample (const boost::uint64_t start, 
                                                       const boost::uint64_t count,
                                                       const double percent, 
                                                       AlignedPointTVector& v)
     {
+      /** \todo change the subsampling technique to use built in PCL sampling */
       boost::uint64_t samplesize = static_cast<boost::uint64_t> (percent * static_cast<double> (count));
 
       boost::mutex::scoped_lock lock (rng_mutex_);
@@ -134,8 +141,7 @@ namespace pcl
         v.push_back (container_[buffstart]);
       }
     }
-
-    ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
   }//namespace outofcore
 }//namespace pcl

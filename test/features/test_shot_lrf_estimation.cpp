@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -81,10 +81,10 @@ TEST (PCL, SHOTLocalReferenceFrameEstimation)
 
   // NaN result for point 24
   //EXPECT_EQ (numeric_limits<float>::max (), bunny_LRF.at (24).confidence);
-  EXPECT_TRUE (pcl_isnan (bunny_LRF.at (24).x_axis[0]));
+  EXPECT_TRUE (pcl_isnan (bunny_LRF.at (24).x_axis.normal_x));
 
   // Expected Results
-  // point 15: tangent disambiguation
+  // point 15: tanget disambiguation
   //float point_15_conf = 0;
   Eigen::Vector3f point_15_x (-0.849213f, 0.528016f, 0.00593846f);
   Eigen::Vector3f point_15_y (0.274564f, 0.451135f, -0.849171f);
@@ -108,25 +108,100 @@ TEST (PCL, SHOTLocalReferenceFrameEstimation)
 
   //Test Results
   //EXPECT_NEAR (point_15_conf,bunny_LRF.at (15).confidence, 1E-3);
-  for (int d = 0; d < 3; ++d)
-  {
-    EXPECT_NEAR (point_15_x[d], bunny_LRF.at (15).x_axis[d], 1E-3);
-    EXPECT_NEAR (point_15_y[d], bunny_LRF.at (15).y_axis[d], 1E-3);
-    EXPECT_NEAR (point_15_z[d], bunny_LRF.at (15).z_axis[d], 1E-3);
+  EXPECT_NEAR_VECTORS (point_15_x, bunny_LRF.at (15).x_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_15_y, bunny_LRF.at (15).y_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_15_z, bunny_LRF.at (15).z_axis.getNormalVector3fMap (), 1E-3);
 
-    EXPECT_NEAR (point_45_x[d], bunny_LRF.at (45).x_axis[d], 1E-3);
-    EXPECT_NEAR (point_45_y[d], bunny_LRF.at (45).y_axis[d], 1E-3);
-    EXPECT_NEAR (point_45_z[d], bunny_LRF.at (45).z_axis[d], 1E-3);
+  //EXPECT_NEAR (point_45_conf, bunny_LRF.at (45).confidence, 1E-3);
+  EXPECT_NEAR_VECTORS (point_45_x, bunny_LRF.at (45).x_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_45_y, bunny_LRF.at (45).y_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_45_z, bunny_LRF.at (45).z_axis.getNormalVector3fMap (), 1E-3);
 
-    EXPECT_NEAR (point_163_x[d], bunny_LRF.at (163).x_axis[d], 1E-3);
-    EXPECT_NEAR (point_163_y[d], bunny_LRF.at (163).y_axis[d], 1E-3);
-    EXPECT_NEAR (point_163_z[d], bunny_LRF.at (163).z_axis[d], 1E-3);
+  //EXPECT_NEAR (point_163_conf, bunny_LRF.at (163).confidence, 1E-3);
+  EXPECT_NEAR_VECTORS (point_163_x, bunny_LRF.at (163).x_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_163_y, bunny_LRF.at (163).y_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_163_z, bunny_LRF.at (163).z_axis.getNormalVector3fMap (), 1E-3);
 
-    EXPECT_NEAR (point_311_x[d], bunny_LRF.at (311).x_axis[d], 1E-3);
-    EXPECT_NEAR (point_311_y[d], bunny_LRF.at (311).y_axis[d], 1E-3);
-    EXPECT_NEAR (point_311_z[d], bunny_LRF.at (311).z_axis[d], 1E-3);
-  }
+  //EXPECT_NEAR (point_311_conf, bunny_LRF.at (311).confidence, 1E-3);
+  EXPECT_NEAR_VECTORS (point_311_x, bunny_LRF.at (311).x_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_311_y, bunny_LRF.at (311).y_axis.getNormalVector3fMap (), 1E-3);
+  EXPECT_NEAR_VECTORS (point_311_z, bunny_LRF.at (311).z_axis.getNormalVector3fMap (), 1E-3);
 }
+
+#ifndef PCL_ONLY_CORE_POINT_TYPES
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TEST (PCL, SHOTLocalReferenceFrameEstimationEigen)
+  {
+    PointCloud<Normal>::Ptr normals (new PointCloud<Normal> ());
+    PointCloud<Eigen::MatrixXf> bunny_LRF;
+
+    boost::shared_ptr<vector<int> > indicesptr (new vector<int> (indices));
+
+    // Compute SHOT LRF
+    SHOTLocalReferenceFrameEstimation<PointXYZ, ReferenceFrame> lrf_estimator;
+
+    float radius = 0.01f;
+
+    lrf_estimator.setRadiusSearch (radius);
+
+    lrf_estimator.setInputCloud (cloud.makeShared ());
+    lrf_estimator.setSearchMethod (tree);
+    lrf_estimator.setIndices (indicesptr);
+
+    lrf_estimator.computeEigen (bunny_LRF);
+
+    // TESTS
+    EXPECT_EQ (indices.size (), bunny_LRF.size ());
+
+    EXPECT_FALSE (bunny_LRF.is_dense);
+    //EXPECT_EQ (numeric_limits<float>::max (), bunny_LRF.points (24, 9));
+    EXPECT_TRUE (pcl_isnan (bunny_LRF.points (24, 0)));
+
+    // Expected Results
+    // point 15: tangent disambiguation
+    //float point_15_conf = 0;
+    Eigen::Vector3f point_15_x (-0.849213f, 0.528016f, 0.00593846f);
+    Eigen::Vector3f point_15_y (0.274564f, 0.451135f, -0.849171f);
+    Eigen::Vector3f point_15_z (-0.451055f, -0.719497f, -0.528084f);
+
+    //float point_45_conf = 0;
+    Eigen::Vector3f point_45_x (0.950556f, 0.0673042f, 0.303171f);
+    Eigen::Vector3f point_45_y (0.156242f, -0.947328f, -0.279569f);
+    Eigen::Vector3f point_45_z (0.268386f, 0.313114f, -0.911004f);
+
+    //float point_163_conf = 0;
+    Eigen::Vector3f point_163_x (0.816369f, 0.309943f, -0.487317f);
+    Eigen::Vector3f point_163_y (0.235273f, -0.949082f, -0.209498f);
+    Eigen::Vector3f point_163_z (-0.527436f, 0.0563754f, -0.847722f);
+
+    // point 311: normal disambiguation
+    //float point_311_conf = 0;
+    Eigen::Vector3f point_311_x (0.77608663f, -0.60673451f, 0.17193851f);
+    Eigen::Vector3f point_311_y (0.49546647f, 0.75532055f, 0.42895663f);
+    Eigen::Vector3f point_311_z (-0.39013144f, -0.24771771f, 0.88681078f);
+
+    ////Test Results
+    EXPECT_NEAR_VECTORS (point_15_x, bunny_LRF.points.block<1,3> (15, 0), 1E-3);
+    EXPECT_NEAR_VECTORS (point_15_y, bunny_LRF.points.block<1,3> (15, 3), 1E-3);
+    EXPECT_NEAR_VECTORS (point_15_z, bunny_LRF.points.block<1,3> (15, 6), 1E-3);
+    //EXPECT_NEAR (point_15_conf, bunny_LRF.points (15, 9), 1E-3);
+
+    EXPECT_NEAR_VECTORS (point_45_x, bunny_LRF.points.block<1,3> (45, 0), 1E-3);
+    EXPECT_NEAR_VECTORS (point_45_y, bunny_LRF.points.block<1,3> (45, 3), 1E-3);
+    EXPECT_NEAR_VECTORS (point_45_z, bunny_LRF.points.block<1,3> (45, 6), 1E-3);
+    //EXPECT_NEAR (point_45_conf, bunny_LRF.points (45, 9), 1E-3);
+
+    EXPECT_NEAR_VECTORS (point_163_x, bunny_LRF.points.block<1,3> (163, 0), 1E-3);
+    EXPECT_NEAR_VECTORS (point_163_y, bunny_LRF.points.block<1,3> (163, 3), 1E-3);
+    EXPECT_NEAR_VECTORS (point_163_z, bunny_LRF.points.block<1,3> (163, 6), 1E-3);
+    //EXPECT_NEAR (point_163_conf, bunny_LRF.points (163, 9), 1E-3);
+
+    EXPECT_NEAR_VECTORS (point_311_x, bunny_LRF.points.block<1,3> (311, 0), 1E-3);
+    EXPECT_NEAR_VECTORS (point_311_y, bunny_LRF.points.block<1,3> (311, 3), 1E-3);
+    EXPECT_NEAR_VECTORS (point_311_z, bunny_LRF.points.block<1,3> (311, 6), 1E-3);
+    //EXPECT_NEAR (point_311_conf, bunny_LRF.points (311, 9), 1E-3);
+  }
+#endif
 
 /* ---[ */
 int

@@ -1,16 +1,13 @@
 #include <pcl/apps/cloud_composer/tools/normal_estimation.h>
-#include <pcl/apps/cloud_composer/items/normals_item.h>
 
 #include <pcl/features/normal_3d.h>
 #include <pcl/point_types.h>
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-  Q_EXPORT_PLUGIN2(cloud_composer_normal_estimation_tool, pcl::cloud_composer::NormalEstimationToolFactory)
-#else
-  Q_PLUGIN_METADATA(IID "cloud_composer.ToolFactory/1.0")
-#endif
 
-pcl::cloud_composer::NormalEstimationTool::NormalEstimationTool (PropertiesModel* parameter_model, QObject* parent)
+Q_EXPORT_PLUGIN2(cloud_composer_normal_estimation_tool, pcl::cloud_composer::NormalEstimationToolFactory)
+
+
+pcl::cloud_composer::NormalEstimationTool::NormalEstimationTool (QStandardItemModel* parameter_model, QObject* parent)
   : NewItemTool (parameter_model, parent)
 {
 
@@ -23,7 +20,7 @@ pcl::cloud_composer::NormalEstimationTool::~NormalEstimationTool ()
 }
 
 QList <pcl::cloud_composer::CloudComposerItem*>
-pcl::cloud_composer::NormalEstimationTool::performAction (ConstItemList input_data, PointTypeFlags::PointType)
+pcl::cloud_composer::NormalEstimationTool::performAction (ConstItemList input_data)
 {
   QList <CloudComposerItem*> output;
   const CloudComposerItem* input_item;
@@ -39,16 +36,20 @@ pcl::cloud_composer::NormalEstimationTool::performAction (ConstItemList input_da
   }
   input_item = input_data.value (0);
     
-  pcl::PCLPointCloud2::ConstPtr input_cloud;
-  if (input_item->type () == CloudComposerItem::CLOUD_ITEM)
+  sensor_msgs::PointCloud2::ConstPtr input_cloud;
+  if (input_item->getCloudConstPtr (input_cloud))
   {
-    double radius = parameter_model_->getProperty("Radius").toDouble();
+    //TODO: Helper function for extracting parameters
+    QList <QStandardItem*> radius_param = parameter_model_->findItems ("Radius");
+    double radius = 0;
+    if (radius_param.size () > 0)
+      if (radius_param.value (0)->hasChildren ())
+        radius = (radius_param.value (0)->child (0)->data (Qt::EditRole)).toDouble ();
     qDebug () << "Received Radius = " <<radius;
-    pcl::PCLPointCloud2::ConstPtr input_cloud = input_item->data (ItemDataRole::CLOUD_BLOB).value <pcl::PCLPointCloud2::ConstPtr> ();
-    qDebug () << "Got cloud size = "<<input_cloud->width;
+    
     //////////////// THE WORK - COMPUTING NORMALS ///////////////////
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromPCLPointCloud2 (*input_cloud, *cloud);
+    pcl::fromROSMsg (*input_cloud, *cloud); 
     // Create the normal estimation class, and pass the input dataset to it
     pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
     ne.setInputCloud (cloud);
@@ -69,7 +70,6 @@ pcl::cloud_composer::NormalEstimationTool::performAction (ConstItemList input_da
     //////////////////////////////////////////////////////////////////
     NormalsItem* normals_item = new NormalsItem (tr("Normals r=%1").arg(radius),cloud_normals,radius);
     output.append (normals_item);
-    qDebug () << "Calced normals";
   }
   else
   {
@@ -81,12 +81,21 @@ pcl::cloud_composer::NormalEstimationTool::performAction (ConstItemList input_da
 }
 
 /////////////////// PARAMETER MODEL /////////////////////////////////
-pcl::cloud_composer::PropertiesModel*
+QStandardItemModel*
 pcl::cloud_composer::NormalEstimationToolFactory::createToolParameterModel (QObject* parent)
 {
-  PropertiesModel* parameter_model = new PropertiesModel(parent);
-  
-  parameter_model->addProperty ("Radius", 0.04,  Qt::ItemIsEditable | Qt::ItemIsEnabled);
+  QStandardItemModel* parameter_model = new QStandardItemModel(parent);
+
+  // TODO: Make a helper function that returns parameters like this
+  //QList <QStandardItem*> new_row;
+  QStandardItem* new_property = new QStandardItem ("Radius");
+  new_property->setEditable (false);
+  //new_row.append (new_property);
+  QStandardItem* new_value = new QStandardItem ();
+  new_value->setData (0.02, Qt::EditRole);
+  new_property->appendRow (new_value);
+  // ///////////////////////////////
+  parameter_model->appendRow (new_property);
   
   return parameter_model;
 }

@@ -14,7 +14,7 @@ pcl::simulation::TriangleMeshModel::TriangleMeshModel (pcl::PolygonMesh::Ptr plg
   if (found_rgb)
   {
     pcl::PointCloud<pcl::PointXYZRGB> newcloud;
-    pcl::fromPCLPointCloud2 (plg->cloud, newcloud);
+    pcl::fromROSMsg (plg->cloud, newcloud);
 
     PCL_DEBUG("RGB Triangle mesh: ");
     PCL_DEBUG("Mesh polygons: %ld", plg->polygons.size ());
@@ -39,7 +39,7 @@ pcl::simulation::TriangleMeshModel::TriangleMeshModel (pcl::PolygonMesh::Ptr plg
   else
   {
     pcl::PointCloud<pcl::PointXYZ> newcloud;
-    pcl::fromPCLPointCloud2 (plg->cloud, newcloud);
+    pcl::fromROSMsg (plg->cloud, newcloud);
     Eigen::Vector4f tmp;
     for(size_t i=0; i< plg->polygons.size (); i++)
     { // each triangle/polygon
@@ -116,13 +116,13 @@ pcl::simulation::PolygonMeshModel::PolygonMeshModel (GLenum mode, pcl::PolygonMe
 {
   bool found_rgb=false;
   for (size_t i=0; i<plg->cloud.fields.size () ;i++)
-    if (plg->cloud.fields[i].name.compare ("rgb") == 0 || plg->cloud.fields[i].name.compare ("rgba") == 0)
+    if (plg->cloud.fields[i].name.compare ("rgb") == 0)
       found_rgb = true;
   
   if (found_rgb)
   {
     pcl::PointCloud<pcl::PointXYZRGB> newcloud;  
-    pcl::fromPCLPointCloud2 (plg->cloud, newcloud);
+    pcl::fromROSMsg (plg->cloud, newcloud);
     Eigen::Vector4f tmp;
     for(size_t i = 0; i< plg->polygons.size (); i++)
     { // each triangle/polygon
@@ -144,7 +144,7 @@ pcl::simulation::PolygonMeshModel::PolygonMeshModel (GLenum mode, pcl::PolygonMe
 	apoly.colors_[4*j + 0] = newcloud.points[pt].r/255.0f; // Red
 	apoly.colors_[4*j + 1] = newcloud.points[pt].g/255.0f; // Green
 	apoly.colors_[4*j + 2] = newcloud.points[pt].b/255.0f; // Blue
-	apoly.colors_[4*j + 3] = 1.0f; // transparency? unnecessary?
+	apoly.colors_[4*j + 3] = 1.0f; // transparancy? unnecessary?
       }
       polygons.push_back (apoly);
     }
@@ -152,7 +152,7 @@ pcl::simulation::PolygonMeshModel::PolygonMeshModel (GLenum mode, pcl::PolygonMe
   else
   {
     pcl::PointCloud<pcl::PointXYZ> newcloud;  
-    pcl::fromPCLPointCloud2 (plg->cloud, newcloud);
+    pcl::fromROSMsg (plg->cloud, newcloud);
     Eigen::Vector4f tmp;
     for(size_t i=0; i< plg->polygons.size (); i++)
     { // each triangle/polygon

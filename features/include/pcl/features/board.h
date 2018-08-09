@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -59,9 +58,6 @@ namespace pcl
   class BOARDLocalReferenceFrameEstimation : public FeatureFromNormals<PointInT, PointNT, PointOutT>
   {
     public:
-      typedef boost::shared_ptr<BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT> > Ptr;
-      typedef boost::shared_ptr<const BOARDLocalReferenceFrameEstimation<PointInT, PointNT, PointOutT> > ConstPtr;
-
       /** \brief Constructor. */
       BOARDLocalReferenceFrameEstimation () :
         tangent_radius_ (0.0f),
@@ -79,9 +75,6 @@ namespace pcl
         feature_name_ = "BOARDLocalReferenceFrameEstimation";
         setCheckMarginArraySize (check_margin_array_size_);
       }
-      
-      /** \brief Empty destructor */
-      virtual ~BOARDLocalReferenceFrameEstimation () {}
 
       //Getters/Setters
 
@@ -258,6 +251,12 @@ namespace pcl
       virtual void
       computeFeature (PointCloudOut &output);
 
+      /** \brief Abstract feature estimation method.
+        * \param[out] output the resultant features
+        */
+      virtual void
+      computeFeatureEigen (pcl::PointCloud<Eigen::MatrixXf> &) {}
+
       /** \brief Given an axis (with origin axis_origin), return the orthogonal axis directed to point.
         *
         * \note axis must be normalized.
@@ -360,10 +359,42 @@ namespace pcl
       std::vector<float> margin_array_min_angle_normal_;
       std::vector<float> margin_array_max_angle_normal_;
   };
-}
 
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/features/impl/board.hpp>
-#endif
+  /** \brief BOARDLocalReferenceFrameEstimation implements the BOrder Aware Repeatable Directions algorithm
+    * for local reference frame estimation as described here:
+    *
+    *  - A. Petrelli, L. Di Stefano,
+    *    "On the repeatability of the local reference frame for partial shape matching",
+    *    13th International Conference on Computer Vision (ICCV), 2011
+    *
+    * \author Alioscia Petrelli (original), Tommaso Cavallari (PCL port)
+    * \ingroup features
+    */
+  template<typename PointInT, typename PointNT>
+  class BOARDLocalReferenceFrameEstimation<PointInT, PointNT, Eigen::MatrixXf> : public BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>
+  {
+    public:
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::indices_;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::input_;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::surface_;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::k_;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::search_parameter_;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::compute;
+      using BOARDLocalReferenceFrameEstimation<PointInT, PointNT, pcl::ReferenceFrame>::getClassName;
+
+    protected:
+      /** \brief Abstract feature estimation method.
+        * \param[out] output the resultant features
+        */
+      virtual void
+      computeFeature (pcl::PointCloud<pcl::ReferenceFrame> &) {}
+
+      /** \brief Abstract feature estimation method.
+        * \param[out] output the resultant features
+        */
+      virtual void
+      computeFeatureEigen (pcl::PointCloud<Eigen::MatrixXf> &output);
+  };
+}
 
 #endif  //#ifndef PCL_BOARD_H_

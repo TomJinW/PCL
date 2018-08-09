@@ -45,10 +45,10 @@
 #  include <vtkWin32RenderWindowInteractor.h>
 #else
 #include <vtkConfigure.h>
-#if (VTK_MAJOR_VERSION <= 5 && defined VTK_USE_COCOA) || defined __APPLE__
-#  include <vtkCocoaRenderWindowInteractor.h>
-#elif VTK_MAJOR_VERSION <= 5 && defined VTK_USE_CARBON
+#if defined VTK_USE_CARBON
 #  include <vtkCarbonRenderWindowInteractor.h>
+#elif defined VTK_USE_COCOA
+#  include <vtkCocoaRenderWindowInteractor.h>
 #else
 // Stupid X.h defines Complex, Bool, Success globally (!)
 #  include <vtkXRenderWindowInteractor.h>
@@ -66,10 +66,10 @@ namespace pcl
     /** \brief The PCLVisualizer interactor */
 #ifdef _WIN32
     class PCL_EXPORTS PCLVisualizerInteractor : public vtkWin32RenderWindowInteractor
-#elif (VTK_MAJOR_VERSION <= 5 && defined VTK_USE_COCOA) || defined __APPLE__
-    class PCLVisualizerInteractor : public vtkCocoaRenderWindowInteractor
-#elif VTK_MAJOR_VERSION <= 5 && defined VTK_USE_CARBON
+#elif defined VTK_USE_CARBON
     class PCLVisualizerInteractor : public vtkCarbonRenderWindowInteractor
+#elif defined VTK_USE_COCOA
+    class PCLVisualizerInteractor : public vtkCocoaRenderWindowInteractor
 #else
     class PCLVisualizerInteractor : public vtkXRenderWindowInteractor
 #endif
@@ -83,7 +83,7 @@ namespace pcl
         bool stopped;
         int timer_id_;
 
-#if defined (_WIN32) && ((VTK_MAJOR_VERSION == 5) && (VTK_MINOR_VERSION <= 4))
+#ifdef _WIN32
         int BreakLoopFlag;                // if true quit the GetMessage loop
 
         virtual void 

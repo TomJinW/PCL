@@ -115,7 +115,7 @@ saveOBJFile (const std::string &file_name,
         count = 1;          // we simply cannot tolerate 0 counts (coming from older converter code)
       int c = 0;
       // adding vertex
-      if ((tex_mesh.cloud.fields[d].datatype == pcl::PCLPointField::FLOAT32) && (
+      if ((tex_mesh.cloud.fields[d].datatype == sensor_msgs::PointField::FLOAT32) && (
                 tex_mesh.cloud.fields[d].name == "x" ||
                 tex_mesh.cloud.fields[d].name == "y" ||
                 tex_mesh.cloud.fields[d].name == "z"))
@@ -156,7 +156,7 @@ saveOBJFile (const std::string &file_name,
       count = 1;          // we simply cannot tolerate 0 counts (coming from older converter code)
       int c = 0;
       // adding vertex
-      if ((tex_mesh.cloud.fields[d].datatype == pcl::PCLPointField::FLOAT32) && (
+      if ((tex_mesh.cloud.fields[d].datatype == sensor_msgs::PointField::FLOAT32) && (
       tex_mesh.cloud.fields[d].name == "normal_x" ||
       tex_mesh.cloud.fields[d].name == "normal_y" ||
       tex_mesh.cloud.fields[d].name == "normal_z"))
@@ -201,7 +201,7 @@ saveOBJFile (const std::string &file_name,
   int f_idx = 0;
 
   // int idx_vt =0;
-  PCL_INFO ("Writing faces...\n");
+  PCL_INFO ("Writting faces...\n");
   for (int m = 0; m < nr_meshes; ++m)
   {
     if (m > 0) 
@@ -242,7 +242,7 @@ saveOBJFile (const std::string &file_name,
   /* Write material defination for OBJ file*/
   // Open file
   PCL_INFO ("Writing material files\n");
-  //don't do it if no material to write
+  //dont do it if no material to write
   if(tex_mesh.tex_materials.size() ==0)
     return (0);
 
@@ -339,7 +339,7 @@ void showCameras (pcl::texture_mapping::CameraVector cams, pcl::PointCloud<pcl::
   }
   
   // add a coordinate system
-  visu.addCoordinateSystem (1.0, "global");
+  visu.addCoordinateSystem (1.0);
   
   // add the mesh's cloud (colored on Z axis)
   pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> color_handler (cloud, "z");
@@ -424,10 +424,10 @@ main (int argc, char** argv)
   // read mesh from plyfile
   PCL_INFO ("\nLoading mesh from file %s...\n", argv[1]);
   pcl::PolygonMesh triangles;
-  pcl::io::loadPolygonFilePLY(argv[1], triangles);
+  pcl::io::loadPolygonFile(argv[1], triangles);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::fromPCLPointCloud2(triangles.cloud, *cloud);
+  pcl::fromROSMsg(triangles.cloud, *cloud);
 
   // Create the texturemesh object that will contain our UV-mapped mesh
   TextureMesh mesh;
@@ -533,7 +533,7 @@ main (int argc, char** argv)
   pcl::concatenateFields (*cloud, *normals, *cloud_with_normals);
   PCL_INFO ("...Done.\n");
 
-  pcl::toPCLPointCloud2 (*cloud_with_normals, mesh.cloud);
+  pcl::toROSMsg (*cloud_with_normals, mesh.cloud);
 
   PCL_INFO ("\nSaving mesh to textured_mesh.obj\n");
 

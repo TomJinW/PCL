@@ -18,9 +18,9 @@ CreateCylinderPoints (pcl::PointCloud<Point>::Ptr cloud, pcl::on_nurbs::vector_v
     double dh = h * (double (rand ()) / RAND_MAX - 0.5);
 
     Point p;
-    p.x = float (r * cos (da));
-    p.y = float (r * sin (da));
-    p.z = float (dh);
+    p.x = r * cos (da);
+    p.y = r * sin (da);
+    p.z = dh;
 
     data.push_back (Eigen::Vector3d (p.x, p.y, p.z));
     cloud->push_back (p);
@@ -46,7 +46,7 @@ main ()
   // fit NURBS surface
   ON_NurbsSurface nurbs = pcl::on_nurbs::FittingSurface::initNurbsPCABoundingBox (3, &data);
   pcl::on_nurbs::FittingSurface fit (&data, nurbs);
-//  fit.setQuiet (false);
+  fit.setQuiet (false);
 
   pcl::on_nurbs::FittingSurface::Parameter params;
   params.interior_smoothness = 0.1;

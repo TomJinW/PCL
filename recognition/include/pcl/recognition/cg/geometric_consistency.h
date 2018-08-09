@@ -41,7 +41,7 @@
 #define PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_H_
 
 #include <pcl/recognition/cg/correspondence_grouping.h>
-#include <pcl/point_cloud.h>
+#include <Eigen/StdVector>
 
 namespace pcl
 {
@@ -150,9 +150,5 @@ namespace pcl
       clusterCorrespondences (std::vector<Correspondences> &model_instances);
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/recognition/impl/cg/geometric_consistency.hpp>
-#endif
 
 #endif // PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_H_

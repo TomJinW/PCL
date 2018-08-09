@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -37,7 +37,7 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/features/vfh.h>
 #include <pcl/console/print.h>
@@ -67,7 +67,7 @@ loadCloud (const std::string &filename, PointCloud<PointNormal> &cloud)
   print_info ("Available dimensions: "); print_value ("%s\n", getFieldsList (cloud).c_str ());
 
   // Check if the dataset has normals
-  std::vector<pcl::PCLPointField> fields;
+  std::vector<sensor_msgs::PointField> fields;
   if (getFieldIndex (cloud, "normal_x", fields) == -1)
   {
     print_error ("The input dataset does not contain normal information!\n");

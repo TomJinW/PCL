@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -40,11 +40,19 @@
 #ifndef PCL_SEGMENTATION_IMPL_ORGANIZED_MULTI_PLANE_SEGMENTATION_H_
 #define PCL_SEGMENTATION_IMPL_ORGANIZED_MULTI_PLANE_SEGMENTATION_H_
 
-#include <pcl/segmentation/boost.h>
 #include <pcl/segmentation/organized_connected_component_segmentation.h>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
 #include <pcl/common/centroid.h>
 #include <pcl/common/eigen.h>
+#include <boost/make_shared.hpp>
+
+///////////////////////////////////////////////////////////////
+Eigen::Vector3f linePlaneIntersection (Eigen::Vector3f& p1, Eigen::Vector3f& p2, Eigen::Vector3f& norm, Eigen::Vector3f& p3)
+{
+  float u = norm.dot ((p3 - p1)) / norm.dot ((p2 - p1));
+  Eigen::Vector3f intersection (p1 + u * (p2 - p1));
+  return (intersection);
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> pcl::PointCloud<PointT>
@@ -56,9 +64,7 @@ projectToPlaneFromViewpoint (pcl::PointCloud<PointT>& cloud, Eigen::Vector4f& no
   for (size_t i = 0; i < cloud.points.size (); i++)
   {
     Eigen::Vector3f pt (cloud.points[i].x, cloud.points[i].y, cloud.points[i].z);
-    //Eigen::Vector3f intersection = (vp, pt, norm, centroid);
-    float u = norm.dot ((centroid - vp)) / norm.dot ((pt - vp));
-    Eigen::Vector3f intersection (vp + u * (pt - vp));
+    Eigen::Vector3f intersection = linePlaneIntersection (vp, pt, norm, centroid);
     projected_cloud[i].x = intersection[0];
     projected_cloud[i].y = intersection[1];
     projected_cloud[i].z = intersection[2];
@@ -94,7 +100,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::ve
   // Check that we got the same number of points and normals
   if (static_cast<int> (normals_->points.size ()) != static_cast<int> (input_->points.size ()))
   {
-    PCL_ERROR ("[pcl::%s::segment] Number of points in input cloud (%lu) and normal cloud (%lu) do not match!\n",
+    PCL_ERROR ("[pcl::%s::segment] Number of points in input cloud (%zu) and normal cloud (%zu) do not match!\n",
                getClassName ().c_str (), input_->points.size (),
                normals_->points.size ());
     return;
@@ -123,7 +129,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::ve
   compare_->setDistanceThreshold (static_cast<float> (distance_threshold_), true);
 
   // Set up the output
-  OrganizedConnectedComponentSegmentation<PointT,PointLT> connected_component (compare_);
+  OrganizedConnectedComponentSegmentation<PointT,pcl::Label> connected_component (compare_);
   connected_component.setInputCloud (input_);
   connected_component.segment (labels, label_indices);
 
@@ -185,7 +191,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::ve
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT, typename PointNT, typename PointLT> void
-pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::vector<PlanarRegion<PointT>, Eigen::aligned_allocator<PlanarRegion<PointT> > >& regions)
+pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::vector<PlanarRegion<PointT> >& regions)
 {
   std::vector<ModelCoefficients> model_coefficients;
   std::vector<PointIndices> inlier_indices;  
@@ -222,7 +228,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segment (std::ve
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT, typename PointNT, typename PointLT> void
-pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segmentAndRefine (std::vector<PlanarRegion<PointT>, Eigen::aligned_allocator<PlanarRegion<PointT> > >& regions)
+pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segmentAndRefine (std::vector<PlanarRegion<PointT> >& regions)
 {
   std::vector<ModelCoefficients> model_coefficients;
   std::vector<PointIndices> inlier_indices;  
@@ -266,7 +272,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segmentAndRefine
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT, typename PointNT, typename PointLT> void
-pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segmentAndRefine (std::vector<PlanarRegion<PointT>, Eigen::aligned_allocator<PlanarRegion<PointT> > >& regions,
+pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::segmentAndRefine (std::vector<PlanarRegion<PointT> >& regions,
                                                                                   std::vector<ModelCoefficients>& model_coefficients,
                                                                                   std::vector<PointIndices>& inlier_indices,
                                                                                   PointCloudLPtr& labels,
@@ -317,7 +323,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::refine (std::vec
                                                                         PointCloudLPtr& labels,
                                                                         std::vector<pcl::PointIndices>& label_indices)
 {
-  //List of labels to grow, and index of model corresponding to each label
+  //List of lables to grow, and index of model corresponding to each label
   std::vector<bool> grow_labels;
   std::vector<int> label_to_model;
   grow_labels.resize (label_indices.size (), false);
@@ -356,7 +362,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::refine (std::vec
       {
         //test1 = true;
         labels->points[current_row+colIdx+1].label = current_label;
-        label_indices[current_label].indices.push_back (current_row+colIdx+1);
+        label_indices[label_to_model[current_label]].indices.push_back (current_row+colIdx+1);
         inlier_indices[label_to_model[current_label]].indices.push_back (current_row+colIdx+1);
       }
       
@@ -368,7 +374,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::refine (std::vec
       if (refinement_compare_->compare (current_row+colIdx, next_row+colIdx))
       {
         labels->points[next_row+colIdx].label = current_label;
-        label_indices[current_label].indices.push_back (next_row+colIdx);
+        label_indices[label_to_model[current_label]].indices.push_back (next_row+colIdx);
         inlier_indices[label_to_model[current_label]].indices.push_back (next_row+colIdx);
       }
 
@@ -391,7 +397,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::refine (std::vec
       if (refinement_compare_->compare (current_row+colIdx, current_row+colIdx-1))
       {
         labels->points[current_row+colIdx-1].label = current_label;
-        label_indices[current_label].indices.push_back (current_row+colIdx-1);
+        label_indices[label_to_model[current_label]].indices.push_back (current_row+colIdx-1);
         inlier_indices[label_to_model[current_label]].indices.push_back (current_row+colIdx-1);
       }
       
@@ -402,7 +408,7 @@ pcl::OrganizedMultiPlaneSegmentation<PointT, PointNT, PointLT>::refine (std::vec
       if (refinement_compare_->compare (current_row+colIdx, prev_row+colIdx))
       {
         labels->points[prev_row+colIdx].label = current_label;
-        label_indices[current_label].indices.push_back (prev_row+colIdx);
+        label_indices[label_to_model[current_label]].indices.push_back (prev_row+colIdx);
         inlier_indices[label_to_model[current_label]].indices.push_back (prev_row+colIdx);
       }
     }//col

@@ -38,9 +38,9 @@
 #ifndef ITEM_INSPECTOR_H_
 #define ITEM_INSPECTOR_H_
 
-#include <pcl/apps/cloud_composer/qt.h>
+#include <QTreeView>
+
 #include <pcl/apps/cloud_composer/project_model.h>
-#include <pcl/apps/cloud_composer/properties_model.h>
 class QItemSelectionModel;
 
 namespace pcl
@@ -51,22 +51,23 @@ namespace pcl
      * \author Jeremie Papon
      * \ingroup cloud_composer
      */
-    class ItemInspector : public QTabWidget
+    class ItemInspector : public QTreeView
     {
       Q_OBJECT
       public:
         ItemInspector (QWidget* parent = 0);
         virtual ~ItemInspector();
       
-      public Q_SLOTS:
+      public slots:
         void 
-        setModel (ProjectModel* new_model);
+        setProjectAndSelectionModels (ProjectModel* new_model, const QItemSelectionModel* new_selection_model);
         void 
         selectionChanged (const QModelIndex &current, const QModelIndex &previous);
         void 
         itemChanged (QStandardItem* item);
-        
-        
+        /** \brief Refreshes the data shown in the current displayed view widget */
+        void
+        updateView ();
         
       private:
         void 
@@ -74,22 +75,12 @@ namespace pcl
         /** \brief Stores the state of the current tree view in item_treestate_map_  */
         void 
         storeTreeState ();
-        /** \brief Restores the state of \param model 's view from item_treestate_map_  */
+        /** \brief Retores the state of \param model 's view from item_treestate_map_  */
         void
         restoreTreeState ();
-        /** \brief Removes the extra tabs the item might have */
-        void
-        removeTabs ();
-        /** \brief Refreshes the data shown in the current displayed view widget */
-        void
-        updateView ();
-        
-        //! The tree object used to display/edit parameters 
-        QTreeView* parameter_view_;
-        
-        
+       
         ProjectModel* current_project_model_;
-        PropertiesModel* current_item_properties_model_;
+        QStandardItemModel* current_item_model_;
         const QItemSelectionModel *current_selection_model_;
         QMap <QString, QWidget*> itemtype_widget_map;
         QMap <QStandardItemModel*, QList <QPersistentModelIndex> > item_treestate_map_;

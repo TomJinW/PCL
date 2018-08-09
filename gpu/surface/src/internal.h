@@ -66,7 +66,7 @@ namespace pcl
 	  public:
 		  FacetStream(size_t buffer_size);
 
-          // indeces: in each col indeces of vertexes for single facet
+          // indeces: in each col indeces of vertexes for sigle facet
 		  DeviceArray2D<int>  verts_inds;		  
 
 		  DeviceArray<int> head_points;		  

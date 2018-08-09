@@ -1,7 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2011, Thomas Mörwald
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Thomas Mörwald nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ * @author thomas.moerwald
  *
  */
 
@@ -70,11 +70,9 @@ ClosingBoundary::intersectPlanes (const Eigen::Vector3d &N1, double d1, const Ei
 }
 
 Eigen::Vector3d
-ClosingBoundary::commonBoundaryPoint1 (
-    ON_NurbsSurface &n1, ON_NurbsSurface &n2, 
-    Eigen::Vector2d &params1, Eigen::Vector2d &params2, 
-    const Eigen::Vector3d &start, 
-    unsigned nsteps, double &error, double accuracy)
+ClosingBoundary::commonBoundaryPoint1 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
+                                       Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
+                                       double accuracy)
 {
   Eigen::Vector3d current = start;
 
@@ -109,11 +107,9 @@ ClosingBoundary::commonBoundaryPoint1 (
 }
 
 Eigen::Vector3d
-ClosingBoundary::commonBoundaryPoint2 (
-    ON_NurbsSurface &n1, ON_NurbsSurface &n2, 
-    Eigen::Vector2d &params1, Eigen::Vector2d &params2, 
-    const Eigen::Vector3d &start, 
-    unsigned nsteps, double &error, double accuracy)
+ClosingBoundary::commonBoundaryPoint2 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
+                                       Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
+                                       double accuracy)
 {
   Eigen::Vector3d current = start;
 
@@ -170,11 +166,9 @@ ClosingBoundary::commonBoundaryPoint2 (
 }
 
 Eigen::Vector3d
-ClosingBoundary::commonBoundaryPoint3 (
-    ON_NurbsSurface &n1, ON_NurbsSurface &n2, 
-    Eigen::Vector2d &params1, Eigen::Vector2d &params2, 
-    const Eigen::Vector3d &start, 
-    unsigned nsteps, double &error, double accuracy)
+ClosingBoundary::commonBoundaryPoint3 (ON_NurbsSurface &n1, ON_NurbsSurface &n2, Eigen::Vector2d &params1,
+                                       Eigen::Vector2d &params2, Eigen::Vector3d start, unsigned nsteps, double &error,
+                                       double accuracy)
 {
   Eigen::Vector3d current = start;
 

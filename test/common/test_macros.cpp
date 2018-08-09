@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -37,7 +37,7 @@
 #include <gtest/gtest.h>
 #include <pcl/pcl_config.h>
 #include <pcl/pcl_tests.h>
-#include <pcl/common/eigen.h>
+#include <Eigen/Core>
 #include <vector>
 
 using namespace pcl::test;
@@ -80,67 +80,6 @@ TEST(MACROS, expect_near_vectors_macro)
   EXPECT_NEAR_VECTORS (ev1, ev2, 2*epsilon);
   EXPECT_NEAR_VECTORS (v1, ev2, 2*epsilon);
   EXPECT_NEAR_VECTORS (ev1, v2, 2*epsilon);
-}
-
-TEST(MACROS, PCL_VERSION_COMPARE)
-{
-  // PCL_MAJOR_VERSION.PCL_MINOR_VERSION.PCL_REVISION_VERSION : latest released PCL version
-
-  // Current version should be:
-  //   * equal (if release version is being tested)
-  //   * greater (if development version is being tested)
-#if PCL_VERSION_COMPARE(>=, PCL_MAJOR_VERSION, PCL_MINOR_VERSION, PCL_REVISION_VERSION)
-  SUCCEED();
-#else
-  FAIL();
-#endif
-
-  // If current version is greater, then it must be a development version
-#if PCL_VERSION_COMPARE(>, PCL_MAJOR_VERSION, PCL_MINOR_VERSION, PCL_REVISION_VERSION)
-  EXPECT_TRUE(PCL_DEV_VERSION);
-#else
-  EXPECT_FALSE(PCL_DEV_VERSION);
-#endif
-
-  // If current version is equal, then it must be a release version (not development)
-#if PCL_VERSION_COMPARE(==, PCL_MAJOR_VERSION, PCL_MINOR_VERSION, PCL_REVISION_VERSION)
-  EXPECT_FALSE(PCL_DEV_VERSION);
-#else
-  EXPECT_TRUE(PCL_DEV_VERSION);
-#endif
-
-  // Pretend that current version is 1.7.2-dev
-#undef PCL_MAJOR_VERSION
-#undef PCL_MINOR_VERSION
-#undef PCL_REVISION_VERSION
-#undef PCL_DEV_VERSION
-#define PCL_MAJOR_VERSION 1
-#define PCL_MINOR_VERSION 7
-#define PCL_REVISION_VERSION 2
-#define PCL_DEV_VERSION 1
-  // Should be greater than these:
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 1, 7, 2));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 1, 7, 1));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 1, 6, 3));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 0, 8, 4));
-  // Should be less than these:
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 1, 7, 3));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 1, 8, 0));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 2, 0, 0));
-
-  // Now pretend that current version is 1.7.2 (release)
-#undef PCL_DEV_VERSION
-#define PCL_DEV_VERSION 0
-  // Should be greater than these:
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 1, 7, 1));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 1, 6, 3));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(>, 0, 8, 4));
-  // Should be equal to itself
-  EXPECT_TRUE(PCL_VERSION_COMPARE(==, 1, 7, 2));
-  // Should be less than these:
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 1, 7, 3));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 1, 8, 0));
-  EXPECT_TRUE(PCL_VERSION_COMPARE(<, 2, 0, 0));
 }
 
 int 

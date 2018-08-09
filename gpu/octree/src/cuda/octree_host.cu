@@ -40,7 +40,6 @@
 #include "internal.hpp"
 #include "utils/boxutils.hpp"
 
-#include<algorithm>
 #include<limits>
 
 using namespace pcl::gpu;
@@ -89,14 +88,14 @@ void pcl::device::OctreeImpl::internalDownload()
 
 namespace 
 {
-    int getBitsNum(int integer)
+    int getBitsNum(int interger)
     {
         int count = 0;
-        while(integer > 0)
+        while(interger > 0)
         {
-            if (integer & 1)
+            if (interger & 1)
                 ++count;
-            integer>>=1;
+            interger>>=1;
         }
         return count;
     } 

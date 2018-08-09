@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -40,11 +40,6 @@
 #ifndef PCL_FOR_EACH_TYPE_H_
 #define PCL_FOR_EACH_TYPE_H_
 
-#ifdef __GNUC__
-#pragma GCC system_header 
-#endif
-
-#ifndef Q_MOC_RUN
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/next_prior.hpp>
@@ -55,6 +50,9 @@
 #include <boost/mpl/not.hpp>
 #include <boost/mpl/aux_/unwrap.hpp>
 #include <boost/type_traits/is_same.hpp>
+
+#ifdef __GNUC__
+#pragma GCC system_header 
 #endif
 
 namespace pcl 
@@ -99,7 +97,7 @@ namespace pcl
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
-  template <typename Sequence1, typename Sequence2>
+  template<typename Sequence1, typename Sequence2>
   struct intersect 
   { 
     typedef typename boost::mpl::remove_if<Sequence1, boost::mpl::not_<boost::mpl::contains<Sequence2, boost::mpl::_1> > >::type type; 

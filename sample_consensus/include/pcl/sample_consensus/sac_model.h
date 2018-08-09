@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *  
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -45,10 +44,10 @@
 #include <ctime>
 #include <limits.h>
 #include <set>
+#include <boost/random.hpp>
 
 #include <pcl/console/print.h>
 #include <pcl/point_cloud.h>
-#include <pcl/sample_consensus/boost.h>
 #include <pcl/sample_consensus/model_types.h>
 
 #include <pcl/search/search.h>
@@ -59,7 +58,7 @@ namespace pcl
 
   /** \brief @b SampleConsensusModel represents the base model class. All sample consensus models must inherit 
     * from this class.
-    * \author Radu B. Rusu
+    * \author Radu Bogdan Rusu
     * \ingroup sample_consensus
     */
   template <typename PointT>
@@ -78,18 +77,14 @@ namespace pcl
       /** \brief Empty constructor for base SampleConsensusModel.
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModel (bool random = false) 
-        : input_ ()
-        , indices_ ()
-        , radius_min_ (-std::numeric_limits<double>::max ())
-        , radius_max_ (std::numeric_limits<double>::max ())
-        , samples_radius_ (0.)
-        , samples_radius_search_ ()
-        , shuffled_indices_ ()
-        , rng_alg_ ()
-        , rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ()))
-        , rng_gen_ ()
-        , error_sqr_dists_ ()
+      SampleConsensusModel (bool random = false) : 
+        input_ (),
+        indices_ (),
+        radius_min_ (-std::numeric_limits<double>::max()), radius_max_ (std::numeric_limits<double>::max()), samples_radius_ (0.),
+        shuffled_indices_ (),
+        rng_alg_ (),
+        rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ())),
+        rng_gen_ ()
       {
         // Create a random number generator object
         if (random)
@@ -105,21 +100,17 @@ namespace pcl
         * \param[in] cloud the input point cloud dataset
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModel (const PointCloudConstPtr &cloud, bool random = false) 
-        : input_ ()
-        , indices_ ()
-        , radius_min_ (-std::numeric_limits<double>::max ())
-        , radius_max_ (std::numeric_limits<double>::max ())
-        , samples_radius_ (0.)
-        , samples_radius_search_ ()
-        , shuffled_indices_ ()
-        , rng_alg_ ()
-        , rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ()))
-        , rng_gen_ ()
-        , error_sqr_dists_ ()
+      SampleConsensusModel (const PointCloudConstPtr &cloud, bool random = false) : 
+        input_ (),
+        indices_ (),
+        radius_min_ (-std::numeric_limits<double>::max()), radius_max_ (std::numeric_limits<double>::max()), samples_radius_ (0.),
+        shuffled_indices_ (),
+        rng_alg_ (),
+        rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ())),
+        rng_gen_ ()
       {
         if (random)
-          rng_alg_.seed (static_cast<unsigned> (std::time (0)));
+          rng_alg_.seed (static_cast<unsigned> (std::time(0)));
         else
           rng_alg_.seed (12345u);
 
@@ -128,27 +119,21 @@ namespace pcl
 
         // Create a random number generator object
         rng_gen_.reset (new boost::variate_generator<boost::mt19937&, boost::uniform_int<> > (rng_alg_, *rng_dist_)); 
-      }
+       }
 
       /** \brief Constructor for base SampleConsensusModel.
         * \param[in] cloud the input point cloud dataset
         * \param[in] indices a vector of point indices to be used from \a cloud
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModel (const PointCloudConstPtr &cloud, 
-                            const std::vector<int> &indices, 
-                            bool random = false) 
-        : input_ (cloud)
-        , indices_ (new std::vector<int> (indices))
-        , radius_min_ (-std::numeric_limits<double>::max ())
-        , radius_max_ (std::numeric_limits<double>::max ())
-        , samples_radius_ (0.)
-        , samples_radius_search_ ()
-        , shuffled_indices_ ()
-        , rng_alg_ ()
-        , rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ()))
-        , rng_gen_ ()
-        , error_sqr_dists_ ()
+      SampleConsensusModel (const PointCloudConstPtr &cloud, const std::vector<int> &indices, bool random = false) :
+                            input_ (cloud),
+                            indices_ (new std::vector<int> (indices)),
+                            radius_min_ (-std::numeric_limits<double>::max()), radius_max_ (std::numeric_limits<double>::max()), samples_radius_ (0.),
+                            shuffled_indices_ (),
+                            rng_alg_ (),
+                            rng_dist_ (new boost::uniform_int<> (0, std::numeric_limits<int>::max ())),
+                            rng_gen_ ()
       {
         if (random)
           rng_alg_.seed (static_cast<unsigned> (std::time(0)));
@@ -157,7 +142,7 @@ namespace pcl
 
         if (indices_->size () > input_->points.size ())
         {
-          PCL_ERROR ("[pcl::SampleConsensusModel] Invalid index vector given with size %lu while the input PointCloud has size %lu!\n", indices_->size (), input_->points.size ());
+          PCL_ERROR ("[pcl::SampleConsensusModel] Invalid index vector given with size %zu while the input PointCloud has size %zu!\n", indices_->size (), input_->points.size ());
           indices_->clear ();
         }
         shuffled_indices_ = *indices_;
@@ -170,17 +155,17 @@ namespace pcl
       virtual ~SampleConsensusModel () {};
 
       /** \brief Get a set of random data samples and return them as point
-        * indices.
+        * indices. Pure virtual.  
         * \param[out] iterations the internal number of iterations used by SAC methods
         * \param[out] samples the resultant model samples
         */
-      virtual void 
+      void 
       getSamples (int &iterations, std::vector<int> &samples)
       {
         // We're assuming that indices_ have already been set in the constructor
         if (indices_->size () < getSampleSize ())
         {
-          PCL_ERROR ("[pcl::SampleConsensusModel::getSamples] Can not select %lu unique points out of %lu!\n",
+          PCL_ERROR ("[pcl::SampleConsensusModel::getSamples] Can not select %zu unique points out of %zu!\n",
                      samples.size (), indices_->size ());
           // one of these will make it stop :)
           samples.clear ();
@@ -193,17 +178,14 @@ namespace pcl
         for (unsigned int iter = 0; iter < max_sample_checks_; ++iter)
         {
           // Choose the random indices
-          if (samples_radius_ < std::numeric_limits<double>::epsilon ())
+          if(samples_radius_ < std::numeric_limits<double>::epsilon())
         	  SampleConsensusModel<PointT>::drawIndexSample (samples);
           else
         	  SampleConsensusModel<PointT>::drawIndexSampleRadius (samples);
 
           // If it's a good sample, stop here
           if (isSampleGood (samples))
-          {
-            PCL_DEBUG ("[pcl::SampleConsensusModel::getSamples] Selected %lu samples.\n", samples.size ());
             return;
-          }
         }
         PCL_DEBUG ("[pcl::SampleConsensusModel::getSamples] WARNING: Could not select %d sample points in %d iterations!\n", getSampleSize (), max_sample_checks_);
         samples.clear ();
@@ -216,9 +198,9 @@ namespace pcl
         * for creating a valid model 
         * \param[out] model_coefficients the computed model coefficients
         */
-      virtual bool
-      computeModelCoefficients (const std::vector<int> &samples,
-                                Eigen::VectorXf &model_coefficients) const = 0;
+      virtual bool 
+      computeModelCoefficients (const std::vector<int> &samples, 
+                                Eigen::VectorXf &model_coefficients) = 0;
 
       /** \brief Recompute the model coefficients using the given inlier set
         * and return them to the user. Pure virtual.
@@ -230,19 +212,19 @@ namespace pcl
         * \param[in] model_coefficients the initial guess for the model coefficients
         * \param[out] optimized_coefficients the resultant recomputed coefficients after non-linear optimization
         */
-      virtual void
-      optimizeModelCoefficients (const std::vector<int> &inliers,
+      virtual void 
+      optimizeModelCoefficients (const std::vector<int> &inliers, 
                                  const Eigen::VectorXf &model_coefficients,
-                                 Eigen::VectorXf &optimized_coefficients) const = 0;
+                                 Eigen::VectorXf &optimized_coefficients) = 0;
 
       /** \brief Compute all distances from the cloud data to a given model. Pure virtual.
         * 
         * \param[in] model_coefficients the coefficients of a model that we need to compute distances to 
         * \param[out] distances the resultant estimated distances
         */
-      virtual void
-      getDistancesToModel (const Eigen::VectorXf &model_coefficients,
-                           std::vector<double> &distances) const = 0;
+      virtual void 
+      getDistancesToModel (const Eigen::VectorXf &model_coefficients, 
+                           std::vector<double> &distances) = 0;
 
       /** \brief Select all the points which respect the given model
         * coefficients as inliers. Pure virtual.
@@ -267,8 +249,8 @@ namespace pcl
         * \return the resultant number of inliers
         */
       virtual int
-      countWithinDistance (const Eigen::VectorXf &model_coefficients,
-                           const double threshold) const = 0;
+      countWithinDistance (const Eigen::VectorXf &model_coefficients, 
+                           const double threshold) = 0;
 
       /** \brief Create a new point cloud with inliers projected onto the model. Pure virtual.
         * \param[in] inliers the data inliers that we want to project on the model
@@ -278,11 +260,11 @@ namespace pcl
         * projected_points cloud to be an exact copy of the input dataset minus
         * the point projections on the plane model
         */
-      virtual void
-      projectPoints (const std::vector<int> &inliers,
+      virtual void 
+      projectPoints (const std::vector<int> &inliers, 
                      const Eigen::VectorXf &model_coefficients,
-                     PointCloud &projected_points,
-                     bool copy_data_fields = true) const = 0;
+                     PointCloud &projected_points, 
+                     bool copy_data_fields = true) = 0;
 
       /** \brief Verify whether a subset of indices verifies a given set of
         * model coefficients. Pure virtual.
@@ -293,9 +275,9 @@ namespace pcl
         * determining the inliers from the outliers
         */
       virtual bool 
-      doSamplesVerifyModel (const std::set<int> &indices,
-                            const Eigen::VectorXf &model_coefficients,
-                            const double threshold) const = 0;
+      doSamplesVerifyModel (const std::set<int> &indices, 
+                            const Eigen::VectorXf &model_coefficients, 
+                            const double threshold) = 0;
 
       /** \brief Provide a pointer to the input dataset
         * \param[in] cloud the const boost shared pointer to a PointCloud message
@@ -348,25 +330,14 @@ namespace pcl
       virtual SacModel 
       getModelType () const = 0;
 
-      /** \brief Get a string representation of the name of this class. */
-      inline const std::string&
-      getClassName () const
-      {
-        return (model_name_);
-      }
-
-      /** \brief Return the size of a sample from which the model is computed. */
-      inline unsigned int
-      getSampleSize () const
-      {
-        return sample_size_;
-      }
-
-      /** \brief Return the number of coefficients in the model. */
-      inline unsigned int
-      getModelSize () const
-      {
-        return model_size_;
+      /** \brief Return the size of a sample from which a model is computed */
+      inline unsigned int 
+      getSampleSize () const 
+      { 
+        std::map<pcl::SacModel, unsigned int>::const_iterator it = SAC_SAMPLE_SIZE.find (getModelType ());
+        if (it == SAC_SAMPLE_SIZE.end ())
+          throw InvalidSACModelTypeException ("No sample size defined for given model type!\n");
+        return (it->second);
       }
 
       /** \brief Set the minimum and maximum allowable radius limits for the
@@ -389,15 +360,14 @@ namespace pcl
         * \param[out] max_radius the resultant maximum radius model
         */
       inline void
-      getRadiusLimits (double &min_radius, double &max_radius) const
+      getRadiusLimits (double &min_radius, double &max_radius)
       {
         min_radius = radius_min_;
         max_radius = radius_max_;
       }
-
+      
       /** \brief Set the maximum distance allowed when drawing random samples
         * \param[in] radius the maximum distance (L2 norm)
-        * \param search
         */
       inline void
       setSamplesMaxDist (const double &radius, SearchPtr search)
@@ -411,43 +381,14 @@ namespace pcl
         * \param[out] radius the maximum distance (L2 norm)
         */
       inline void
-      getSamplesMaxDist (double &radius) const
+      getSamplesMaxDist (double &radius)
       {
         radius = samples_radius_;
       }
 
       friend class ProgressiveSampleConsensus<PointT>;
 
-      /** \brief Compute the variance of the errors to the model.
-        * \param[in] error_sqr_dists a vector holding the distances
-        */
-      inline double
-      computeVariance (const std::vector<double> &error_sqr_dists) const
-      {
-        std::vector<double> dists (error_sqr_dists);
-        const size_t medIdx = dists.size () >> 1;
-        std::nth_element (dists.begin (), dists.begin () + medIdx, dists.end ());
-        double median_error_sqr = dists[medIdx];
-        return (2.1981 * median_error_sqr);
-      }
-
-      /** \brief Compute the variance of the errors to the model from the internally
-        * estimated vector of distances. The model must be computed first (or at least
-        * selectWithinDistance must be called).
-        */
-      inline double
-      computeVariance () const
-      {
-        if (error_sqr_dists_.empty ())
-        {
-          PCL_ERROR ("[pcl::SampleConsensusModel::computeVariance] The variance of the Sample Consensus model distances cannot be estimated, as the model has not been computed yet. Please compute the model first or at least run selectWithinDistance before continuing. Returning NAN!\n");
-          return (std::numeric_limits<double>::quiet_NaN ());
-        }
-        return (computeVariance (error_sqr_dists_));
-      }
-
-    protected:
-
+		protected:
       /** \brief Fills a sample array with random samples from the indices_ vector
         * \param[out] sample the set of indices of target_ to analyze
         */
@@ -480,19 +421,14 @@ namespace pcl
         std::vector<int> indices;
         std::vector<float> sqr_dists;
 
-        // If indices have been set when the search object was constructed,
-        // radiusSearch() expects an index into the indices vector as its
-        // first parameter. This can't be determined efficiently, so we use
-        // the point instead of the index.
-        // Returned indices are converted automatically.
-        samples_radius_search_->radiusSearch (input_->at(shuffled_indices_[0]),
-                                              samples_radius_, indices, sqr_dists );
+        samples_radius_search_->radiusSearch (shuffled_indices_[0], samples_radius_,
+                                              indices, sqr_dists );
 
         if (indices.size () < sample_size - 1)
         {
           // radius search failed, make an invalid model
           for(unsigned int i = 1; i < sample_size; ++i)
-            shuffled_indices_[i] = shuffled_indices_[0];
+        	shuffled_indices_[i] = shuffled_indices_[0];
         }
         else
         {
@@ -506,22 +442,10 @@ namespace pcl
       }
 
       /** \brief Check whether a model is valid given the user constraints.
-        *
-        * Default implementation verifies that the number of coefficients in the supplied model is as expected for this
-        * SAC model type. Specific SAC models should extend this function by checking the user constraints (if any).
-        *
         * \param[in] model_coefficients the set of model coefficients
         */
-      virtual bool
-      isModelValid (const Eigen::VectorXf &model_coefficients) const
-      {
-        if (model_coefficients.size () != model_size_)
-        {
-          PCL_ERROR ("[pcl::%s::isModelValid] Invalid number of model coefficients given (%lu)!\n", getClassName ().c_str (), model_coefficients.size ());
-          return (false);
-        }
-        return (true);
-      }
+      virtual inline bool
+      isModelValid (const Eigen::VectorXf &model_coefficients) = 0;
 
       /** \brief Check if a sample of indices results in a good sample of points
         * indices. Pure virtual.
@@ -529,9 +453,6 @@ namespace pcl
         */
       virtual bool
       isSampleGood (const std::vector<int> &samples) const = 0;
-
-      /** \brief The model name. */
-      std::string model_name_;
 
       /** \brief A boost shared pointer to the point cloud data array. */
       PointCloudConstPtr input_;
@@ -564,15 +485,6 @@ namespace pcl
 
       /** \brief Boost-based random number generator. */
       boost::shared_ptr<boost::variate_generator< boost::mt19937&, boost::uniform_int<> > > rng_gen_;
-
-      /** \brief A vector holding the distances to the computed model. Used internally. */
-      std::vector<double> error_sqr_dists_;
-
-      /** \brief The size of a sample from which the model is computed. Every subclass should initialize this appropriately. */
-      unsigned int sample_size_;
-
-      /** \brief The number of coefficients in the model. Every subclass should initialize this appropriately. */
-      unsigned int model_size_;
 
       /** \brief Boost-based random number generator. */
       inline int
@@ -647,7 +559,7 @@ namespace pcl
 
   /** Base functor all the models that need non linear optimization must
     * define their own one and implement operator() (const Eigen::VectorXd& x, Eigen::VectorXd& fvec)
-    * or operator() (const Eigen::VectorXf& x, Eigen::VectorXf& fvec) depending on the chosen _Scalar
+    * or operator() (const Eigen::VectorXf& x, Eigen::VectorXf& fvec) dependening on the choosen _Scalar
     */
   template<typename _Scalar, int NX=Eigen::Dynamic, int NY=Eigen::Dynamic>
   struct Functor
@@ -663,7 +575,7 @@ namespace pcl
     typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
     typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
 
-    /** \brief Empty Constructor. */
+    /** \brief Empty Construtor. */
     Functor () : m_data_points_ (ValuesAtCompileTime) {}
 
     /** \brief Constructor

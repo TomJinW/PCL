@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -40,34 +39,26 @@
 #ifndef PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
 #define PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
 
+#include <pcl/registration/transformation_validation_euclidean.h>
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointSource, typename PointTarget, typename Scalar> double
-pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, Scalar>::validateTransformation (
+template <typename PointSource, typename PointTarget> double
+pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget>::validateTransformation (
   const PointCloudSourceConstPtr &cloud_src,
   const PointCloudTargetConstPtr &cloud_tgt,
-  const Matrix4 &transformation_matrix) const
+  const Eigen::Matrix4f &transformation_matrix)
 {
   double fitness_score = 0.0;
 
   // Transform the input dataset using the final transformation
   pcl::PointCloud<PointSource> input_transformed;
-  //transformPointCloud (*cloud_src, input_transformed, transformation_matrix);
-  input_transformed.resize (cloud_src->size ());
-  for (size_t i = 0; i < cloud_src->size (); ++i)
-  {
-    const PointSource &src = cloud_src->points[i];
-    PointTarget &tgt = input_transformed.points[i];
-    tgt.x = static_cast<float> (transformation_matrix (0, 0) * src.x + transformation_matrix (0, 1) * src.y + transformation_matrix (0, 2) * src.z + transformation_matrix (0, 3));
-    tgt.y = static_cast<float> (transformation_matrix (1, 0) * src.x + transformation_matrix (1, 1) * src.y + transformation_matrix (1, 2) * src.z + transformation_matrix (1, 3));
-    tgt.z = static_cast<float> (transformation_matrix (2, 0) * src.x + transformation_matrix (2, 1) * src.y + transformation_matrix (2, 2) * src.z + transformation_matrix (2, 3));
-   }
+  transformPointCloud (*cloud_src, input_transformed, transformation_matrix);
 
-  typename MyPointRepresentation::ConstPtr point_rep (new MyPointRepresentation);
-  if (!force_no_recompute_)
-  {
-    tree_->setPointRepresentation (point_rep);
-    tree_->setInputCloud (cloud_tgt);
-  }
+  // Just in case
+  if (!tree_)
+    tree_.reset (new pcl::KdTreeFLANN<PointTarget>);
+
+  tree_->setInputCloud (cloud_tgt);
 
   std::vector<int> nn_indices (1);
   std::vector<float> nn_dists (1);
@@ -83,9 +74,16 @@ pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, S
     if (nn_dists[0] > max_range_)
       continue;
 
+    // Optimization: use getVector4fMap instead, but make sure that the last coordinate is 0!
+    Eigen::Vector4f p1 (input_transformed.points[i].x,
+                        input_transformed.points[i].y,
+                        input_transformed.points[i].z, 0);
+    Eigen::Vector4f p2 (cloud_tgt->points[nn_indices[0]].x,
+                        cloud_tgt->points[nn_indices[0]].y,
+                        cloud_tgt->points[nn_indices[0]].z, 0);
     // Calculate the fitness score
-    fitness_score += nn_dists[0];
-    ++nr;
+    fitness_score += fabs ((p1-p2).squaredNorm ());
+    nr++;
   }
 
   if (nr > 0)
@@ -94,5 +92,4 @@ pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, S
     return (std::numeric_limits<double>::max ());
 }
 
-#endif    // PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
-
+#endif /* PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_ */

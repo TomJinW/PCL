@@ -163,7 +163,7 @@ namespace pcl
 
       if (x < cols && y < rows)
       {
-        //vertices
+        //vetexes
         float3 vsrc, vdst = make_float3 (qnan, qnan, qnan);
         vsrc.x = vmap_src.ptr (y)[x];
 

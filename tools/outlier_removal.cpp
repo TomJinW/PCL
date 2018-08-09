@@ -14,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -35,7 +35,7 @@
  *
  */
 
-#include <pcl/PCLPointCloud2.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/console/print.h>
@@ -43,7 +43,6 @@
 #include <pcl/console/time.h>
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/statistical_outlier_removal.h>
-#include <pcl/filters/extract_indices.h>
 
 using namespace pcl;
 using namespace pcl::io;
@@ -53,7 +52,7 @@ std::string default_method = "radius";
 
 int default_mean_k = 2;
 double default_std_dev_mul = 0.0;
-int default_negative = 0;
+int default_negative = 1;
 
 double default_radius = 0.0;
 int default_min_pts = 0;
@@ -72,21 +71,19 @@ printHelp (int, char **argv)
   print_info ("                     -mean_k X = (StatisticalOutlierRemoval only) the number of points to use for mean distance estimation (default: ");
   print_value ("%d", default_mean_k); print_info (")\n");
   print_info ("                     -std_dev_mul X = (StatisticalOutlierRemoval only) the standard deviation multiplier threshold (default: ");
-  print_value ("%f", default_std_dev_mul); print_info (")\n\n");
-  print_info ("                     -negative X = decides whether the inliers should be returned (1), or the outliers (0). (default: ");
+  print_value ("%f", default_std_dev_mul); print_info (")\n");
+  print_info ("                     -inliers X = (StatisticalOutlierRemoval only) decides whether the inliers should be returned (1), or the outliers (0). (default: ");
   print_value ("%d", default_negative); print_info (")\n");
-  print_info ("                     -keep_organized = keep the filtered points in organized format.\n");
 }
 
 bool
-loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud,
-           Eigen::Vector4f &translation, Eigen::Quaternionf &orientation)
+loadCloud (const std::string &filename, sensor_msgs::PointCloud2 &cloud)
 {
   TicToc tt;
   print_highlight ("Loading "); print_value ("%s ", filename.c_str ());
 
   tt.tic ();
-  if (loadPCDFile (filename, cloud, translation, orientation) < 0)
+  if (loadPCDFile (filename, cloud) < 0)
     return (false);
   print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", cloud.width * cloud.height); print_info (" points]\n");
   print_info ("Available dimensions: "); print_value ("%s\n", pcl::getFieldsList (cloud).c_str ());
@@ -95,56 +92,41 @@ loadCloud (const std::string &filename, pcl::PCLPointCloud2 &cloud,
 }
 
 void
-compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output,
+compute (const sensor_msgs::PointCloud2::ConstPtr &input, sensor_msgs::PointCloud2 &output,
          std::string method,
          int min_pts, double radius,
-         int mean_k, double std_dev_mul, bool negative, bool keep_organized)
+         int mean_k, double std_dev_mul, bool negative)
 {
 
   PointCloud<PointXYZ>::Ptr xyz_cloud_pre (new pcl::PointCloud<PointXYZ> ()),
-                            xyz_cloud (new pcl::PointCloud<PointXYZ> ());
-  fromPCLPointCloud2 (*input, *xyz_cloud_pre);
+      xyz_cloud (new pcl::PointCloud<PointXYZ> ());
+  fromROSMsg (*input, *xyz_cloud_pre);
+  
+  std::vector<int> index_vector;
+  removeNaNFromPointCloud<PointXYZ> (*xyz_cloud_pre, *xyz_cloud, index_vector);
 
-  pcl::PointIndices::Ptr removed_indices (new PointIndices),
-                         indices (new PointIndices);
-  std::vector<int> valid_indices;
-  if (keep_organized)
-  {
-    xyz_cloud = xyz_cloud_pre;
-    for (int i = 0; i < int (xyz_cloud->size ()); ++i)
-      valid_indices.push_back (i);
-  }
-  else
-    removeNaNFromPointCloud<PointXYZ> (*xyz_cloud_pre, *xyz_cloud, valid_indices);
-
+      
   TicToc tt;
   tt.tic ();
   PointCloud<PointXYZ>::Ptr xyz_cloud_filtered (new PointCloud<PointXYZ> ());
   if (method == "statistical")
   {
-    StatisticalOutlierRemoval<PointXYZ> filter (true);
+    StatisticalOutlierRemoval<PointXYZ> filter;
     filter.setInputCloud (xyz_cloud);
     filter.setMeanK (mean_k);
     filter.setStddevMulThresh (std_dev_mul);
     filter.setNegative (negative);
-    filter.setKeepOrganized (keep_organized);
-    PCL_INFO ("Computing filtered cloud from %lu points with mean_k %d, std_dev_mul %f, inliers %d ...", xyz_cloud->size (), filter.getMeanK (), filter.getStddevMulThresh (), filter.getNegative ());
+    PCL_INFO ("Computing filtered cloud with mean_k %d, std_dev_mul %f, inliers %d\n", filter.getMeanK (), filter.getStddevMulThresh (), filter.getNegative ());
     filter.filter (*xyz_cloud_filtered);
-    // Get the indices that have been explicitly removed
-    filter.getRemovedIndices (*removed_indices);
   }
   else if (method == "radius")
   {
-    RadiusOutlierRemoval<PointXYZ> filter (true);
+    RadiusOutlierRemoval<PointXYZ> filter;
     filter.setInputCloud (xyz_cloud);
     filter.setRadiusSearch (radius);
     filter.setMinNeighborsInRadius (min_pts);
-    filter.setNegative (negative);
-    filter.setKeepOrganized (keep_organized);
-    PCL_INFO ("Computing filtered cloud from %lu points with radius %f, min_pts %d ...", xyz_cloud->size (), radius, min_pts);
+    PCL_INFO ("Computing filtered cloud with radius %f, min_pts %d\n", radius, min_pts);
     filter.filter (*xyz_cloud_filtered);
-    // Get the indices that have been explicitly removed
-    filter.getRemovedIndices (*removed_indices);
   }
   else
   {
@@ -152,40 +134,21 @@ compute (const pcl::PCLPointCloud2::ConstPtr &input, pcl::PCLPointCloud2 &output
     return;
   }
     
-  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", xyz_cloud_filtered->width * xyz_cloud_filtered->height); print_info (" points, %lu indices removed]\n", removed_indices->indices.size ());
+  print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", xyz_cloud_filtered->width * xyz_cloud_filtered->height); print_info (" points]\n");
 
-  if (keep_organized)
-  {
-    pcl::PCLPointCloud2 output_filtered;
-    toPCLPointCloud2 (*xyz_cloud_filtered, output_filtered);
-    concatenateFields (*input, output_filtered, output);
-  }
-  else 
-  {
-    // Make sure we are addressing values in the original index vector
-    for (size_t i = 0; i < removed_indices->indices.size (); ++i)
-      indices->indices.push_back (valid_indices[removed_indices->indices[i]]);
-
-    // Extract the indices of the remaining points
-    pcl::ExtractIndices<pcl::PCLPointCloud2> ei;
-    ei.setInputCloud (input);
-    ei.setIndices (indices);
-    ei.setNegative (true);
-    ei.filter (output);
-  }
+  toROSMsg (*xyz_cloud_filtered, output);
 }
 
 void
-saveCloud (const std::string &filename, const pcl::PCLPointCloud2 &output,
-           const Eigen::Vector4f &translation, const Eigen::Quaternionf &rotation)
+saveCloud (const std::string &filename, const sensor_msgs::PointCloud2 &output)
 {
   TicToc tt;
   tt.tic ();
 
   print_highlight ("Saving "); print_value ("%s ", filename.c_str ());
 
-  PCDWriter w;
-  w.writeBinaryCompressed (filename, output, translation, rotation);
+  pcl::io::savePCDFile (filename, output,  Eigen::Vector4f::Zero (),
+                        Eigen::Quaternionf::Identity (), true);
 
   print_info ("[done, "); print_value ("%g", tt.toc ()); print_info (" ms : "); print_value ("%d", output.width * output.height); print_info (" points]\n");
 }
@@ -225,26 +188,19 @@ main (int argc, char** argv)
   parse_argument (argc, argv, "-min_pts", min_pts);
   parse_argument (argc, argv, "-mean_k", mean_k);
   parse_argument (argc, argv, "-std_dev_mul", std_dev_mul);
-  parse_argument (argc, argv, "-negative", negative);
-  bool keep_organized = find_switch (argc, argv, "-keep_organized");
+  parse_argument (argc, argv, "-inliers", negative);
+  
+  
 
   // Load the first file
-  Eigen::Vector4f translation;
-  Eigen::Quaternionf rotation;
-  pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
-  if (!loadCloud (argv[p_file_indices[0]], *cloud, translation, rotation))
+  sensor_msgs::PointCloud2::Ptr cloud (new sensor_msgs::PointCloud2);
+  if (!loadCloud (argv[p_file_indices[0]], *cloud))
     return (-1);
-  
-  if (keep_organized && cloud->height == 1)
-  {
-    print_error ("Point cloud dataset (%s) is not organized (height = %d), but -keep_organized requested!\n", argv[p_file_indices[0]], cloud->height);
-    return (-1);
-  }
 
   // Do the smoothing
-  pcl::PCLPointCloud2 output;
-  compute (cloud, output, method, min_pts, radius, mean_k, std_dev_mul, negative, keep_organized);
+  sensor_msgs::PointCloud2 output;
+  compute (cloud, output, method, min_pts, radius, mean_k, std_dev_mul, negative);
 
   // Save into the second file
-  saveCloud (argv[p_file_indices[1]], output, translation, rotation);
+  saveCloud (argv[p_file_indices[1]], output);
 }

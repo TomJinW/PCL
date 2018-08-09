@@ -1,10 +1,7 @@
 /*
  * Software License Agreement (BSD License)
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2009, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
- *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -17,7 +14,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -41,7 +38,7 @@
 #ifndef PCL_SAMPLE_CONSENSUS_IMPL_SAC_MODEL_STICK_H_
 #define PCL_SAMPLE_CONSENSUS_IMPL_SAC_MODEL_STICK_H_
 
-#include <pcl/sample_consensus/sac_model_stick.h>
+#include <pcl/sample_consensus/sac_model_line.h>
 #include <pcl/common/centroid.h>
 #include <pcl/common/concatenate.h>
 
@@ -63,12 +60,12 @@ pcl::SampleConsensusModelStick<PointT>::isSampleGood (const std::vector<int> &sa
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> bool
 pcl::SampleConsensusModelStick<PointT>::computeModelCoefficients (
-      const std::vector<int> &samples, Eigen::VectorXf &model_coefficients) const
+      const std::vector<int> &samples, Eigen::VectorXf &model_coefficients)
 {
   // Need 2 samples
   if (samples.size () != 2)
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelStick::computeModelCoefficients] Invalid set of samples given (%lu)!\n", samples.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelStick::computeModelCoefficients] Invalid set of samples given (%zu)!\n", samples.size ());
     return (false);
   }
 
@@ -94,7 +91,7 @@ pcl::SampleConsensusModelStick<PointT>::computeModelCoefficients (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelStick<PointT>::getDistancesToModel (
-      const Eigen::VectorXf &model_coefficients, std::vector<double> &distances) const
+      const Eigen::VectorXf &model_coefficients, std::vector<double> &distances)
 {
   // Needs a valid set of model coefficients
   if (!isModelValid (model_coefficients))
@@ -137,7 +134,6 @@ pcl::SampleConsensusModelStick<PointT>::selectWithinDistance (
 
   int nr_p = 0;
   inliers.resize (indices_->size ());
-  error_sqr_dists_.resize (indices_->size ());
 
   // Obtain the line point and direction
   Eigen::Vector4f line_pt1 (model_coefficients[0], model_coefficients[1], model_coefficients[2], 0);
@@ -162,21 +158,16 @@ pcl::SampleConsensusModelStick<PointT>::selectWithinDistance (
 
     float sqr_distance = dir.cross3 (line_dir).squaredNorm ();
     if (sqr_distance < sqr_threshold)
-    {
       // Returns the indices of the points whose squared distances are smaller than the threshold
-      inliers[nr_p] = (*indices_)[i];
-      error_sqr_dists_[nr_p] = static_cast<double> (sqr_distance);
-      ++nr_p;
-    }
+      inliers[nr_p++] = (*indices_)[i];
   }
   inliers.resize (nr_p);
-  error_sqr_dists_.resize (nr_p);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 template <typename PointT> int
 pcl::SampleConsensusModelStick<PointT>::countWithinDistance (
-      const Eigen::VectorXf &model_coefficients, const double threshold) const
+      const Eigen::VectorXf &model_coefficients, const double threshold)
 {
   // Needs a valid set of model coefficients
   if (!isModelValid (model_coefficients))
@@ -221,7 +212,7 @@ pcl::SampleConsensusModelStick<PointT>::countWithinDistance (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelStick<PointT>::optimizeModelCoefficients (
-      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients, Eigen::VectorXf &optimized_coefficients) const
+      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients, Eigen::VectorXf &optimized_coefficients)
 {
   // Needs a valid set of model coefficients
   if (!isModelValid (model_coefficients))
@@ -233,7 +224,7 @@ pcl::SampleConsensusModelStick<PointT>::optimizeModelCoefficients (
   // Need at least 2 points to estimate a line
   if (inliers.size () <= 2)
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelStick::optimizeModelCoefficients] Not enough inliers found to support a model (%lu)! Returning the same coefficients.\n", inliers.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelStick::optimizeModelCoefficients] Not enough inliers found to support a model (%zu)! Returning the same coefficients.\n", inliers.size ());
     optimized_coefficients = model_coefficients;
     return;
   }
@@ -256,13 +247,13 @@ pcl::SampleConsensusModelStick<PointT>::optimizeModelCoefficients (
   pcl::eigen33 (covariance_matrix, eigen_values);
   pcl::computeCorrespondingEigenVector (covariance_matrix, eigen_values [2], eigen_vector);
 
-  optimized_coefficients.template segment<3> (3).matrix () = eigen_vector;
+  optimized_coefficients.template segment<3> (3) = eigen_vector;
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelStick<PointT>::projectPoints (
-      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients, PointCloud &projected_points, bool copy_data_fields) const
+      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients, PointCloud &projected_points, bool copy_data_fields)
 {
   // Needs a valid model coefficients
   if (!isModelValid (model_coefficients))
@@ -335,7 +326,7 @@ pcl::SampleConsensusModelStick<PointT>::projectPoints (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> bool
 pcl::SampleConsensusModelStick<PointT>::doSamplesVerifyModel (
-      const std::set<int> &indices, const Eigen::VectorXf &model_coefficients, const double threshold) const
+      const std::set<int> &indices, const Eigen::VectorXf &model_coefficients, const double threshold)
 {
   // Needs a valid set of model coefficients
   if (!isModelValid (model_coefficients))

@@ -64,7 +64,7 @@ What `PointT` types are available in PCL?
 
 To cover all possible cases that we could think of, we defined a plethora of
 point types in PCL. The following might be only a snippet, please see
-`point_types.hpp <https://github.com/PointCloudLibrary/pcl/blob/master/common/include/pcl/impl/point_types.hpp>`_
+`point_types.hpp <http://docs.pointclouds.org/point__types_8hpp_source.html>`_
 for the complete list.
 
 This list is important, because before defining your own custom type, you need
@@ -127,7 +127,7 @@ addition, the type that you want, might already be defined for you.
 
 * `PointXYZRGBA` - Members: float x, y, z; uint32_t rgba;
 
-  Similar to `PointXYZI`, except `rgba` contains the RGBA information packed
+  Similar to `PointXYZI`, except `rgba` containts the RGBA information packed
   into a single integer.
 
 .. code-block:: cpp
@@ -197,7 +197,7 @@ addition, the type that you want, might already be defined for you.
 
 * `InterestPoint` - float x, y, z, strength;
 
-  Similar to `PointXYZI`, except `strength` contains a measure of the strength
+  Similar to `PointXYZI`, except `strength` containts a measure of the strength
   of the keypoint.
 
 .. code-block:: cpp
@@ -374,7 +374,7 @@ addition, the type that you want, might already be defined for you.
 
 * `PointWithRange` - float x, y, z (union with float point[4]), range;
 
-  Similar to `PointXYZI`, except `range` contains a measure of the distance
+  Similar to `PointXYZI`, except `range` containts a measure of the distance
   from the acqusition viewpoint to the point in the world.
 
 .. code-block:: cpp
@@ -401,7 +401,7 @@ addition, the type that you want, might already be defined for you.
 
 * `PointWithViewpoint` - float x, y, z, vp_x, vp_y, vp_z;
 
-  Similar to `PointXYZI`, except `vp_x`, `vp_y`, and `vp_z` contain the
+  Similar to `PointXYZI`, except `vp_x`, `vp_y`, and `vp_z` containt the
   acquisition viewpoint as a 3D point.
 
 .. code-block:: cpp
@@ -584,7 +584,7 @@ addition, the type that you want, might already be defined for you.
 
 * `PointWithScale` - float x, y, z, scale;
 
-  Similar to `PointXYZI`, except `scale` contains the scale at which a certain
+  Similar to `PointXYZI`, except `scale` containts the scale at which a certain
   point was considered for a geometric operation (e.g. the radius of the sphere
   for its nearest neighbors computation, the window size, etc).
 
@@ -796,7 +796,6 @@ point type `MyPointType` to work with. For example, say you want to use
 
 .. code-block:: cpp
 
-   #define PCL_NO_PRECOMPILE
    #include <pcl/filters/passthrough.h>
    #include <pcl/filters/impl/passthrough.hpp>
 
@@ -805,10 +804,6 @@ point type `MyPointType` to work with. For example, say you want to use
 If your code is part of the library, which gets used by others, it might also
 make sense to try to use explicit instantiations for your `MyPointType` types,
 for any classes that you expose (from PCL our outside PCL).
-
-.. note::
-   Starting with PCL-1.7 you need to define PCL_NO_PRECOMPILE before you include
-   any PCL headers to include the templated algorithms as well.
 
 Example
 -------
@@ -819,38 +814,37 @@ data (SSE padded), together with a test float.
 .. code-block:: cpp
    :linenos:
 
-   #define PCL_NO_PRECOMPILE
-   #include <pcl/point_types.h>
-   #include <pcl/point_cloud.h>
-   #include <pcl/io/pcd_io.h>
+    #include <pcl/point_types.h>
+    #include <pcl/point_cloud.h>
+    #include <pcl/io/pcd_io.h>
 
-   struct MyPointType
-   {
-     PCL_ADD_POINT4D;                  // preferred way of adding a XYZ+padding
-     float test;
-     EIGEN_MAKE_ALIGNED_OPERATOR_NEW   // make sure our new allocators are aligned
-   } EIGEN_ALIGN16;                    // enforce SSE padding for correct memory alignment
+    struct MyPointType
+    { 
+      PCL_ADD_POINT4D;                  // preferred way of adding a XYZ+padding
+      float test;
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW   // make sure our new allocators are aligned
+    } EIGEN_ALIGN16;                    // enforce SSE padding for correct memory alignment
 
-   POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,           // here we assume a XYZ + "test" (as fields)
-                                      (float, x, x)
-                                      (float, y, y)
-                                      (float, z, z)
-                                      (float, test, test)
-   )
+    POINT_CLOUD_REGISTER_POINT_STRUCT (MyPointType,           // here we assume a XYZ + "test" (as fields)
+                                       (float, x, x)
+                                       (float, y, y)
+                                       (float, z, z) 
+                                       (float, test, test)
+    )
+          
 
-
-   int
-   main (int argc, char** argv)
-   {
-     pcl::PointCloud<MyPointType> cloud;
-     cloud.points.resize (2);
-     cloud.width = 2;
-     cloud.height = 1;
-
-     cloud.points[0].test = 1;
-     cloud.points[1].test = 2;
-     cloud.points[0].x = cloud.points[0].y = cloud.points[0].z = 0;
-     cloud.points[1].x = cloud.points[1].y = cloud.points[1].z = 3;
-
-     pcl::io::savePCDFile ("test.pcd", cloud);
-   }
+    int  
+    main (int argc, char** argv)
+    { 
+      pcl::PointCloud<MyPointType> cloud;
+      cloud.points.resize (2);
+      cloud.width = 2;
+      cloud.height = 1;
+      
+      cloud.points[0].test = 1;
+      cloud.points[1].test = 2;
+      cloud.points[0].x = cloud.points[0].y = cloud.points[0].z = 0;
+      cloud.points[1].x = cloud.points[1].y = cloud.points[1].z = 3;
+      
+      pcl::io::savePCDFile ("test.pcd", cloud);
+    }

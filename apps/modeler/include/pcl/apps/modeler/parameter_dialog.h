@@ -36,7 +36,10 @@
 #ifndef PCL_MODELER_PARAMETER_DIALOG_H_
 #define PCL_MODELER_PARAMETER_DIALOG_H_
 
-#include <pcl/apps/modeler/qt.h>
+#include <QDialog>
+#include <QModelIndex>
+#include <QStandardItemModel>
+#include <QStyledItemDelegate>
 
 namespace pcl
 {
@@ -75,7 +78,7 @@ namespace pcl
         std::map<std::string, Parameter*>       name_parameter_map_;
         ParameterModel*                         parameter_model_;
 
-      protected Q_SLOTS:
+      protected slots:
         void
         reset();
     };

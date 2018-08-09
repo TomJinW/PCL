@@ -121,15 +121,11 @@ namespace pcl
         * SparseQuantizedMultiModTemplate format.
         *
         * \param[in] file_name The name of the file that stores the templates.
-        * \param object_id
         *
-        * \return true, if the operation was successful, false otherwise.
+        * \return true, if the operation was succesful, false otherwise.
         */
       bool
       loadTemplates (const std::string &file_name, size_t object_id = 0);
-
-      bool
-      addTemplate (const SparseQuantizedMultiModTemplate & sqmmt, pcl::PointCloud<pcl::PointXYZRGBA> & cloud, size_t object_id = 0);
 
       /** \brief Sets the threshold for the detection responses. Responses are between 0 and 1, where 1 is a best. 
         * \param[in] threshold The threshold used to decide where a template is detected.
@@ -187,29 +183,13 @@ namespace pcl
         color_gradient_mod_.processInputData ();
       }
 
-      /** \brief Creates a template from the specified data and adds it to the matching queue. 
-        * \param cloud
-        * \param object_id
-        * \param[in] mask_xyz the mask that determine which parts of the xyz-modality are used for creating the template.
-        * \param[in] mask_rgb the mask that determine which parts of the rgb-modality are used for creating the template.
-        * \param[in] region the region which will be associated with the template (can be larger than the actual modality-maps).
-        */
-      int 
-      createAndAddTemplate (
-        pcl::PointCloud<pcl::PointXYZRGBA> & cloud,
-        const size_t object_id,
-        const MaskMap & mask_xyz,
-        const MaskMap & mask_rgb,
-        const RegionXY & region);
-
-
       /** \brief Applies the detection process and fills the supplied vector with the detection instances. 
         * \param[out] detections The storage for the detection instances.
         */
       void 
       detect (std::vector<typename pcl::LineRGBD<PointXYZT, PointRGBT>::Detection> & detections);
 
-      /** \brief Applies the detection process in a semi-scale-invariant manner. This is done by actually
+      /** \brief Applies the detection process in a semi-scale-invariant manner. This is done by acutally
         *        scaling the template to different sizes.
         */
       void
@@ -240,8 +220,6 @@ namespace pcl
 
         // TODO: compute transform from detection
         // TODO: transform template points
-        std::vector<size_t> vec;
-        return (vec);
       }
 
 
@@ -259,8 +237,6 @@ namespace pcl
 
         // TODO: compute transform from detection
         // TODO: transform template points
-        std::vector<size_t> vec;
-        return (vec);
       }
 
       /** \brief Refines the found detections along the depth. */
@@ -276,8 +252,8 @@ namespace pcl
       removeOverlappingDetections ();
 
       /** \brief Computes the volume of the intersection between two bounding boxes.
-        * \param[in] box1 First bounding box.
-        * \param[in] box2 Second bounding box.
+        * \param[in] First bounding box.
+        * \param[in] Second bounding box.
         */
       static float
       computeBoundingBoxIntersectionVolume (const BoundingBoxXYZ &box1, const BoundingBoxXYZ &box2);
@@ -304,7 +280,7 @@ namespace pcl
 
       /** \brief Point clouds corresponding to the templates. */
       pcl::PointCloud<pcl::PointXYZRGBA>::CloudVectorType template_point_clouds_;
-      /** \brief Bounding boxes corresponding to the templates. */
+      /** \brief Bounding boxes corresonding to the templates. */
       std::vector<pcl::BoundingBoxXYZ> bounding_boxes_;
       /** \brief Object IDs corresponding to the templates. */
       std::vector<size_t> object_ids_;

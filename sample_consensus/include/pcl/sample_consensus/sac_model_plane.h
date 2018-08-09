@@ -3,7 +3,6 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -136,11 +135,8 @@ namespace pcl
   class SampleConsensusModelPlane : public SampleConsensusModel<PointT>
   {
     public:
-      using SampleConsensusModel<PointT>::model_name_;
       using SampleConsensusModel<PointT>::input_;
       using SampleConsensusModel<PointT>::indices_;
-      using SampleConsensusModel<PointT>::error_sqr_dists_;
-      using SampleConsensusModel<PointT>::isModelValid;
 
       typedef typename SampleConsensusModel<PointT>::PointCloud PointCloud;
       typedef typename SampleConsensusModel<PointT>::PointCloudPtr PointCloudPtr;
@@ -150,33 +146,14 @@ namespace pcl
 
       /** \brief Constructor for base SampleConsensusModelPlane.
         * \param[in] cloud the input point cloud dataset
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, bool random = false) 
-        : SampleConsensusModel<PointT> (cloud, random)
-      {
-        model_name_ = "SampleConsensusModelPlane";
-        sample_size_ = 3;
-        model_size_ = 4;
-      }
+      SampleConsensusModelPlane (const PointCloudConstPtr &cloud) : SampleConsensusModel<PointT> (cloud) {};
 
       /** \brief Constructor for base SampleConsensusModelPlane.
         * \param[in] cloud the input point cloud dataset
         * \param[in] indices a vector of point indices to be used from \a cloud
-        * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, 
-                                 const std::vector<int> &indices,
-                                 bool random = false) 
-        : SampleConsensusModel<PointT> (cloud, indices, random)
-      {
-        model_name_ = "SampleConsensusModelPlane";
-        sample_size_ = 3;
-        model_size_ = 4;
-      }
-      
-      /** \brief Empty destructor */
-      virtual ~SampleConsensusModelPlane () {}
+      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, const std::vector<int> &indices) : SampleConsensusModel<PointT> (cloud, indices) {};
 
       /** \brief Check whether the given index samples can form a valid plane model, compute the model coefficients from
         * these samples and store them internally in model_coefficients_. The plane coefficients are:
@@ -184,17 +161,17 @@ namespace pcl
         * \param[in] samples the point indices found as possible good candidates for creating a valid model
         * \param[out] model_coefficients the resultant model coefficients
         */
-      bool
-      computeModelCoefficients (const std::vector<int> &samples,
-                                Eigen::VectorXf &model_coefficients) const;
+      bool 
+      computeModelCoefficients (const std::vector<int> &samples, 
+                                Eigen::VectorXf &model_coefficients);
 
       /** \brief Compute all distances from the cloud data to a given plane model.
         * \param[in] model_coefficients the coefficients of a plane model that we need to compute distances to
         * \param[out] distances the resultant estimated distances
         */
-      void
-      getDistancesToModel (const Eigen::VectorXf &model_coefficients,
-                           std::vector<double> &distances) const;
+      void 
+      getDistancesToModel (const Eigen::VectorXf &model_coefficients, 
+                           std::vector<double> &distances);
 
       /** \brief Select all the points which respect the given model coefficients as inliers.
         * \param[in] model_coefficients the coefficients of a plane model that we need to compute distances to
@@ -213,19 +190,19 @@ namespace pcl
         * \return the resultant number of inliers
         */
       virtual int
-      countWithinDistance (const Eigen::VectorXf &model_coefficients,
-                           const double threshold) const;
+      countWithinDistance (const Eigen::VectorXf &model_coefficients, 
+                           const double threshold);
 
       /** \brief Recompute the plane coefficients using the given inlier set and return them to the user.
-        * @note: these are the coefficients of the plane model after refinement (e.g. after SVD)
+        * @note: these are the coefficients of the plane model after refinement (eg. after SVD)
         * \param[in] inliers the data inliers found as supporting the model
         * \param[in] model_coefficients the initial guess for the model coefficients
         * \param[out] optimized_coefficients the resultant recomputed coefficients after non-linear optimization
         */
-      void
-      optimizeModelCoefficients (const std::vector<int> &inliers,
-                                 const Eigen::VectorXf &model_coefficients,
-                                 Eigen::VectorXf &optimized_coefficients) const;
+      void 
+      optimizeModelCoefficients (const std::vector<int> &inliers, 
+                                 const Eigen::VectorXf &model_coefficients, 
+                                 Eigen::VectorXf &optimized_coefficients);
 
       /** \brief Create a new point cloud with inliers projected onto the plane model.
         * \param[in] inliers the data inliers that we want to project on the plane model
@@ -233,29 +210,41 @@ namespace pcl
         * \param[out] projected_points the resultant projected points
         * \param[in] copy_data_fields set to true if we need to copy the other data fields
         */
-      void
-      projectPoints (const std::vector<int> &inliers,
-                     const Eigen::VectorXf &model_coefficients,
-                     PointCloud &projected_points,
-                     bool copy_data_fields = true) const;
+      void 
+      projectPoints (const std::vector<int> &inliers, 
+                     const Eigen::VectorXf &model_coefficients, 
+                     PointCloud &projected_points, 
+                     bool copy_data_fields = true);
 
       /** \brief Verify whether a subset of indices verifies the given plane model coefficients.
         * \param[in] indices the data indices that need to be tested against the plane model
         * \param[in] model_coefficients the plane model coefficients
         * \param[in] threshold a maximum admissible distance threshold for determining the inliers from the outliers
         */
-      bool
-      doSamplesVerifyModel (const std::set<int> &indices,
-                            const Eigen::VectorXf &model_coefficients,
-                            const double threshold) const;
+      bool 
+      doSamplesVerifyModel (const std::set<int> &indices, 
+                            const Eigen::VectorXf &model_coefficients, 
+                            const double threshold);
 
       /** \brief Return an unique id for this model (SACMODEL_PLANE). */
       inline pcl::SacModel 
       getModelType () const { return (SACMODEL_PLANE); }
 
     protected:
-      using SampleConsensusModel<PointT>::sample_size_;
-      using SampleConsensusModel<PointT>::model_size_;
+      /** \brief Check whether a model is valid given the user constraints.
+        * \param[in] model_coefficients the set of model coefficients
+        */
+      inline bool 
+      isModelValid (const Eigen::VectorXf &model_coefficients)
+      {
+        // Needs a valid model coefficients
+        if (model_coefficients.size () != 4)
+        {
+          PCL_ERROR ("[pcl::SampleConsensusModelPlane::isModelValid] Invalid number of model coefficients given (%zu)!\n", model_coefficients.size ());
+          return (false);
+        }
+        return (true);
+      }
 
     private:
       /** \brief Check if a sample of indices results in a good sample of points
@@ -266,9 +255,5 @@ namespace pcl
       isSampleGood (const std::vector<int> &samples) const;
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/sample_consensus/impl/sac_model_plane.hpp>
-#endif
 
 #endif  //#ifndef PCL_SAMPLE_CONSENSUS_MODEL_PLANE_H_

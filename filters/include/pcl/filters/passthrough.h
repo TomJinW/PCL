@@ -16,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -86,11 +86,6 @@ namespace pcl
       typedef typename pcl::traits::fieldList<PointT>::type FieldList;
 
     public:
-
-      typedef boost::shared_ptr< PassThrough<PointT> > Ptr;
-      typedef boost::shared_ptr< const PassThrough<PointT> > ConstPtr;
-
-
       /** \brief Constructor.
         * \param[in] extract_removed_indices Set to true if you want to be able to extract the indices of points being removed (default = false).
         */
@@ -226,19 +221,19 @@ namespace pcl
     * \ingroup filters
     */
   template<>
-  class PCL_EXPORTS PassThrough<pcl::PCLPointCloud2> : public Filter<pcl::PCLPointCloud2>
+  class PCL_EXPORTS PassThrough<sensor_msgs::PointCloud2> : public Filter<sensor_msgs::PointCloud2>
   {
-    typedef pcl::PCLPointCloud2 PCLPointCloud2;
-    typedef PCLPointCloud2::Ptr PCLPointCloud2Ptr;
-    typedef PCLPointCloud2::ConstPtr PCLPointCloud2ConstPtr;
+    typedef sensor_msgs::PointCloud2 PointCloud2;
+    typedef PointCloud2::Ptr PointCloud2Ptr;
+    typedef PointCloud2::ConstPtr PointCloud2ConstPtr;
 
-    using Filter<pcl::PCLPointCloud2>::removed_indices_;
-    using Filter<pcl::PCLPointCloud2>::extract_removed_indices_;
+    using Filter<sensor_msgs::PointCloud2>::removed_indices_;
+    using Filter<sensor_msgs::PointCloud2>::extract_removed_indices_;
 
     public:
       /** \brief Constructor. */
       PassThrough (bool extract_removed_indices = false) :
-        Filter<pcl::PCLPointCloud2>::Filter (extract_removed_indices), keep_organized_ (false),
+        Filter<sensor_msgs::PointCloud2>::Filter (extract_removed_indices), keep_organized_ (false),
         user_filter_value_ (std::numeric_limits<float>::quiet_NaN ()),
         filter_field_name_ (""), filter_limit_min_ (-FLT_MAX), filter_limit_max_ (FLT_MAX),
         filter_limit_negative_ (false)
@@ -252,7 +247,7 @@ namespace pcl
         * structure. By default, points are removed.
         *
         * \param[in] val set to true whether the filtered points should be kept and
-        * set to a user given value (default: NaN)
+        * set to a given user value (default: NaN)
         */
       inline void
       setKeepOrganized (bool val)
@@ -347,11 +342,11 @@ namespace pcl
 
     protected:
       void
-      applyFilter (PCLPointCloud2 &output);
+      applyFilter (PointCloud2 &output);
 
     private:
       /** \brief Keep the structure of the data organized, by setting the
-        * filtered points to a user given value (NaN by default). 
+        * filtered points to the a user given value (NaN by default). 
         */
       bool keep_organized_;
 
@@ -374,10 +369,6 @@ namespace pcl
 
   };
 }
-
-#ifdef PCL_NO_PRECOMPILE
-#include <pcl/filters/impl/passthrough.hpp>
-#endif
 
 #endif  // PCL_FILTERS_PASSTHROUGH_H_
 

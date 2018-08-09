@@ -39,7 +39,7 @@
 
 namespace pcl
 {
-  namespace io
+  namespace octree
   {
 
     enum compression_Profiles_e

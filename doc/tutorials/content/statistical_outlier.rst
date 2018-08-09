@@ -33,14 +33,14 @@ removal: the original dataset is shown on the left, while the resultant one on
 the right. The graphic shows the mean k-nearest neighbor distances in a point
 neighborhood before and after filtering.
 
-.. image:: images/statistical_removal_2.jpg
+.. image:: images/statistical_removal_2.png
 
 
 The code
 --------
 
 First, download the dataset `table_scene_lms400.pcd
-<https://raw.github.com/PointCloudLibrary/data/master/tutorials/table_scene_lms400.pcd>`_
+<http://svn.pointclouds.org/data/tutorials/table_scene_lms400.pcd>`_
 and save it somewhere to disk.
 
 Then, create a file, let's say, ``statistical_removal.cpp`` in your favorite
@@ -65,7 +65,7 @@ The following lines of code will read the point cloud data from disk.
 Then, a *pcl::StatisticalOutlierRemoval* filter is created. The number of
 neighbors to analyze for each point is set to 50, and the standard deviation
 multiplier to 1. What this means is that all points who have a distance larger
-than 1 standard deviation of the mean distance to the query point will be
+than 1 standard deviation of the mean distance to teh query point will be
 marked as outliers and removed. The output is computed and stored in
 *cloud_filtered*.
 

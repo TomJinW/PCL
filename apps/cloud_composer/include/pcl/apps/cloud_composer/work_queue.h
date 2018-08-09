@@ -38,7 +38,9 @@
 #ifndef WORK_QUEUE_H_
 #define WORK_QUEUE_H_
 
-#include "qt.h"
+
+#include <QObject> 
+#include <QQueue>
 
 #include <pcl/apps/cloud_composer/commands.h>
 
@@ -61,7 +63,7 @@ namespace pcl
       public:
         WorkQueue (QObject* parent = 0);  
         virtual ~WorkQueue();  
-      public Q_SLOTS:
+      public slots:
         void
         enqueueNewAction (AbstractTool* new_tool, ConstItemList input_data);
         
@@ -70,7 +72,7 @@ namespace pcl
         
         void 
         checkQueue ();
-      Q_SIGNALS:
+      signals:
         void 
         commandProgress (QString command_text, double progress);
 
@@ -83,5 +85,20 @@ namespace pcl
     };
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif //WORK_QUEUE_H_

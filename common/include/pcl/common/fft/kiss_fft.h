@@ -6,6 +6,10 @@
 #include <math.h>
 #include <string.h>
 
+#if !defined(__APPLE__)
+#include <malloc.h>
+#endif
+
 #include <pcl/pcl_exports.h>
 
 #ifdef __cplusplus
